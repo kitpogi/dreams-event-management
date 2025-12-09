@@ -96,7 +96,9 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.error('Logout error:', error);
+      if (error.response?.status !== 401) {
+        console.error('Logout error:', error);
+      }
     } finally {
       // Clear state first
       localStorage.removeItem('token');
@@ -115,7 +117,9 @@ export const AuthProvider = ({ children }) => {
     fetchCurrentUser,
     loading,
     isAuthenticated: !!user && !!token,
-    isAdmin: user?.role === 'admin',
+    // Coordinators have admin privileges
+    isAdmin: user?.role === 'admin' || user?.role === 'coordinator',
+    isCoordinator: user?.role === 'coordinator',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
