@@ -103,7 +103,23 @@ class EventPackageSeeder extends Seeder
         ];
 
         foreach ($packages as $package) {
-            EventPackage::create($package);
+            $venue = $venues->firstWhere('id', $package['venue_id']);
+            $venueName = $venue ? $venue->name : 'N/A';
+
+            EventPackage::create([
+                'package_name' => $package['name'],
+                'package_description' => $package['description'],
+                'package_category' => $package['type'],
+                'package_price' => $package['price'],
+                'capacity' => $package['capacity'],
+                'package_image' => null,
+                'package_inclusions' => sprintf(
+                    'Theme: %s; Venue: %s; Featured: %s',
+                    $package['theme'],
+                    $venueName,
+                    $package['is_featured'] ? 'Yes' : 'No'
+                ),
+            ]);
         }
     }
 }

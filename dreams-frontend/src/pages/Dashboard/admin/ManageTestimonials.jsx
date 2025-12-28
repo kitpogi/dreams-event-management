@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
+import { ConfirmationModal, LoadingSpinner } from '../../../components/ui';
 
 const initialFormState = {
   client_name: '',
@@ -19,6 +20,7 @@ const ManageTestimonials = () => {
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, testimonialId: null });
 
   useEffect(() => {
     fetchTestimonials();
@@ -104,10 +106,13 @@ const ManageTestimonials = () => {
     setFeedback({ type: '', message: '' });
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this testimonial?')) {
-      return;
-    }
+  const handleDeleteClick = (id) => {
+    setDeleteConfirm({ isOpen: true, testimonialId: id });
+  };
+
+  const handleDelete = async () => {
+    const id = deleteConfirm.testimonialId;
+    if (!id) return;
 
     try {
       await api.delete(`/testimonials/${id}`);
@@ -119,6 +124,8 @@ const ManageTestimonials = () => {
     } catch (error) {
       console.error('Failed to delete testimonial', error);
       setFeedback({ type: 'error', message: 'Unable to delete testimonial.' });
+    } finally {
+      setDeleteConfirm({ isOpen: false, testimonialId: null });
     }
   };
 
@@ -131,7 +138,7 @@ const ManageTestimonials = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 ml-64 p-10 bg-gray-50 min-h-screen">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Manage Testimonials</h1>
@@ -295,8 +302,8 @@ const ManageTestimonials = () => {
                 <tbody className="divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="5" className="py-10 text-center text-gray-500">
-                        Loading testimonials...
+                      <td colSpan="5" className="py-10 text-center">
+                        <LoadingSpinner size="lg" />
                       </td>
                     </tr>
                   ) : testimonials.length === 0 ? (
@@ -358,7 +365,7 @@ const ManageTestimonials = () => {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDelete(testimonial.id)}
+                              onClick={() => handleDeleteClick(testimonial.id)}
                               className="px-3 py-1.5 rounded-md bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100"
                             >
                               Delete
@@ -373,6 +380,17 @@ const ManageTestimonials = () => {
             </div>
           </section>
         </div>
+
+        <ConfirmationModal
+          isOpen={deleteConfirm.isOpen}
+          onClose={() => setDeleteConfirm({ isOpen: false, testimonialId: null })}
+          onConfirm={handleDelete}
+          title="Delete Testimonial"
+          message="Are you sure you want to delete this testimonial? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+        />
       </main>
     </div>
   );

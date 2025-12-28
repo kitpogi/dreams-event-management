@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
+import { ConfirmationModal, LoadingSpinner } from '../../../components/ui';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -22,6 +23,7 @@ const ManagePortfolio = () => {
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, itemId: null });
 
   useEffect(() => {
     fetchItems();
@@ -138,10 +140,13 @@ const ManagePortfolio = () => {
     setFeedback({ type: '', message: '' });
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this portfolio item?')) {
-      return;
-    }
+  const handleDeleteClick = (id) => {
+    setDeleteConfirm({ isOpen: true, itemId: id });
+  };
+
+  const handleDelete = async () => {
+    const id = deleteConfirm.itemId;
+    if (!id) return;
 
     try {
       await api.delete(`/portfolio-items/${id}`);
@@ -153,6 +158,8 @@ const ManagePortfolio = () => {
     } catch (error) {
       console.error('Failed to delete portfolio item', error);
       setFeedback({ type: 'error', message: 'Unable to delete portfolio item.' });
+    } finally {
+      setDeleteConfirm({ isOpen: false, itemId: null });
     }
   };
 
@@ -165,7 +172,7 @@ const ManagePortfolio = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 ml-64 p-10 bg-gray-50 min-h-screen">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Manage Portfolio</h1>
@@ -326,8 +333,8 @@ const ManagePortfolio = () => {
                 <tbody className="divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan="5" className="py-10 text-center text-gray-500">
-                        Loading portfolio items...
+                      <td colSpan="5" className="py-10 text-center">
+                        <LoadingSpinner size="lg" />
                       </td>
                     </tr>
                   ) : items.length === 0 ? (
@@ -381,7 +388,7 @@ const ManagePortfolio = () => {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDelete(item.id)}
+                              onClick={() => handleDeleteClick(item.id)}
                               className="px-3 py-1.5 rounded-md bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100"
                             >
                               Delete
@@ -396,6 +403,17 @@ const ManagePortfolio = () => {
             </div>
           </section>
         </div>
+
+        <ConfirmationModal
+          isOpen={deleteConfirm.isOpen}
+          onClose={() => setDeleteConfirm({ isOpen: false, itemId: null })}
+          onConfirm={handleDelete}
+          title="Delete Portfolio Item"
+          message="Are you sure you want to delete this portfolio item? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+        />
       </main>
     </div>
   );

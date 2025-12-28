@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
-import { Button, Card, Input } from '../../../components/ui';
+import { Button, Card, Input, ConfirmationModal, LoadingSpinner } from '../../../components/ui';
 
 const ManageVenues = () => {
   const [venues, setVenues] = useState([]);
@@ -16,6 +16,7 @@ const ManageVenues = () => {
     description: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, venueId: null });
 
   useEffect(() => {
     fetchVenues();
@@ -94,8 +95,13 @@ const ManageVenues = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this venue?')) return;
+  const handleDeleteClick = (id) => {
+    setDeleteConfirm({ isOpen: true, venueId: id });
+  };
+
+  const handleDelete = async () => {
+    const id = deleteConfirm.venueId;
+    if (!id) return;
 
     try {
       await api.delete(`/venues/${id}`);
@@ -104,13 +110,15 @@ const ManageVenues = () => {
     } catch (error) {
       console.error('Error deleting venue:', error);
       toast.error(error.response?.data?.message || 'Failed to delete venue');
+    } finally {
+      setDeleteConfirm({ isOpen: false, venueId: null });
     }
   };
 
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 ml-64 p-10 bg-gray-50 min-h-screen">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Manage Venues</h1>
           <Button onClick={() => handleOpenModal()}>+ Add New Venue</Button>
@@ -118,7 +126,7 @@ const ManageVenues = () => {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <LoadingSpinner size="lg" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -146,7 +154,7 @@ const ManageVenues = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(venue.id)}
+                    onClick={() => handleDeleteClick(venue.id)}
                     className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded hover:bg-red-50"
                   >
                     Delete
@@ -237,6 +245,17 @@ const ManageVenues = () => {
             </div>
           </div>
         )}
+
+        <ConfirmationModal
+          isOpen={deleteConfirm.isOpen}
+          onClose={() => setDeleteConfirm({ isOpen: false, venueId: null })}
+          onConfirm={handleDelete}
+          title="Delete Venue"
+          message="Are you sure you want to delete this venue? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+        />
       </main>
     </div>
   );

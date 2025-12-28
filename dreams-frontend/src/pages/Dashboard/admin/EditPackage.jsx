@@ -20,6 +20,7 @@ const EditPackage = () => {
     is_featured: false,
   });
   const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [currentImageUrl, setCurrentImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingPackage, setLoadingPackage] = useState(true);
@@ -71,7 +72,14 @@ const EditPackage = () => {
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === 'file') {
-      setImageFile(files[0]);
+      const file = files[0];
+      setImageFile(file || null);
+      if (file) {
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+      } else {
+        setImagePreview(null);
+      }
     } else {
       setFormData({
         ...formData,
@@ -91,15 +99,13 @@ const EditPackage = () => {
       if (formData.theme && !fullDescription.includes(`Theme: ${formData.theme}`)) {
         fullDescription += `\n\nTheme: ${formData.theme}`;
       }
-      if (formData.capacity && !fullDescription.includes(`Capacity: ${formData.capacity}`)) {
-         fullDescription += `\nCapacity: ${formData.capacity} pax`;
-      }
 
       const data = new FormData();
       data.append('package_name', formData.name);
       data.append('package_description', fullDescription);
       data.append('package_price', parseFloat(formData.price));
       data.append('package_category', formData.type);
+      if (formData.capacity) data.append('capacity', parseInt(formData.capacity));
       data.append('venue_id', formData.venue_id);
       data.append('package_inclusions', formData.inclusions || 'Standard inclusions');
       
@@ -130,7 +136,7 @@ const EditPackage = () => {
     return (
       <div className="flex">
         <AdminSidebar />
-        <main className="flex-1 ml-64 p-10 bg-gray-50 min-h-screen">
+        <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
@@ -178,12 +184,27 @@ const EditPackage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Package Image
               </label>
-              {currentImageUrl && (
-                <div className="mb-2">
-                  <img src={currentImageUrl} alt="Current" className="h-32 w-auto object-cover rounded" />
-                  <p className="text-xs text-gray-500 mt-1">Current Image</p>
-                </div>
-              )}
+              <div className="space-y-3">
+                {currentImageUrl && !imageFile && (
+                  <div className="mb-2">
+                    <img src={currentImageUrl} alt="Current" className="h-32 w-auto object-cover rounded border" />
+                    <p className="text-xs text-gray-500 mt-1">Current Image</p>
+                  </div>
+                )}
+                {imageFile && (
+                  <div className="flex items-start gap-4">
+                    {imagePreview && (
+                      <img src={imagePreview} alt="Preview" className="h-32 w-32 object-cover rounded border-2 border-indigo-200" />
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Selected:</span> {imageFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">Upload a new image to replace the current one.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
               <input
                 type="file"
                 name="image"

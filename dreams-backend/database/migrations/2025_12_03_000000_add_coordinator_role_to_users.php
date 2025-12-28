@@ -12,8 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modify the enum to include 'coordinator'
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'client', 'coordinator') DEFAULT 'client'");
+        // For SQLite (testing), we skip the modification as it doesn't support MODIFY COLUMN
+        // For MySQL/MariaDB, we can use MODIFY COLUMN
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'client', 'coordinator') DEFAULT 'client'");
+        }
+        // SQLite will accept any string value, validation happens at application level
     }
 
     /**
@@ -21,8 +25,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Remove coordinator from enum
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'client') DEFAULT 'client'");
+        // For SQLite (testing), we skip the rollback
+        // For MySQL/MariaDB, revert back to original ENUM values
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'client') DEFAULT 'client'");
+        }
     }
 };
 

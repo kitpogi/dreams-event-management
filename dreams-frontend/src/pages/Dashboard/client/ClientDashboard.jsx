@@ -1,22 +1,43 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
-import { Card, Button } from '../../../components/ui';
+import { Card, Button, LoadingSpinner } from '../../../components/ui';
+import { TestimonialFormModal } from '../../../components/modals';
 
 const ClientDashboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showTestimonialModal, setShowTestimonialModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(10);
+  const [meta, setMeta] = useState({ total: 0, last_page: 1, status_counts: {} });
+
+  // Redirect admins to admin dashboard
+  useEffect(() => {
+    if (isAdmin) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isAdmin, navigate]);
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    fetchBookings(page);
+  }, [page]);
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (pageToLoad = 1) => {
     try {
-      const response = await api.get('/bookings');
+      setLoading(true);
+      const response = await api.get('/bookings', {
+        params: {
+          page: pageToLoad,
+          per_page: perPage,
+        },
+      });
       setBookings(response.data.data || response.data || []);
+      setMeta(response.data.meta || { total: 0, last_page: 1, status_counts: {} });
+      setPage(response.data.meta?.current_page || pageToLoad);
     } catch (error) {
       console.error('Error fetching bookings:', error);
       setBookings([]);
@@ -50,20 +71,36 @@ const ClientDashboard = () => {
     );
   };
 
+  // Helper function to get package price from booking
+  const getPackagePrice = (booking) => {
+    return booking?.eventPackage?.package_price || 
+           booking?.event_package?.package_price || 
+           booking?.package?.price || 
+           booking?.package?.package_price || 
+           null;
+  };
+
+  // Helper function to get package name from booking
+  const getPackageName = (booking) => {
+    return booking?.eventPackage?.package_name || 
+           booking?.event_package?.package_name || 
+           booking?.package?.name || 
+           booking?.package?.package_name || 
+           'N/A';
+  };
+
+  const statusCounts = meta.status_counts || {};
+  const confirmedCount = (statusCounts.approved ?? 0) + (statusCounts.confirmed ?? 0);
   const stats = {
-    total: bookings.length,
-    pending: bookings.filter((b) => {
-      const status = (b.booking_status || b.status || '').toLowerCase();
-      return status === 'pending';
-    }).length,
-    confirmed: bookings.filter((b) => {
-      const status = (b.booking_status || b.status || '').toLowerCase();
-      return status === 'confirmed' || status === 'approved';
-    }).length,
-    cancelled: bookings.filter((b) => {
-      const status = (b.booking_status || b.status || '').toLowerCase();
-      return status === 'cancelled';
-    }).length,
+    total: meta.total ?? bookings.length,
+    pending: statusCounts.pending ?? bookings.filter((b) => (b.booking_status || b.status || '').toLowerCase() === 'pending').length,
+    confirmed: confirmedCount !== 0
+      ? confirmedCount
+      : bookings.filter((b) => {
+          const status = (b.booking_status || b.status || '').toLowerCase();
+          return status === 'confirmed' || status === 'approved';
+        }).length,
+    cancelled: statusCounts.cancelled ?? bookings.filter((b) => (b.booking_status || b.status || '').toLowerCase() === 'cancelled').length,
   };
 
   const upcomingBookings = bookings
@@ -104,10 +141,7 @@ const ClientDashboard = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-            <p className="text-gray-600">Loading your dashboard...</p>
-          </div>
+          <LoadingSpinner size="lg" />
         </div>
       </div>
     );
@@ -270,7 +304,7 @@ const ClientDashboard = () => {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {booking.eventPackage?.package_name || booking.package?.name || 'Package'}
+                        {getPackageName(booking)}
                       </h3>
                       {getStatusBadge(booking.booking_status || booking.status)}
                     </div>
@@ -296,8 +330,8 @@ const ClientDashboard = () => {
                       </div>
                       <div>
                         <span className="font-medium">Price:</span>{' '}
-                        {booking.eventPackage?.package_price || booking.package?.price
-                          ? `₱${parseFloat(booking.eventPackage?.package_price || booking.package?.price || 0).toLocaleString('en-US', {
+                        {getPackagePrice(booking)
+                          ? `₱${parseFloat(getPackagePrice(booking)).toLocaleString('en-US', {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}`
@@ -330,11 +364,12 @@ const ClientDashboard = () => {
           <p className="text-gray-600 mb-4">
             Help others by sharing your experience! Submit a testimonial about your event.
           </p>
-          <Link to="/dashboard/testimonial">
-            <Button className="bg-amber-600 hover:bg-amber-700">
-              Submit Testimonial
-            </Button>
-          </Link>
+          <Button 
+            onClick={() => setShowTestimonialModal(true)}
+            className="bg-amber-600 hover:bg-amber-700"
+          >
+            Submit Testimonial
+          </Button>
         </Card>
       )}
 
@@ -401,7 +436,7 @@ const ClientDashboard = () => {
                     <tr key={booking.booking_id || booking.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {booking.eventPackage?.package_name || booking.package?.name || 'N/A'}
+                          {getPackageName(booking)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -427,8 +462,8 @@ const ClientDashboard = () => {
                         {getStatusBadge(booking.booking_status || booking.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {booking.eventPackage?.package_price || booking.package?.price
-                          ? `₱${parseFloat(booking.eventPackage?.package_price || booking.package?.price || 0).toLocaleString('en-US', {
+                        {getPackagePrice(booking)
+                          ? `₱${parseFloat(getPackagePrice(booking)).toLocaleString('en-US', {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}`
@@ -438,9 +473,39 @@ const ClientDashboard = () => {
                   ))}
               </tbody>
             </table>
+            <div className="flex items-center justify-between px-4 py-4 border-t bg-gray-50">
+              <div className="text-sm text-gray-600">
+                Page {page} of {meta.last_page || 1} • {meta.total || 0} total
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => (meta.last_page ? Math.min(meta.last_page, p + 1) : p + 1))}
+                  disabled={meta.last_page ? page >= meta.last_page : false}
+                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </Card>
+
+      {/* Testimonial Modal */}
+      <TestimonialFormModal
+        isOpen={showTestimonialModal}
+        onClose={() => setShowTestimonialModal(false)}
+        onSuccess={() => {
+          // Optionally refresh bookings or show success message
+        }}
+      />
     </div>
   );
 };

@@ -21,6 +21,17 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // Create or update coordinator user
+        User::updateOrCreate(
+            ['email' => 'coordinator@dreamsevents.com'],
+            [
+                'name' => 'Event Coordinator',
+                'password' => Hash::make('coordinator123'),
+                'phone' => '+63 912 345 6799',
+                'role' => 'coordinator',
+            ]
+        );
+
         // Create or update sample client users
         $clients = [
             [

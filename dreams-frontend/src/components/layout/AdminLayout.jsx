@@ -1,7 +1,9 @@
 const AdminLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50">
-      {children}
+      <div className="lg:ml-64">
+        {children}
+      </div>
     </div>
   );
 };

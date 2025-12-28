@@ -1,0 +1,10 @@
+⚠️ IMPORTANT: RESTART YOUR LARAVEL SERVER NOW ⚠️
+
+The code has been updated. Please:
+
+1. Stop your current server (press Ctrl+C in the terminal)
+2. Run: php artisan serve
+3. Try the AI feature again!
+
+The API endpoint has been fixed from v1beta to v1.
+

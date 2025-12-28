@@ -6,25 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // Legacy migration disabled: event_packages table replaced by event_package_tbl (capstone schema)
     public function up(): void
     {
-        Schema::create('event_packages', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('description');
-            $table->decimal('price', 10, 2);
-            $table->integer('capacity');
-            $table->foreignId('venue_id')->constrained()->onDelete('cascade');
-            $table->boolean('is_featured')->default(false);
-            $table->string('type')->nullable();
-            $table->string('theme')->nullable();
-            $table->timestamps();
-        });
+        // Intentionally left blank
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('event_packages');
+        // Intentionally left blank
     }
 };
 

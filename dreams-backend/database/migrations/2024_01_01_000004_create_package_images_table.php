@@ -6,20 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // Legacy migration disabled: package_images table tied to legacy event_packages
     public function up(): void
     {
-        Schema::create('package_images', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('package_id')->constrained('event_packages')->onDelete('cascade');
-            $table->string('image_url');
-            $table->boolean('is_primary')->default(false);
-            $table->timestamps();
-        });
+        // Intentionally left blank
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('package_images');
+        // Intentionally left blank
     }
 };
 

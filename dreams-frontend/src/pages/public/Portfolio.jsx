@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../api/axios';
+import { OptimizedImage } from '../../components/ui';
 
 const FALLBACK_IMAGE = 'https://via.placeholder.com/800x600?text=Portfolio';
 
@@ -89,15 +90,11 @@ const Portfolio = () => {
                 const imageSrc = item.image_url || item.image_path || FALLBACK_IMAGE;
                 return (
                   <div key={item.id} className="group relative overflow-hidden rounded-xl">
-                    <img
+                    <OptimizedImage
                       className="h-full w-full object-cover aspect-[4/3] transition-transform duration-500 ease-in-out group-hover:scale-105"
                       src={imageSrc}
                       alt={item.title || 'Portfolio item'}
-                      loading="lazy"
-                      onError={(event) => {
-                        event.currentTarget.onerror = null;
-                        event.currentTarget.src = FALLBACK_IMAGE;
-                      }}
+                      fallback={FALLBACK_IMAGE}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
                     <div className="absolute inset-0 flex flex-col justify-end p-6">

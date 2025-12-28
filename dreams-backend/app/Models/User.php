@@ -29,14 +29,20 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
-
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        // Coordinators have admin privileges
+        return $this->role === 'admin' || $this->role === 'coordinator';
+    }
+
+    public function isCoordinator(): bool
+    {
+        return $this->role === 'coordinator';
+    }
+
+    public function assignedBookings()
+    {
+        return $this->hasMany(BookingDetail::class, 'coordinator_id', 'id');
     }
 }
 

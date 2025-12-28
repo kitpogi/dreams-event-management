@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
@@ -53,6 +54,11 @@ const Register = () => {
     });
     
     if (result.success) {
+      // Show verification message
+      if (result.message) {
+        toast.success(result.message, { autoClose: 5000 });
+      }
+      
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       // Coordinators and admins go to admin dashboard
       if (userData.role === 'admin' || userData.role === 'coordinator') {
@@ -62,6 +68,7 @@ const Register = () => {
       }
     } else {
       setError(result.message);
+      toast.error(result.message);
     }
   };
 

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\BookingDetail;
 use App\Models\Recommendation;
+use App\Models\Review;
+use App\Models\EventPreference;
 
 class Client extends Model
 {
@@ -34,6 +36,16 @@ class Client extends Model
     public function recommendations()
     {
         return $this->hasMany(Recommendation::class, 'client_id', 'client_id');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'client_id', 'client_id');
+    }
+
+    public function eventPreference()
+    {
+        return $this->hasOne(EventPreference::class, 'client_id', 'client_id');
     }
 }
 

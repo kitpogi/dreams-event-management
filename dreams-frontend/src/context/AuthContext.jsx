@@ -56,6 +56,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      // Validate inputs before sending
+      if (!email || !password) {
+        return {
+          success: false,
+          message: 'Email and password are required',
+        };
+      }
+
       const response = await api.post('/auth/login', { email, password });
       const { token: newToken, user: userData } = response.data;
       
@@ -66,9 +74,34 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      let message = 'Login failed';
+      
+      if (error.response?.status === 422) {
+        // Validation errors
+        const errors = error.response.data?.errors;
+        if (errors) {
+          // Get first error message
+          const errorKeys = Object.keys(errors);
+          if (errorKeys.length > 0) {
+            const firstError = errors[errorKeys[0]];
+            message = Array.isArray(firstError) ? firstError[0] : firstError;
+          } else {
+            message = error.response.data?.message || 'Validation failed';
+          }
+        } else {
+          message = error.response.data?.message || message;
+        }
+      } else if (error.response?.status === 401) {
+        message = 'Invalid email or password';
+      } else {
+        message = error.response?.data?.message || message;
+      }
+      
+      console.error('Login error:', error.response?.data || error.message);
+      
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed',
+        message: message,
       };
     }
   };
@@ -76,18 +109,41 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
-      const { token: newToken, user: newUser } = response.data;
+      const { token: newToken, user: newUser, message } = response.data;
       
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
       
-      return { success: true };
+      return { 
+        success: true,
+        message: message || 'Registration successful! Please check your email to verify your account.'
+      };
     } catch (error) {
+      let message = 'Registration failed';
+      
+      if (error.response?.status === 422) {
+        // Validation errors
+        const errors = error.response.data?.errors;
+        if (errors) {
+          const errorKeys = Object.keys(errors);
+          if (errorKeys.length > 0) {
+            const firstError = errors[errorKeys[0]];
+            message = Array.isArray(firstError) ? firstError[0] : firstError;
+          } else {
+            message = error.response.data?.message || message;
+          }
+        } else {
+          message = error.response.data?.message || message;
+        }
+      } else {
+        message = error.response?.data?.message || message;
+      }
+      
       return {
         success: false,
-        message: error.response?.data?.message || 'Registration failed',
+        message: message,
       };
     }
   };
@@ -111,6 +167,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     token,
+    setUser,
+    setToken,
     login,
     register,
     logout,

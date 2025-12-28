@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ContactInquiryConfirmationMail;
 use App\Models\ContactInquiry;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class ContactController extends Controller
 {
@@ -54,6 +58,25 @@ class ContactController extends Controller
                 'message' => $request->message,
                 'status' => 'new',
             ]);
+
+            // Send confirmation email to the client (best-effort; do not block response)
+            if ($inquiry->email) {
+                try {
+                    Mail::to($inquiry->email)->send(new ContactInquiryConfirmationMail($inquiry));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send contact inquiry confirmation email: ' . $e->getMessage());
+                }
+            }
+
+            // Optional: notify admin if configured
+            $adminEmail = env('CONTACT_NOTIFY_EMAIL', env('MAIL_FROM_ADDRESS'));
+            if ($adminEmail) {
+                try {
+                    Mail::to($adminEmail)->send(new ContactInquiryConfirmationMail($inquiry));
+                } catch (\Exception $e) {
+                    Log::error('Failed to notify admin of contact inquiry: ' . $e->getMessage());
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -124,6 +147,79 @@ class ContactController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Export contact inquiries as CSV (admin only)
+     */
+    public function export(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json([
+                'message' => 'Unauthorized. Admin access required.'
+            ], 403);
+        }
+
+        $fileName = 'contact_inquiries_' . now()->format('Y_m_d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+        ];
+
+        $query = ContactInquiry::orderBy('created_at', 'desc');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('event_type')) {
+            $query->where('event_type', $request->event_type);
+        }
+
+        $columns = [
+            'Inquiry ID',
+            'Name',
+            'Email',
+            'Mobile Number',
+            'Event Type',
+            'Event Date',
+            'Preferred Venue',
+            'Budget',
+            'Estimated Guests',
+            'Status',
+            'Message',
+            'Created At',
+        ];
+
+        $callback = function () use ($query, $columns) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $columns);
+
+            $query->chunk(500, function ($inquiries) use ($handle) {
+                foreach ($inquiries as $inquiry) {
+                    $name = $inquiry->name ?? trim(($inquiry->first_name ?? '') . ' ' . ($inquiry->last_name ?? ''));
+
+                    fputcsv($handle, [
+                        $inquiry->id,
+                        $name,
+                        $inquiry->email,
+                        $inquiry->mobile_number,
+                        $inquiry->event_type,
+                        $inquiry->date_of_event ? Carbon::parse($inquiry->date_of_event)->toDateString() : '',
+                        $inquiry->preferred_venue,
+                        $inquiry->budget,
+                        $inquiry->estimated_guests,
+                        ucfirst($inquiry->status),
+                        $inquiry->message,
+                        $inquiry->created_at ? $inquiry->created_at->toDateTimeString() : '',
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
 

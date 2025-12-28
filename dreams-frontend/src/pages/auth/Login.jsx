@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { LoginModal } from '../../components/modals';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -144,7 +145,7 @@ const Login = () => {
                 <label className="flex flex-col w-full">
                   <div className="flex justify-between items-center pb-2">
                     <p className="text-gray-900 dark:text-gray-200 text-sm font-medium leading-normal">Password</p>
-                    <a className="text-primary hover:underline text-sm font-medium" href="#">Forgot Password?</a>
+                    <Link to="/forgot-password" className="text-primary hover:underline text-sm font-medium">Forgot Password?</Link>
                   </div>
                   <div className="flex w-full flex-1 items-stretch rounded-lg relative">
                     <input 

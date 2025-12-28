@@ -4,45 +4,46 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Review;
 
 class EventPackage extends Model
 {
     use HasFactory;
 
+    protected $table = 'event_packages';
+    protected $primaryKey = 'package_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
+
     protected $fillable = [
-        'name',
-        'description',
-        'price',
+        'package_name',
+        'package_description',
+        'package_category',
+        'package_price',
         'capacity',
         'venue_id',
-        'is_featured',
-        'type',
-        'theme',
-    ];
-
-    protected $casts = [
-        'is_featured' => 'boolean',
-        'price' => 'decimal:2',
+        'package_image',
+        'package_inclusions',
     ];
 
     public function venue()
     {
-        return $this->belongsTo(Venue::class);
+        return $this->belongsTo(Venue::class, 'venue_id', 'id');
     }
 
     public function bookings()
     {
-        return $this->hasMany(Booking::class, 'package_id');
+        return $this->hasMany(BookingDetail::class, 'package_id', 'package_id');
     }
 
-    public function images()
+    public function recommendations()
     {
-        return $this->hasMany(PackageImage::class, 'package_id');
+        return $this->hasMany(Recommendation::class, 'package_id', 'package_id');
     }
 
     public function reviews()
     {
-        return $this->hasMany(Review::class, 'package_id');
+        return $this->hasMany(Review::class, 'package_id', 'package_id');
     }
 }
 

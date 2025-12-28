@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
+import { LoadingSpinner, Button } from '../../../components/ui';
 
 const ManageContactInquiries = () => {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
@@ -25,11 +27,15 @@ const ManageContactInquiries = () => {
   };
 
   const handleStatusUpdate = async (id, status) => {
+    setUpdatingId(id);
     try {
       await api.patch(`/contact-inquiries/${id}/status`, { status });
+      toast.success('Inquiry status updated successfully');
       fetchInquiries();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update inquiry status');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -73,9 +79,12 @@ const ManageContactInquiries = () => {
     return (
       <div className="flex">
         <AdminSidebar />
-        <div className="ml-64 flex-1 p-8">
-          <div className="text-center">Loading inquiries...</div>
-        </div>
+        <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
+          <h1 className="text-3xl font-bold text-gray-800 mb-8">Contact Inquiries</h1>
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        </main>
       </div>
     );
   }
@@ -83,10 +92,33 @@ const ManageContactInquiries = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <div className="ml-64 flex-1 p-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Contact Inquiries</h1>
-          <p className="text-gray-600">Manage and respond to customer inquiries</p>
+      <div className="lg:ml-64 flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Contact Inquiries</h1>
+            <p className="text-gray-600">Manage and respond to customer inquiries</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const response = await api.get('/contact-inquiries/export', {
+                  responseType: 'blob',
+                });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'contact_inquiries.csv');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+              } catch (error) {
+                toast.error('Failed to export inquiries');
+              }
+            }}
+          >
+            Export CSV
+          </Button>
         </div>
 
         {/* Filter */}
@@ -181,13 +213,19 @@ const ManageContactInquiries = () => {
                   <select
                     value={inquiry.status}
                     onChange={(e) => handleStatusUpdate(inquiry.id, e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={updatingId === inquiry.id}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="new">New</option>
                     <option value="contacted">Contacted</option>
                     <option value="converted">Converted</option>
                     <option value="closed">Closed</option>
                   </select>
+                  {updatingId === inquiry.id && (
+                    <div className="inline-flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                    </div>
+                  )}
                   <a
                     href={`mailto:${inquiry.email}?subject=Re: Your Event Inquiry - ${inquiry.event_type || 'Event'}`}
                     className="ml-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"

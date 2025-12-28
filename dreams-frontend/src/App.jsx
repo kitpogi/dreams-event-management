@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/features';
 import { MainLayout, AdminLayout } from './components/layout';
+import { ErrorBoundary } from './components/ui';
 // Public pages
 import Home from './pages/public/Home';
 import Packages from './pages/public/Packages';
@@ -18,20 +19,26 @@ import ContactUs from './pages/public/ContactUs';
 // Auth pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import VerifyEmail from './pages/auth/VerifyEmail';
 // Client dashboard pages
-import ClientDashboard from './pages/dashboard/client/ClientDashboard';
-import SubmitTestimonial from './pages/dashboard/client/SubmitTestimonial';
+import ClientDashboard from './pages/Dashboard/client/ClientDashboard';
+import SubmitTestimonial from './pages/Dashboard/client/SubmitTestimonial';
 // Admin dashboard pages
-import AdminDashboard from './pages/dashboard/admin/AdminDashboard';
-import ManagePackages from './pages/dashboard/admin/ManagePackages';
-import CreatePackage from './pages/dashboard/admin/CreatePackage';
-import EditPackage from './pages/dashboard/admin/EditPackage';
-import ManageBookings from './pages/dashboard/admin/ManageBookings';
-import ManageClients from './pages/dashboard/admin/ManageClients';
-import ManageContactInquiries from './pages/dashboard/admin/ManageContactInquiries';
-import ManageVenues from './pages/dashboard/admin/ManageVenues';
-import ManagePortfolio from './pages/dashboard/admin/ManagePortfolio';
-import ManageTestimonials from './pages/dashboard/admin/ManageTestimonials';
+import AdminDashboard from './pages/Dashboard/admin/AdminDashboard';
+import ManagePackages from './pages/Dashboard/admin/ManagePackages';
+import CreatePackage from './pages/Dashboard/admin/CreatePackage';
+import EditPackage from './pages/Dashboard/admin/EditPackage';
+import ManageBookings from './pages/Dashboard/admin/ManageBookings';
+import ManageClients from './pages/Dashboard/admin/ManageClients';
+import ManageContactInquiries from './pages/Dashboard/admin/ManageContactInquiries';
+import ManageVenues from './pages/Dashboard/admin/ManageVenues';
+import ManagePortfolio from './pages/Dashboard/admin/ManagePortfolio';
+import ManageTestimonials from './pages/Dashboard/admin/ManageTestimonials';
+import AnalyticsDashboard from './pages/Dashboard/admin/AnalyticsDashboard';
+import AdminBookingsCalendar from './pages/Dashboard/admin/AdminBookingsCalendar';
+import AuditLogs from './pages/Dashboard/admin/AuditLogs';
 
 function App() {
   return (
@@ -59,13 +66,18 @@ function App() {
           <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
           <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
           <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
+          <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
+          <Route path="/reset-password" element={<MainLayout><ResetPassword /></MainLayout>} />
+          <Route path="/verify-email" element={<MainLayout><VerifyEmail /></MainLayout>} />
           <Route 
             path="/dashboard" 
             element={
               <MainLayout>
-                <ProtectedRoute>
-                  <ClientDashboard />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute>
+                    <ClientDashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </MainLayout>
             } 
           />
@@ -73,9 +85,11 @@ function App() {
             path="/dashboard/testimonial" 
             element={
               <MainLayout>
-                <ProtectedRoute>
-                  <SubmitTestimonial />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute>
+                    <SubmitTestimonial />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </MainLayout>
             } 
           />
@@ -83,9 +97,11 @@ function App() {
             path="/admin/dashboard" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <AdminDashboard />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -93,9 +109,11 @@ function App() {
             path="/admin/packages" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManagePackages />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManagePackages />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -103,9 +121,11 @@ function App() {
             path="/admin/packages/create" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <CreatePackage />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <CreatePackage />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -113,9 +133,11 @@ function App() {
             path="/admin/packages/:id/edit" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <EditPackage />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <EditPackage />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -123,9 +145,23 @@ function App() {
             path="/admin/bookings" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManageBookings />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManageBookings />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              </AdminLayout>
+            } 
+          />
+          <Route 
+            path="/admin/bookings/calendar" 
+            element={
+              <AdminLayout>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <AdminBookingsCalendar />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -133,9 +169,11 @@ function App() {
             path="/admin/clients" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManageClients />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManageClients />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -143,9 +181,11 @@ function App() {
             path="/admin/contact-inquiries" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManageContactInquiries />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManageContactInquiries />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -153,9 +193,11 @@ function App() {
             path="/admin/venues" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManageVenues />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManageVenues />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -163,9 +205,11 @@ function App() {
             path="/admin/portfolio" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManagePortfolio />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManagePortfolio />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />
@@ -173,9 +217,35 @@ function App() {
             path="/admin/testimonials" 
             element={
               <AdminLayout>
-                <ProtectedRoute requireAdmin>
-                  <ManageTestimonials />
-                </ProtectedRoute>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <ManageTestimonials />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              </AdminLayout>
+            } 
+          />
+          <Route 
+            path="/admin/audit-logs" 
+            element={
+              <AdminLayout>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <AuditLogs />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              </AdminLayout>
+            } 
+          />
+          <Route 
+            path="/admin/analytics" 
+            element={
+              <AdminLayout>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <AnalyticsDashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
               </AdminLayout>
             } 
           />

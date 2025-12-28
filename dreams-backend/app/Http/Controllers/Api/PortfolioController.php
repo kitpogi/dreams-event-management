@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PortfolioItem;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -12,6 +14,24 @@ class PortfolioController extends Controller
 {
     public function index(Request $request)
     {
+        // Build cache key based on request parameters
+        $cacheKey = 'portfolio_' . md5(json_encode([
+            'search' => $request->input('search'),
+            'category' => $request->input('category'),
+            'featured' => $request->boolean('featured'),
+            'limit' => $request->input('limit'),
+        ]));
+
+        // Cache for 1 hour (portfolio items don't change often)
+        // Only cache if no search/filter (to avoid cache bloat)
+        $shouldCache = !$request->filled('search') && !$request->filled('category');
+
+        if ($shouldCache && Cache::has($cacheKey)) {
+            return response()->json([
+                'data' => Cache::get($cacheKey),
+            ]);
+        }
+
         $query = PortfolioItem::query()
             ->orderBy('display_order')
             ->orderByDesc('event_date')
@@ -36,8 +56,15 @@ class PortfolioController extends Controller
             $query->limit((int) $limit);
         }
 
+        $items = $query->get();
+
+        // Cache the result if applicable
+        if ($shouldCache) {
+            Cache::put($cacheKey, $items, now()->addHour());
+        }
+
         return response()->json([
-            'data' => $query->get(),
+            'data' => $items,
         ]);
     }
 
@@ -47,6 +74,9 @@ class PortfolioController extends Controller
         $data['image_path'] = $this->resolveImagePath($request);
 
         $item = PortfolioItem::create($data);
+
+        // Clear portfolio cache
+        Cache::flush(); // Clear all cache
 
         return response()->json(['data' => $item], 201);
     }
@@ -61,16 +91,22 @@ class PortfolioController extends Controller
 
         $portfolioItem->update($data);
 
+        // Clear portfolio cache
+        Cache::flush(); // Clear all cache
+
         return response()->json(['data' => $portfolioItem]);
     }
 
     public function destroy(PortfolioItem $portfolioItem)
     {
         if ($portfolioItem->image_path && !Str::startsWith($portfolioItem->image_path, ['http://', 'https://'])) {
-            Storage::disk('public')->delete($portfolioItem->image_path);
+            app(ImageService::class)->deleteImage($portfolioItem->image_path);
         }
 
         $portfolioItem->delete();
+
+        // Clear portfolio cache
+        Cache::flush(); // Clear all cache
 
         return response()->json(['message' => 'Portfolio item deleted successfully']);
     }
@@ -94,11 +130,19 @@ class PortfolioController extends Controller
     protected function resolveImagePath(Request $request, ?PortfolioItem $existing = null): ?string
     {
         if ($request->hasFile('image')) {
+            // Delete old image if exists
             if ($existing && $existing->image_path && !Str::startsWith($existing->image_path, ['http://', 'https://'])) {
-                Storage::disk('public')->delete($existing->image_path);
+                app(ImageService::class)->deleteImage($existing->image_path);
             }
 
-            return $request->file('image')->store('portfolio', 'public');
+            $imageService = app(ImageService::class);
+            return $imageService->processAndStore(
+                $request->file('image'),
+                'portfolio',
+                1920, // max width
+                1080, // max height
+                85    // quality
+            );
         }
 
         if ($request->filled('image_url')) {

@@ -138,7 +138,7 @@ const Recommendations = () => {
 
   const formatPrice = (price) => {
     if (!price) return 'Price on request';
-    return `Starting from $${parseFloat(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `Starting from ₱${parseFloat(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatMatchScore = (score) => {

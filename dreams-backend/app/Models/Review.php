@@ -9,25 +9,36 @@ class Review extends Model
 {
     use HasFactory;
 
+    protected $table = 'reviews';
+    protected $primaryKey = 'review_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
+
     protected $fillable = [
-        'user_id',
+        'client_id',
         'package_id',
+        'booking_id',
         'rating',
-        'comment',
+        'review_message',
     ];
 
     protected $casts = [
         'rating' => 'integer',
     ];
 
-    public function user()
+    public function client()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Client::class, 'client_id', 'client_id');
     }
 
-    public function package()
+    public function eventPackage()
     {
-        return $this->belongsTo(EventPackage::class, 'package_id');
+        return $this->belongsTo(EventPackage::class, 'package_id', 'package_id');
+    }
+
+    public function booking()
+    {
+        return $this->belongsTo(BookingDetail::class, 'booking_id', 'booking_id');
     }
 }
 

@@ -27,7 +27,7 @@ const ManageClients = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 ml-64 p-10 bg-gray-50 min-h-screen">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Manage Clients</h1>
         {loading ? (
           <div className="flex items-center justify-center py-12">

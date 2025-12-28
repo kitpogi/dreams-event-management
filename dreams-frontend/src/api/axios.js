@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Ensure API base URL is configured
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL;
+if (!apiBaseURL) {
+  throw new Error('VITE_API_BASE_URL environment variable is not set. Please configure it in your .env file.');
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  baseURL: apiBaseURL,
   headers: {
     'Accept': 'application/json',
     'X-Requested-With': 'XMLHttpRequest',

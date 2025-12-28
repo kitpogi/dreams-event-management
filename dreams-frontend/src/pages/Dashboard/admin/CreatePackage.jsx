@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
@@ -21,6 +21,10 @@ const CreatePackage = () => {
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingVenues, setLoadingVenues] = useState(true);
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [secondaryFiles, setSecondaryFiles] = useState([]);
+  const [secondaryPreviews, setSecondaryPreviews] = useState([]);
 
   useEffect(() => {
     fetchVenues();
@@ -41,12 +45,75 @@ const CreatePackage = () => {
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === 'file') {
-      setImageFile(files[0]);
+      const file = files[0];
+      if (name === 'image') {
+        if (file) {
+          setImageFile(file);
+          const previewUrl = URL.createObjectURL(file);
+          setImagePreview(previewUrl);
+        } else {
+          setImageFile(null);
+          setImagePreview(null);
+        }
+      } else if (name === 'gallery') {
+        const validFiles = Array.from(files || []);
+        setSecondaryFiles(validFiles);
+        const previews = validFiles.map((f) => ({
+          name: f.name,
+          url: URL.createObjectURL(f),
+        }));
+        setSecondaryPreviews(previews);
+      }
     } else {
       setFormData({
         ...formData,
         [name]: type === 'checkbox' ? checked : value,
       });
+    }
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!imageFile) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    setAnalyzingImage(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('image', imageFile);
+
+      const response = await api.post('/analyze-package-image', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        const extractedData = response.data.data;
+        
+        // Auto-fill form with extracted data
+        setFormData({
+          name: extractedData.name || formData.name,
+          description: extractedData.description || formData.description,
+          price: extractedData.price || formData.price,
+          capacity: extractedData.capacity || formData.capacity,
+          type: extractedData.type || formData.type,
+          theme: extractedData.theme || formData.theme,
+          inclusions: extractedData.inclusions || formData.inclusions,
+          venue_id: formData.venue_id,
+          is_featured: formData.is_featured,
+        });
+
+        toast.success('Image analyzed! Form filled with extracted data. Please review and adjust as needed.');
+      } else {
+        toast.error(response.data.message || 'Failed to analyze image');
+      }
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      toast.error(error.response?.data?.message || 'Failed to analyze image. Please fill the form manually.');
+    } finally {
+      setAnalyzingImage(false);
     }
   };
 
@@ -58,7 +125,6 @@ const CreatePackage = () => {
       // Prepare description with extra details since schema is fixed
       let fullDescription = formData.description;
       if (formData.theme) fullDescription += `\n\nTheme: ${formData.theme}`;
-      if (formData.capacity) fullDescription += `\nCapacity: ${formData.capacity} pax`;
       // Venue is now handled by venue_id field
 
       const data = new FormData();
@@ -66,12 +132,17 @@ const CreatePackage = () => {
       data.append('package_description', fullDescription);
       data.append('package_price', parseFloat(formData.price));
       data.append('package_category', formData.type);
+      if (formData.capacity) data.append('capacity', parseInt(formData.capacity));
       data.append('venue_id', formData.venue_id);
       data.append('package_inclusions', formData.inclusions || 'Standard inclusions');
       
       if (imageFile) {
         data.append('package_image', imageFile);
       }
+
+      secondaryFiles.forEach((file, index) => {
+        data.append(`gallery_images[${index}]`, file);
+      });
 
       // Append is_featured if needed by backend (needs backend support)
       // data.append('is_featured', formData.is_featured ? 1 : 0);
@@ -94,7 +165,7 @@ const CreatePackage = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 ml-64 p-10 bg-gray-50 min-h-screen">
+      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Create New Package</h1>
         <div className="bg-white shadow-md rounded-xl p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -137,6 +208,91 @@ const CreatePackage = () => {
                 accept="image/*"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
+              
+              {imageFile && (
+                <div className="mt-4">
+                  <div className="flex items-start gap-4">
+                    {imagePreview && (
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600 mb-3">
+                        <span className="font-medium">Selected:</span> {imageFile.name}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleAnalyzeImage}
+                          disabled={analyzingImage}
+                          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {analyzingImage ? (
+                            <>
+                              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Analyzing Image with AI...
+                            </>
+                          ) : (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                              </svg>
+                              Auto-Fill with AI
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(null);
+                          }}
+                          className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        💡 Click to analyze the image and automatically fill form fields
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Additional Gallery Images
+              </label>
+              <input
+                type="file"
+                name="gallery"
+                onChange={handleChange}
+                accept="image/*"
+                multiple
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              {secondaryPreviews.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {secondaryPreviews.map((preview) => (
+                    <div key={preview.url} className="relative">
+                      <img src={preview.url} alt={preview.name} className="w-full h-24 object-cover rounded border" />
+                      <p className="text-xs mt-1 text-gray-600 truncate">{preview.name}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Optional: upload additional images (max {secondaryPreviews.length || 0} selected).
+              </p>
             </div>
 
             <div>

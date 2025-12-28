@@ -18,7 +18,7 @@ class Venue extends Model
 
     public function packages()
     {
-        return $this->hasMany(EventPackage::class);
+        return $this->hasMany(EventPackage::class, 'venue_id', 'id');
     }
 }
 

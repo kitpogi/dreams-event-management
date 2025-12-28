@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Review;
 
 class BookingDetail extends Model
 {
@@ -17,11 +18,14 @@ class BookingDetail extends Model
     protected $fillable = [
         'client_id',
         'package_id',
+        'coordinator_id',
         'event_date',
+        'event_time',
         'event_venue',
         'guest_count',
         'booking_status',
         'special_requests',
+        'internal_notes',
     ];
 
     protected $casts = [
@@ -36,6 +40,21 @@ class BookingDetail extends Model
     public function eventPackage()
     {
         return $this->belongsTo(EventPackage::class, 'package_id', 'package_id');
+    }
+
+    public function review()
+    {
+        return $this->hasOne(Review::class, 'booking_id', 'booking_id');
+    }
+
+    public function reminders()
+    {
+        return $this->hasMany(BookingReminder::class, 'booking_id', 'booking_id');
+    }
+
+    public function coordinator()
+    {
+        return $this->belongsTo(User::class, 'coordinator_id', 'id');
     }
 }
 

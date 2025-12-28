@@ -15,8 +15,8 @@ class ClientService
         return Client::firstOrCreate(
             ['client_email' => $user->email],
             [
-                'client_lname' => $user->name ?? 'Client',
-                'client_fname' => $user->name ?? 'Client',
+                'client_lname' => !empty($user->name) ? $user->name : 'Client',
+                'client_fname' => !empty($user->name) ? $user->name : 'Client',
                 'client_mname' => null,
                 'client_contact' => $user->phone ?? '',
                 'client_address' => '',

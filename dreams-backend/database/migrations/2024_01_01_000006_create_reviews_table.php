@@ -6,21 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // Legacy migration disabled: reviews table replaced by reviews_tbl (capstone schema)
     public function up(): void
     {
-        Schema::create('reviews', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('package_id')->constrained('event_packages')->onDelete('cascade');
-            $table->integer('rating');
-            $table->text('comment')->nullable();
-            $table->timestamps();
-        });
+        // Intentionally left blank
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('reviews');
+        // Intentionally left blank
     }
 };
 

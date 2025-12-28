@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -12,18 +13,29 @@ class TestimonialController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Testimonial::query()->orderByDesc('created_at');
+        // Build cache key based on request parameters
+        $cacheKey = 'testimonials_' . md5(json_encode([
+            'featured' => $request->boolean('featured'),
+            'limit' => $request->input('limit'),
+        ]));
 
-        if ($request->boolean('featured')) {
-            $query->where('is_featured', true);
-        }
+        // Cache for 1 hour
+        $testimonials = Cache::remember($cacheKey, now()->addHour(), function () use ($request) {
+            $query = Testimonial::query()->orderByDesc('created_at');
 
-        if ($limit = $request->input('limit')) {
-            $query->limit((int) $limit);
-        }
+            if ($request->boolean('featured')) {
+                $query->where('is_featured', true);
+            }
+
+            if ($limit = $request->input('limit')) {
+                $query->limit((int) $limit);
+            }
+
+            return $query->get();
+        });
 
         return response()->json([
-            'data' => $query->get(),
+            'data' => $testimonials,
         ]);
     }
 
@@ -34,6 +46,9 @@ class TestimonialController extends Controller
         $data['client_initials'] = $this->resolveInitials($data);
 
         $testimonial = Testimonial::create($data);
+
+        // Clear testimonials cache
+        Cache::flush(); // Clear all cache (or use tags if available)
 
         return response()->json(['data' => $testimonial], 201);
     }
@@ -50,6 +65,9 @@ class TestimonialController extends Controller
 
         $testimonial->update($data);
 
+        // Clear testimonials cache
+        Cache::flush(); // Clear all cache
+
         return response()->json(['data' => $testimonial]);
     }
 
@@ -60,6 +78,9 @@ class TestimonialController extends Controller
         }
 
         $testimonial->delete();
+
+        // Clear testimonials cache
+        Cache::flush(); // Clear all cache
 
         return response()->json(['message' => 'Testimonial deleted successfully']);
     }
@@ -92,6 +113,9 @@ class TestimonialController extends Controller
         $data['is_featured'] = false; // New client submissions are not featured by default (admin can feature later)
 
         $testimonial = Testimonial::create($data);
+
+        // Clear testimonials cache
+        Cache::flush(); // Clear all cache
 
         return response()->json([
             'message' => 'Thank you for your testimonial! It will be reviewed before being published.',

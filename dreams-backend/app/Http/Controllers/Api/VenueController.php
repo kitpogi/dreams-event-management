@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Venue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class VenueController extends Controller
 {
     public function index()
     {
-        $venues = Venue::all();
+        // Cache venues for 1 hour (3600 seconds) - they don't change often
+        $venues = Cache::remember('venues_all', now()->addHour(), function () {
+            return Venue::all();
+        });
+
         return response()->json([
             'status' => 'success',
             'data' => $venues
@@ -27,6 +32,9 @@ class VenueController extends Controller
         ]);
 
         $venue = Venue::create($validated);
+
+        // Clear venues cache
+        Cache::forget('venues_all');
 
         return response()->json([
             'status' => 'success',
@@ -55,6 +63,9 @@ class VenueController extends Controller
 
         $venue->update($validated);
 
+        // Clear venues cache
+        Cache::forget('venues_all');
+
         return response()->json([
             'status' => 'success',
             'message' => 'Venue updated successfully',
@@ -82,6 +93,9 @@ class VenueController extends Controller
         }
 
         $venue->delete();
+
+        // Clear venues cache
+        Cache::forget('venues_all');
 
         return response()->json([
             'status' => 'success',
