@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="w-full bg-[#FFF7F0] border-t border-[#e7dbcf]">
+    <footer className="w-full bg-[#FFF7F0] dark:bg-gray-900 border-t border-[#e7dbcf] dark:border-gray-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-4 text-[#1f2933]">
+          <div className="flex items-center gap-4 text-[#1f2933] dark:text-gray-200">
             <div className="size-6 text-[#5A45F2]">
               <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 6H42L36 24L42 42H6L12 24L6 6Z" fill="currentColor" />
@@ -15,12 +15,12 @@ const Footer = () => {
               D&apos;Dreams Events and Styles
             </h2>
           </div>
-          <p className="text-sm text-[#4b5563]">
+          <p className="text-sm text-[#4b5563] dark:text-gray-400">
             © {new Date().getFullYear()} D&apos;Dreams Events and Styles. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a
-              className="text-[#4b5563] hover:text-[#5A45F2] transition-colors"
+              className="text-[#4b5563] dark:text-gray-400 hover:text-[#5A45F2] dark:hover:text-[#7ee5ff] transition-colors"
               href="#"
               aria-label="Facebook"
             >
@@ -33,7 +33,7 @@ const Footer = () => {
               </svg>
             </a>
             <a
-              className="text-[#4b5563] hover:text-[#5A45F2] transition-colors"
+              className="text-[#4b5563] dark:text-gray-400 hover:text-[#5A45F2] dark:hover:text-[#7ee5ff] transition-colors"
               href="#"
               aria-label="Instagram"
             >
@@ -46,7 +46,7 @@ const Footer = () => {
               </svg>
             </a>
             <a
-              className="text-[#4b5563] hover:text-[#5A45F2] transition-colors"
+              className="text-[#4b5563] dark:text-gray-400 hover:text-[#5A45F2] dark:hover:text-[#7ee5ff] transition-colors"
               href="#"
               aria-label="Pinterest"
             >

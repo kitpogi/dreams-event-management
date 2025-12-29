@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LoginModal } from '../../components/modals';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -70,7 +69,7 @@ const Login = () => {
     <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
       <div className="layout-container flex h-full grow flex-col">
         <div className="flex flex-1 justify-center items-center p-4 sm:p-6 md:p-8">
-          <div className="layout-content-container flex flex-row max-w-6xl w-full bg-white dark:bg-black/20 shadow-xl rounded-xl overflow-hidden">
+          <div className="layout-content-container flex flex-row max-w-6xl w-full rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-all duration-300 hover:shadow-lg overflow-hidden">
             
             {/* Left Panel: Image */}
             <div className="hidden md:flex flex-1 w-1/2">

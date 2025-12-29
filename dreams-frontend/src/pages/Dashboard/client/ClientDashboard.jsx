@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
-import { Card, Button, LoadingSpinner } from '../../../components/ui';
+import { Card, Button, LoadingSpinner, SkeletonStatCard, SkeletonList } from '../../../components/ui';
 import { TestimonialFormModal } from '../../../components/modals';
 
 const ClientDashboard = () => {
@@ -139,9 +139,31 @@ const ClientDashboard = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <LoadingSpinner size="lg" />
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Welcome Section Skeleton */}
+        <div className="mb-8">
+          <div className="h-10 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+          <div className="h-5 w-96 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Quick Actions Skeleton */}
+        <div className="mb-8 flex flex-wrap gap-4">
+          <div className="h-10 w-40 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-48 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <SkeletonStatCard />
+          <SkeletonStatCard />
+          <SkeletonStatCard />
+          <SkeletonStatCard />
+        </div>
+
+        {/* Bookings List Skeleton */}
+        <div className="mb-8">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <SkeletonList items={5} />
         </div>
       </div>
     );

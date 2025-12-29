@@ -5,13 +5,13 @@ const Services = () => {
   const services = getAllServices();
 
   return (
-    <div className="w-full bg-[#f7f6f8] min-h-screen">
+    <div className="w-full bg-[#f7f6f8] dark:bg-gray-900 min-h-screen transition-colors duration-300">
       <div className="flex flex-1 justify-center py-16 px-4 sm:px-6 lg:px-8">
         <div className="flex w-full max-w-6xl flex-col items-center">
-          <h2 className="text-[#161118] text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-center">
+          <h2 className="text-[#161118] dark:text-white text-3xl sm:text-4xl font-bold leading-tight tracking-tight text-center transition-colors duration-300">
             Our Services
           </h2>
-          <p className="mt-4 max-w-2xl text-center text-lg text-[#7c6189]">
+          <p className="mt-4 max-w-2xl text-center text-lg text-[#7c6189] dark:text-gray-300 transition-colors duration-300">
             We offer a range of services to make your event unforgettable. From intimate gatherings to grand celebrations, we&apos;ve got you covered.
           </p>
 
@@ -19,19 +19,19 @@ const Services = () => {
             {services.map((service) => (
               <div
                 key={service.id}
-                className="flex flex-col gap-4 rounded-xl border border-[#e2dbe6] bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-lg"
+                className="flex flex-col gap-4 rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-white dark:bg-gray-800 p-6 text-center shadow-sm transition-all duration-300 hover:shadow-lg"
               >
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#a413ec]/10">
-                  <span className="material-symbols-outlined text-[#a413ec] text-3xl">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#a413ec]/10 dark:bg-[#a413ec]/20">
+                  <span className="material-symbols-outlined text-[#a413ec] dark:text-[#a413ec] text-3xl">
                     {service.icon}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-[#161118] text-lg font-bold leading-tight">
+                  <h3 className="text-[#161118] dark:text-white text-lg font-bold leading-tight transition-colors duration-300">
                     {service.title}
                   </h3>
-                  <p className="text-[#7c6189] text-sm">
+                  <p className="text-[#7c6189] dark:text-gray-300 text-sm transition-colors duration-300">
                     {service.description}
                   </p>
                 </div>

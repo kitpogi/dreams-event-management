@@ -2,9 +2,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/features';
 import { MainLayout, AdminLayout } from './components/layout';
-import { ErrorBoundary } from './components/ui';
+import { ErrorBoundary, Toaster } from './components/ui';
 // Public pages
 import Home from './pages/public/Home';
 import Packages from './pages/public/Packages';
@@ -39,11 +40,14 @@ import ManageTestimonials from './pages/Dashboard/admin/ManageTestimonials';
 import AnalyticsDashboard from './pages/Dashboard/admin/AnalyticsDashboard';
 import AdminBookingsCalendar from './pages/Dashboard/admin/AdminBookingsCalendar';
 import AuditLogs from './pages/Dashboard/admin/AuditLogs';
+// Test component for UI verification
+import SpacingSystemTest from './components/test/SpacingSystemTest';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
         <Routes>
           <Route path="/" element={<MainLayout><Home /></MainLayout>} />
           <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
@@ -64,6 +68,7 @@ function App() {
           <Route path="/recommendations" element={<MainLayout><Recommendations /></MainLayout>} />
           <Route path="/set-an-event" element={<MainLayout><SetAnEvent /></MainLayout>} />
           <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
+          <Route path="/test-spacing" element={<MainLayout><SpacingSystemTest /></MainLayout>} />
           <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
           <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
           <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
@@ -263,7 +268,9 @@ function App() {
         pauseOnHover
         theme="light"
       />
-    </AuthProvider>
+      <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

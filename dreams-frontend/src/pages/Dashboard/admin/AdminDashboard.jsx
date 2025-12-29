@@ -9,9 +9,10 @@ import {
   CheckCircleIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline';
+import { Package, Calendar, Users, Clock, TrendingUp } from 'lucide-react';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
-import { LoadingSpinner } from '../../../components/ui';
+import { LoadingSpinner, StatsCard, DataTable, Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 
 const AdminDashboard = () => {
@@ -108,25 +109,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, link, linkText, icon: Icon }) => (
-    <div className="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition-shadow duration-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-gray-500 text-sm font-medium uppercase">{title}</h3>
-        <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-indigo-50">
-          <Icon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-        </span>
-      </div>
-      <p className="text-3xl font-bold text-gray-800 mb-2">{value}</p>
-      {link && (
-        <Link
-          to={link}
-          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-        >
-          {linkText} →
-        </Link>
-      )}
-    </div>
-  );
 
   return (
     <div className="flex">
@@ -243,136 +225,159 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               {isCoordinator ? (
                 <>
-                  <StatCard
+                  <StatsCard
                     title="My Assigned Bookings"
                     value={stats.assignedBookings}
                     link="/admin/bookings"
                     linkText="View Bookings"
-                    icon={CalendarDaysIcon}
+                    icon={Calendar}
+                    variant="primary"
                   />
-                  <StatCard
+                  <StatsCard
                     title="Pending Bookings"
                     value={stats.pendingAssigned}
                     link="/admin/bookings"
                     linkText="View Pending"
-                    icon={ClockIcon}
+                    icon={Clock}
+                    variant="warning"
                   />
-                  <StatCard
+                  <StatsCard
                     title="Upcoming Events"
                     value={stats.upcomingEvents}
                     link="/admin/bookings"
                     linkText="View Upcoming"
-                    icon={CalendarIcon}
+                    icon={Calendar}
+                    variant="success"
                   />
-                  <StatCard
+                  <StatsCard
                     title="Completed This Month"
                     value={stats.completedEvents}
                     icon={CheckCircleIcon}
+                    variant="default"
                   />
                 </>
               ) : (
                 <>
-                  <StatCard
+                  <StatsCard
                     title="Total Packages"
                     value={stats.totalPackages}
                     link="/admin/packages"
                     linkText="Manage Packages"
-                    icon={CubeIcon}
+                    icon={Package}
+                    variant="primary"
                   />
-                  <StatCard
+                  <StatsCard
                     title="Total Bookings"
                     value={stats.totalBookings}
                     link="/admin/bookings"
                     linkText="Manage Bookings"
-                    icon={CalendarDaysIcon}
+                    icon={Calendar}
+                    variant="success"
                   />
-                  <StatCard
+                  <StatsCard
                     title="Total Clients"
                     value={stats.totalClients}
                     link="/admin/clients"
                     linkText="Manage Clients"
-                    icon={UsersIcon}
+                    icon={Users}
+                    variant="default"
                   />
-                  <StatCard
+                  <StatsCard
                     title="Pending Bookings"
                     value={stats.pendingBookings}
-                    icon={ClockIcon}
+                    icon={Clock}
+                    variant="warning"
                   />
                 </>
               )}
             </div>
 
             <section className="bg-white p-6 shadow-md rounded-xl">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                {isCoordinator ? 'My Recent Bookings' : 'Recent Activities'}
-              </h2>
-              {recentBookings.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Client
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Package
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Event Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {recentBookings.map((booking, index) => (
-                        <tr key={booking.booking_id || booking.id || index} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {booking.client ? `${booking.client.client_fname} ${booking.client.client_lname}` : (booking.user?.name || 'N/A')}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {booking.event_package?.package_name || booking.package?.name || 'N/A'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {new Date(booking.event_date).toLocaleDateString()}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                (booking.booking_status || booking.status || '').toLowerCase() === 'confirmed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : (booking.booking_status || booking.status || '').toLowerCase() === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {booking.booking_status || booking.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ₱{parseFloat(booking.event_package?.package_price || booking.total_price || 0).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <Tabs defaultValue="recent" className="w-full">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {isCoordinator ? 'My Recent Bookings' : 'Recent Activities'}
+                  </h2>
+                  <TabsList>
+                    <TabsTrigger value="recent">Recent</TabsTrigger>
+                    <TabsTrigger value="all">All Bookings</TabsTrigger>
+                  </TabsList>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No recent bookings found.</p>
-              )}
+                <TabsContent value="recent" className="mt-6">
+                  {recentBookings.length > 0 ? (
+                    <DataTable
+                      data={recentBookings}
+                      columns={[
+                        {
+                          accessor: 'client_name',
+                          header: 'Client',
+                          sortable: true,
+                          render: (row) => row.client?.name || row.client_name || 'N/A',
+                        },
+                        {
+                          accessor: 'package_name',
+                          header: 'Package',
+                          sortable: true,
+                          render: (row) => row.package?.package_name || row.package_name || 'N/A',
+                        },
+                        {
+                          accessor: 'event_date',
+                          header: 'Event Date',
+                          sortable: true,
+                          render: (row) => row.event_date 
+                            ? new Date(row.event_date).toLocaleDateString()
+                            : 'N/A',
+                        },
+                        {
+                          accessor: 'status',
+                          header: 'Status',
+                          sortable: true,
+                          render: (row) => {
+                            const status = (row.booking_status || row.status || '').toLowerCase();
+                            const colors = {
+                              pending: 'bg-yellow-100 text-yellow-800',
+                              confirmed: 'bg-green-100 text-green-800',
+                              completed: 'bg-blue-100 text-blue-800',
+                              cancelled: 'bg-red-100 text-red-800',
+                            };
+                            return (
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                colors[status] || 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                              </span>
+                            );
+                          },
+                        },
+                        {
+                          accessor: 'total_amount',
+                          header: 'Amount',
+                          sortable: true,
+                          render: (row) => row.total_amount 
+                            ? `₱${parseFloat(row.total_amount).toLocaleString()}`
+                            : 'N/A',
+                        },
+                      ]}
+                      searchable
+                      pagination={false}
+                    />
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      No recent bookings found.
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="all" className="mt-6">
+                  <div className="text-center py-12 text-gray-500">
+                    <Link to="/admin/bookings" className="text-indigo-600 hover:text-indigo-700">
+                      View all bookings →
+                    </Link>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </section>
           </>
         )}

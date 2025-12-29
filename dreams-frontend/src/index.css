@@ -2,12 +2,702 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  :root {
+    /* Base colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262.1 83.3% 57.8%;
+    --radius: 0.5rem;
+
+    /* Spacing System - Component Spacing */
+    --spacing-component-xs: 0.25rem;    /* 4px - tight spacing for icons, badges */
+    --spacing-component-sm: 0.5rem;     /* 8px - small spacing for buttons, inputs */
+    --spacing-component-md: 1rem;       /* 16px - medium spacing for cards, sections */
+    --spacing-component-lg: 1.5rem;     /* 24px - large spacing for groups */
+    --spacing-component-xl: 2rem;       /* 32px - extra large spacing */
+    --spacing-component-2xl: 3rem;      /* 48px - 2x large spacing */
+    --spacing-component-3xl: 4rem;      /* 64px - 3x large spacing */
+
+    /* Spacing System - Section Spacing */
+    --spacing-section-xs: 2rem;        /* 32px - small section spacing */
+    --spacing-section-sm: 3rem;        /* 48px - medium section spacing */
+    --spacing-section-md: 4rem;        /* 64px - standard section spacing */
+    --spacing-section-lg: 6rem;         /* 96px - large section spacing */
+    --spacing-section-xl: 8rem;          /* 128px - extra large section spacing */
+    --spacing-section-2xl: 12rem;      /* 192px - 2x large section spacing */
+
+    /* Spacing System - Layout Spacing */
+    --spacing-layout-xs: 1rem;          /* 16px - small layout spacing */
+    --spacing-layout-sm: 1.5rem;        /* 24px - medium layout spacing */
+    --spacing-layout-md: 2rem;          /* 32px - standard layout spacing */
+    --spacing-layout-lg: 3rem;          /* 48px - large layout spacing */
+    --spacing-layout-xl: 4rem;          /* 64px - extra large layout spacing */
+
+    /* Primary color scale (based on brand-primary #5A45F2) */
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+    --primary-50: 262 100% 97%;
+    --primary-100: 262 95% 94%;
+    --primary-200: 262 90% 88%;
+    --primary-300: 262 85% 78%;
+    --primary-400: 262 80% 68%;
+    --primary-500: 262 83.3% 57.8%;
+    --primary-600: 262 75% 48%;
+    --primary-700: 262 70% 40%;
+    --primary-800: 262 65% 32%;
+    --primary-900: 262 60% 24%;
+    --primary-950: 262 55% 16%;
+
+    /* Secondary color scale (based on brand-secondary #7c3aed) */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary-50: 210 50% 98%;
+    --secondary-100: 210 45% 95%;
+    --secondary-200: 210 40% 90%;
+    --secondary-300: 210 35% 80%;
+    --secondary-400: 210 30% 70%;
+    --secondary-500: 210 25% 60%;
+    --secondary-600: 210 30% 50%;
+    --secondary-700: 210 35% 40%;
+    --secondary-800: 210 40% 30%;
+    --secondary-900: 210 45% 20%;
+    --secondary-950: 210 50% 15%;
+
+    /* Muted color scale */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-50: 210 40% 98%;
+    --muted-100: 210 40% 96%;
+    --muted-200: 210 40% 92%;
+    --muted-300: 210 40% 85%;
+    --muted-400: 210 40% 75%;
+    --muted-500: 215.4 16.3% 46.9%;
+    --muted-600: 215.4 20% 40%;
+    --muted-700: 215.4 25% 35%;
+    --muted-800: 215.4 30% 28%;
+    --muted-900: 215.4 35% 20%;
+    --muted-950: 215.4 40% 12%;
+
+    /* Accent color scale (based on brand-accent #7ee5ff) */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-50: 195 100% 98%;
+    --accent-100: 195 95% 95%;
+    --accent-200: 195 90% 90%;
+    --accent-300: 195 85% 82%;
+    --accent-400: 195 80% 72%;
+    --accent-500: 195 75% 62%;
+    --accent-600: 195 70% 52%;
+    --accent-700: 195 65% 42%;
+    --accent-800: 195 60% 32%;
+    --accent-900: 195 55% 22%;
+    --accent-950: 195 50% 15%;
+
+    /* Destructive/Error color scale (red) - WCAG AA compliant */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --destructive-50: 0 100% 97%;
+    --destructive-100: 0 95% 94%;
+    --destructive-200: 0 90% 88%;
+    --destructive-300: 0 85% 78%;
+    --destructive-400: 0 80% 68%;
+    --destructive-500: 0 84.2% 60.2%;
+    --destructive-600: 0 72% 50%;
+    --destructive-700: 0 65% 42%;
+    --destructive-800: 0 60% 35%;
+    --destructive-900: 0 55% 28%;
+    --destructive-950: 0 50% 18%;
+
+    --error: 0 84.2% 60.2%;
+    --error-foreground: 0 0% 98%;
+    --error-50: 0 100% 97%;
+    --error-100: 0 95% 94%;
+    --error-200: 0 90% 88%;
+    --error-300: 0 85% 78%;
+    --error-400: 0 80% 68%;
+    --error-500: 0 84.2% 60.2%;
+    --error-600: 0 72% 50%;
+    --error-700: 0 65% 42%;
+    --error-800: 0 60% 35%;
+    --error-900: 0 55% 28%;
+    --error-950: 0 50% 18%;
+
+    /* Success color scale (green) - WCAG AA compliant */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --success-50: 142 100% 97%;
+    --success-100: 142 95% 94%;
+    --success-200: 142 90% 88%;
+    --success-300: 142 85% 75%;
+    --success-400: 142 80% 60%;
+    --success-500: 142 76% 36%;
+    --success-600: 142 70% 32%;
+    --success-700: 142 65% 28%;
+    --success-800: 142 60% 24%;
+    --success-900: 142 55% 20%;
+    --success-950: 142 50% 15%;
+
+    /* Warning color scale (amber/yellow) - WCAG AA compliant */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 9%;
+    --warning-50: 48 100% 96%;
+    --warning-100: 48 96% 89%;
+    --warning-200: 48 92% 78%;
+    --warning-300: 48 88% 65%;
+    --warning-400: 48 85% 55%;
+    --warning-500: 38 92% 50%;
+    --warning-600: 38 85% 45%;
+    --warning-700: 38 78% 38%;
+    --warning-800: 38 70% 32%;
+    --warning-900: 38 62% 26%;
+    --warning-950: 38 55% 20%;
+
+    /* Info color scale (blue) - WCAG AA compliant */
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 98%;
+    --info-50: 217 100% 97%;
+    --info-100: 217 96% 94%;
+    --info-200: 217 92% 88%;
+    --info-300: 217 88% 78%;
+    --info-400: 217 85% 68%;
+    --info-500: 217 91% 60%;
+    --info-600: 217 80% 52%;
+    --info-700: 217 75% 44%;
+    --info-800: 217 70% 36%;
+    --info-900: 217 65% 28%;
+    --info-950: 217 60% 20%;
+
+    /* Brand Primary color scale (#5A45F2) */
+    --brand-primary: 262 83.3% 57.8%;
+    --brand-primary-50: 262 100% 97%;
+    --brand-primary-100: 262 95% 94%;
+    --brand-primary-200: 262 90% 88%;
+    --brand-primary-300: 262 85% 78%;
+    --brand-primary-400: 262 80% 68%;
+    --brand-primary-500: 262 83.3% 57.8%;
+    --brand-primary-600: 262 75% 48%;
+    --brand-primary-700: 262 70% 40%;
+    --brand-primary-800: 262 65% 32%;
+    --brand-primary-900: 262 60% 24%;
+    --brand-primary-950: 262 55% 16%;
+
+    /* Brand Secondary color scale (#7c3aed) */
+    --brand-secondary: 262 75% 58%;
+    --brand-secondary-50: 262 100% 97%;
+    --brand-secondary-100: 262 95% 94%;
+    --brand-secondary-200: 262 90% 88%;
+    --brand-secondary-300: 262 85% 78%;
+    --brand-secondary-400: 262 80% 68%;
+    --brand-secondary-500: 262 75% 58%;
+    --brand-secondary-600: 262 70% 48%;
+    --brand-secondary-700: 262 65% 40%;
+    --brand-secondary-800: 262 60% 32%;
+    --brand-secondary-900: 262 55% 24%;
+    --brand-secondary-950: 262 50% 16%;
+
+    /* Brand Accent color scale (#7ee5ff) */
+    --brand-accent: 195 100% 75%;
+    --brand-accent-50: 195 100% 98%;
+    --brand-accent-100: 195 95% 95%;
+    --brand-accent-200: 195 90% 90%;
+    --brand-accent-300: 195 85% 82%;
+    --brand-accent-400: 195 80% 75%;
+    --brand-accent-500: 195 100% 75%;
+    --brand-accent-600: 195 70% 65%;
+    --brand-accent-700: 195 65% 55%;
+    --brand-accent-800: 195 60% 45%;
+    --brand-accent-900: 195 55% 35%;
+    --brand-accent-950: 195 50% 25%;
+  }
+
+  .dark {
+    /* Base colors */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 262.1 83.3% 57.8%;
+
+    /* Primary color scale (dark mode) */
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+    --primary-50: 262 55% 16%;
+    --primary-100: 262 60% 24%;
+    --primary-200: 262 65% 32%;
+    --primary-300: 262 70% 40%;
+    --primary-400: 262 75% 48%;
+    --primary-500: 262 83.3% 57.8%;
+    --primary-600: 262 80% 68%;
+    --primary-700: 262 85% 78%;
+    --primary-800: 262 90% 88%;
+    --primary-900: 262 95% 94%;
+    --primary-950: 262 100% 97%;
+
+    /* Secondary color scale (dark mode) */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --secondary-50: 210 50% 15%;
+    --secondary-100: 210 45% 20%;
+    --secondary-200: 210 40% 30%;
+    --secondary-300: 210 35% 40%;
+    --secondary-400: 210 30% 50%;
+    --secondary-500: 210 25% 60%;
+    --secondary-600: 210 30% 70%;
+    --secondary-700: 210 35% 80%;
+    --secondary-800: 210 40% 90%;
+    --secondary-900: 210 45% 95%;
+    --secondary-950: 210 50% 98%;
+
+    /* Muted color scale (dark mode) */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --muted-50: 215.4 40% 12%;
+    --muted-100: 215.4 35% 20%;
+    --muted-200: 215.4 30% 28%;
+    --muted-300: 215.4 25% 35%;
+    --muted-400: 215.4 20% 40%;
+    --muted-500: 215.4 16.3% 46.9%;
+    --muted-600: 215.4 20% 55%;
+    --muted-700: 215.4 25% 65%;
+    --muted-800: 215.4 30% 75%;
+    --muted-900: 215.4 35% 85%;
+    --muted-950: 215.4 40% 92%;
+
+    /* Accent color scale (dark mode) */
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --accent-50: 195 50% 15%;
+    --accent-100: 195 55% 22%;
+    --accent-200: 195 60% 32%;
+    --accent-300: 195 65% 42%;
+    --accent-400: 195 70% 52%;
+    --accent-500: 195 75% 62%;
+    --accent-600: 195 80% 72%;
+    --accent-700: 195 85% 82%;
+    --accent-800: 195 90% 90%;
+    --accent-900: 195 95% 95%;
+    --accent-950: 195 100% 98%;
+
+    /* Destructive/Error color scale (dark mode) */
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --destructive-50: 0 50% 18%;
+    --destructive-100: 0 55% 28%;
+    --destructive-200: 0 60% 35%;
+    --destructive-300: 0 65% 42%;
+    --destructive-400: 0 72% 50%;
+    --destructive-500: 0 80% 60%;
+    --destructive-600: 0 85% 68%;
+    --destructive-700: 0 90% 78%;
+    --destructive-800: 0 95% 88%;
+    --destructive-900: 0 100% 94%;
+    --destructive-950: 0 100% 97%;
+
+    --error: 0 72% 50%;
+    --error-foreground: 0 0% 98%;
+    --error-50: 0 50% 18%;
+    --error-100: 0 55% 28%;
+    --error-200: 0 60% 35%;
+    --error-300: 0 65% 42%;
+    --error-400: 0 72% 50%;
+    --error-500: 0 80% 60%;
+    --error-600: 0 85% 68%;
+    --error-700: 0 90% 78%;
+    --error-800: 0 95% 88%;
+    --error-900: 0 100% 94%;
+    --error-950: 0 100% 97%;
+
+    /* Success color scale (dark mode) */
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 98%;
+    --success-50: 142 50% 15%;
+    --success-100: 142 55% 20%;
+    --success-200: 142 60% 24%;
+    --success-300: 142 65% 28%;
+    --success-400: 142 70% 32%;
+    --success-500: 142 70% 45%;
+    --success-600: 142 75% 55%;
+    --success-700: 142 80% 65%;
+    --success-800: 142 85% 75%;
+    --success-900: 142 90% 88%;
+    --success-950: 142 95% 94%;
+
+    /* Warning color scale (dark mode) */
+    --warning: 38 85% 55%;
+    --warning-foreground: 0 0% 9%;
+    --warning-50: 38 55% 20%;
+    --warning-100: 38 62% 26%;
+    --warning-200: 38 70% 32%;
+    --warning-300: 38 78% 38%;
+    --warning-400: 38 85% 45%;
+    --warning-500: 38 85% 55%;
+    --warning-600: 38 88% 65%;
+    --warning-700: 38 92% 78%;
+    --warning-800: 38 96% 89%;
+    --warning-900: 48 100% 96%;
+    --warning-950: 48 100% 98%;
+
+    /* Info color scale (dark mode) */
+    --info: 217 80% 60%;
+    --info-foreground: 0 0% 98%;
+    --info-50: 217 60% 20%;
+    --info-100: 217 65% 28%;
+    --info-200: 217 70% 36%;
+    --info-300: 217 75% 44%;
+    --info-400: 217 80% 52%;
+    --info-500: 217 80% 60%;
+    --info-600: 217 85% 68%;
+    --info-700: 217 88% 78%;
+    --info-800: 217 92% 88%;
+    --info-900: 217 96% 94%;
+    --info-950: 217 100% 97%;
+
+    /* Brand Primary color scale (dark mode) */
+    --brand-primary: 262 83.3% 57.8%;
+    --brand-primary-50: 262 55% 16%;
+    --brand-primary-100: 262 60% 24%;
+    --brand-primary-200: 262 65% 32%;
+    --brand-primary-300: 262 70% 40%;
+    --brand-primary-400: 262 75% 48%;
+    --brand-primary-500: 262 83.3% 57.8%;
+    --brand-primary-600: 262 80% 68%;
+    --brand-primary-700: 262 85% 78%;
+    --brand-primary-800: 262 90% 88%;
+    --brand-primary-900: 262 95% 94%;
+    --brand-primary-950: 262 100% 97%;
+
+    /* Brand Secondary color scale (dark mode) */
+    --brand-secondary: 262 75% 58%;
+    --brand-secondary-50: 262 50% 16%;
+    --brand-secondary-100: 262 55% 24%;
+    --brand-secondary-200: 262 60% 32%;
+    --brand-secondary-300: 262 65% 40%;
+    --brand-secondary-400: 262 70% 48%;
+    --brand-secondary-500: 262 75% 58%;
+    --brand-secondary-600: 262 80% 68%;
+    --brand-secondary-700: 262 85% 78%;
+    --brand-secondary-800: 262 90% 88%;
+    --brand-secondary-900: 262 95% 94%;
+    --brand-secondary-950: 262 100% 97%;
+
+    /* Brand Accent color scale (dark mode) */
+    --brand-accent: 195 100% 75%;
+    --brand-accent-50: 195 50% 25%;
+    --brand-accent-100: 195 55% 35%;
+    --brand-accent-200: 195 60% 45%;
+    --brand-accent-300: 195 65% 55%;
+    --brand-accent-400: 195 70% 65%;
+    --brand-accent-500: 195 100% 75%;
+    --brand-accent-600: 195 80% 75%;
+    --brand-accent-700: 195 85% 82%;
+    --brand-accent-800: 195 90% 90%;
+    --brand-accent-900: 195 95% 95%;
+    --brand-accent-950: 195 100% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+      "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+      "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography System - Heading Scale */
+  h1, .h1 {
+    @apply text-h1 font-bold leading-heading-tight tracking-heading-tight;
+  }
+
+  h2, .h2 {
+    @apply text-h2 font-bold leading-heading-normal tracking-heading-normal;
+  }
+
+  h3, .h3 {
+    @apply text-h3 font-semibold leading-tight tracking-heading-normal;
+  }
+
+  h4, .h4 {
+    @apply text-h4 font-semibold leading-snug tracking-tight;
+  }
+
+  h5, .h5 {
+    @apply text-h5 font-semibold leading-body-tight tracking-normal;
+  }
+
+  h6, .h6 {
+    @apply text-h6 font-semibold leading-normal tracking-normal;
+  }
+
+  /* Typography System - Body Text */
+  p, .body {
+    @apply text-body leading-body-normal tracking-body-tight;
+  }
+
+  .body-xl {
+    @apply text-body-xl leading-body-relaxed tracking-body-tight;
+  }
+
+  .body-lg {
+    @apply text-body-lg leading-body-relaxed tracking-body-tight;
+  }
+
+  .body-sm {
+    @apply text-body-sm leading-body-normal tracking-body-wide;
+  }
+
+  .body-xs {
+    @apply text-body-xs leading-body-normal tracking-body-wide;
+  }
+
+  /* Typography System - Display Sizes */
+  .display-2xl {
+    @apply text-display-2xl font-extrabold leading-none tracking-heading-tight;
+  }
+
+  .display-xl {
+    @apply text-display-xl font-extrabold leading-heading-tight tracking-heading-tight;
+  }
+
+  .display-lg {
+    @apply text-display-lg font-bold leading-heading-tight tracking-heading-tight;
+  }
+
+  /* Typography Utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  /* Spacing System - Component Spacing Utilities */
+  
+  /* Padding utilities for components */
+  .p-component-xs { padding: var(--spacing-component-xs); }
+  .p-component-sm { padding: var(--spacing-component-sm); }
+  .p-component-md { padding: var(--spacing-component-md); }
+  .p-component-lg { padding: var(--spacing-component-lg); }
+  .p-component-xl { padding: var(--spacing-component-xl); }
+  .p-component-2xl { padding: var(--spacing-component-2xl); }
+  .p-component-3xl { padding: var(--spacing-component-3xl); }
+
+  .px-component-xs { padding-left: var(--spacing-component-xs); padding-right: var(--spacing-component-xs); }
+  .px-component-sm { padding-left: var(--spacing-component-sm); padding-right: var(--spacing-component-sm); }
+  .px-component-md { padding-left: var(--spacing-component-md); padding-right: var(--spacing-component-md); }
+  .px-component-lg { padding-left: var(--spacing-component-lg); padding-right: var(--spacing-component-lg); }
+  .px-component-xl { padding-left: var(--spacing-component-xl); padding-right: var(--spacing-component-xl); }
+  .px-component-2xl { padding-left: var(--spacing-component-2xl); padding-right: var(--spacing-component-2xl); }
+  .px-component-3xl { padding-left: var(--spacing-component-3xl); padding-right: var(--spacing-component-3xl); }
+
+  .py-component-xs { padding-top: var(--spacing-component-xs); padding-bottom: var(--spacing-component-xs); }
+  .py-component-sm { padding-top: var(--spacing-component-sm); padding-bottom: var(--spacing-component-sm); }
+  .py-component-md { padding-top: var(--spacing-component-md); padding-bottom: var(--spacing-component-md); }
+  .py-component-lg { padding-top: var(--spacing-component-lg); padding-bottom: var(--spacing-component-lg); }
+  .py-component-xl { padding-top: var(--spacing-component-xl); padding-bottom: var(--spacing-component-xl); }
+  .py-component-2xl { padding-top: var(--spacing-component-2xl); padding-bottom: var(--spacing-component-2xl); }
+  .py-component-3xl { padding-top: var(--spacing-component-3xl); padding-bottom: var(--spacing-component-3xl); }
+
+  .pt-component-xs { padding-top: var(--spacing-component-xs); }
+  .pt-component-sm { padding-top: var(--spacing-component-sm); }
+  .pt-component-md { padding-top: var(--spacing-component-md); }
+  .pt-component-lg { padding-top: var(--spacing-component-lg); }
+  .pt-component-xl { padding-top: var(--spacing-component-xl); }
+  .pt-component-2xl { padding-top: var(--spacing-component-2xl); }
+  .pt-component-3xl { padding-top: var(--spacing-component-3xl); }
+
+  .pb-component-xs { padding-bottom: var(--spacing-component-xs); }
+  .pb-component-sm { padding-bottom: var(--spacing-component-sm); }
+  .pb-component-md { padding-bottom: var(--spacing-component-md); }
+  .pb-component-lg { padding-bottom: var(--spacing-component-lg); }
+  .pb-component-xl { padding-bottom: var(--spacing-component-xl); }
+  .pb-component-2xl { padding-bottom: var(--spacing-component-2xl); }
+  .pb-component-3xl { padding-bottom: var(--spacing-component-3xl); }
+
+  .pl-component-xs { padding-left: var(--spacing-component-xs); }
+  .pl-component-sm { padding-left: var(--spacing-component-sm); }
+  .pl-component-md { padding-left: var(--spacing-component-md); }
+  .pl-component-lg { padding-left: var(--spacing-component-lg); }
+  .pl-component-xl { padding-left: var(--spacing-component-xl); }
+  .pl-component-2xl { padding-left: var(--spacing-component-2xl); }
+  .pl-component-3xl { padding-left: var(--spacing-component-3xl); }
+
+  .pr-component-xs { padding-right: var(--spacing-component-xs); }
+  .pr-component-sm { padding-right: var(--spacing-component-sm); }
+  .pr-component-md { padding-right: var(--spacing-component-md); }
+  .pr-component-lg { padding-right: var(--spacing-component-lg); }
+  .pr-component-xl { padding-right: var(--spacing-component-xl); }
+  .pr-component-2xl { padding-right: var(--spacing-component-2xl); }
+  .pr-component-3xl { padding-right: var(--spacing-component-3xl); }
+
+  /* Margin utilities for components */
+  .m-component-xs { margin: var(--spacing-component-xs); }
+  .m-component-sm { margin: var(--spacing-component-sm); }
+  .m-component-md { margin: var(--spacing-component-md); }
+  .m-component-lg { margin: var(--spacing-component-lg); }
+  .m-component-xl { margin: var(--spacing-component-xl); }
+  .m-component-2xl { margin: var(--spacing-component-2xl); }
+  .m-component-3xl { margin: var(--spacing-component-3xl); }
+
+  .mx-component-xs { margin-left: var(--spacing-component-xs); margin-right: var(--spacing-component-xs); }
+  .mx-component-sm { margin-left: var(--spacing-component-sm); margin-right: var(--spacing-component-sm); }
+  .mx-component-md { margin-left: var(--spacing-component-md); margin-right: var(--spacing-component-md); }
+  .mx-component-lg { margin-left: var(--spacing-component-lg); margin-right: var(--spacing-component-lg); }
+  .mx-component-xl { margin-left: var(--spacing-component-xl); margin-right: var(--spacing-component-xl); }
+  .mx-component-2xl { margin-left: var(--spacing-component-2xl); margin-right: var(--spacing-component-2xl); }
+  .mx-component-3xl { margin-left: var(--spacing-component-3xl); margin-right: var(--spacing-component-3xl); }
+
+  .my-component-xs { margin-top: var(--spacing-component-xs); margin-bottom: var(--spacing-component-xs); }
+  .my-component-sm { margin-top: var(--spacing-component-sm); margin-bottom: var(--spacing-component-sm); }
+  .my-component-md { margin-top: var(--spacing-component-md); margin-bottom: var(--spacing-component-md); }
+  .my-component-lg { margin-top: var(--spacing-component-lg); margin-bottom: var(--spacing-component-lg); }
+  .my-component-xl { margin-top: var(--spacing-component-xl); margin-bottom: var(--spacing-component-xl); }
+  .my-component-2xl { margin-top: var(--spacing-component-2xl); margin-bottom: var(--spacing-component-2xl); }
+  .my-component-3xl { margin-top: var(--spacing-component-3xl); margin-bottom: var(--spacing-component-3xl); }
+
+  .mt-component-xs { margin-top: var(--spacing-component-xs); }
+  .mt-component-sm { margin-top: var(--spacing-component-sm); }
+  .mt-component-md { margin-top: var(--spacing-component-md); }
+  .mt-component-lg { margin-top: var(--spacing-component-lg); }
+  .mt-component-xl { margin-top: var(--spacing-component-xl); }
+  .mt-component-2xl { margin-top: var(--spacing-component-2xl); }
+  .mt-component-3xl { margin-top: var(--spacing-component-3xl); }
+
+  .mb-component-xs { margin-bottom: var(--spacing-component-xs); }
+  .mb-component-sm { margin-bottom: var(--spacing-component-sm); }
+  .mb-component-md { margin-bottom: var(--spacing-component-md); }
+  .mb-component-lg { margin-bottom: var(--spacing-component-lg); }
+  .mb-component-xl { margin-bottom: var(--spacing-component-xl); }
+  .mb-component-2xl { margin-bottom: var(--spacing-component-2xl); }
+  .mb-component-3xl { margin-bottom: var(--spacing-component-3xl); }
+
+  .ml-component-xs { margin-left: var(--spacing-component-xs); }
+  .ml-component-sm { margin-left: var(--spacing-component-sm); }
+  .ml-component-md { margin-left: var(--spacing-component-md); }
+  .ml-component-lg { margin-left: var(--spacing-component-lg); }
+  .ml-component-xl { margin-left: var(--spacing-component-xl); }
+  .ml-component-2xl { margin-left: var(--spacing-component-2xl); }
+  .ml-component-3xl { margin-left: var(--spacing-component-3xl); }
+
+  .mr-component-xs { margin-right: var(--spacing-component-xs); }
+  .mr-component-sm { margin-right: var(--spacing-component-sm); }
+  .mr-component-md { margin-right: var(--spacing-component-md); }
+  .mr-component-lg { margin-right: var(--spacing-component-lg); }
+  .mr-component-xl { margin-right: var(--spacing-component-xl); }
+  .mr-component-2xl { margin-right: var(--spacing-component-2xl); }
+  .mr-component-3xl { margin-right: var(--spacing-component-3xl); }
+
+  /* Gap utilities for components */
+  .gap-component-xs { gap: var(--spacing-component-xs); }
+  .gap-component-sm { gap: var(--spacing-component-sm); }
+  .gap-component-md { gap: var(--spacing-component-md); }
+  .gap-component-lg { gap: var(--spacing-component-lg); }
+  .gap-component-xl { gap: var(--spacing-component-xl); }
+  .gap-component-2xl { gap: var(--spacing-component-2xl); }
+  .gap-component-3xl { gap: var(--spacing-component-3xl); }
+
+  /* Spacing System - Section Spacing Utilities */
+  .p-section-xs { padding: var(--spacing-section-xs); }
+  .p-section-sm { padding: var(--spacing-section-sm); }
+  .p-section-md { padding: var(--spacing-section-md); }
+  .p-section-lg { padding: var(--spacing-section-lg); }
+  .p-section-xl { padding: var(--spacing-section-xl); }
+  .p-section-2xl { padding: var(--spacing-section-2xl); }
+
+  .py-section-xs { padding-top: var(--spacing-section-xs); padding-bottom: var(--spacing-section-xs); }
+  .py-section-sm { padding-top: var(--spacing-section-sm); padding-bottom: var(--spacing-section-sm); }
+  .py-section-md { padding-top: var(--spacing-section-md); padding-bottom: var(--spacing-section-md); }
+  .py-section-lg { padding-top: var(--spacing-section-lg); padding-bottom: var(--spacing-section-lg); }
+  .py-section-xl { padding-top: var(--spacing-section-xl); padding-bottom: var(--spacing-section-xl); }
+  .py-section-2xl { padding-top: var(--spacing-section-2xl); padding-bottom: var(--spacing-section-2xl); }
+
+  .my-section-xs { margin-top: var(--spacing-section-xs); margin-bottom: var(--spacing-section-xs); }
+  .my-section-sm { margin-top: var(--spacing-section-sm); margin-bottom: var(--spacing-section-sm); }
+  .my-section-md { margin-top: var(--spacing-section-md); margin-bottom: var(--spacing-section-md); }
+  .my-section-lg { margin-top: var(--spacing-section-lg); margin-bottom: var(--spacing-section-lg); }
+  .my-section-xl { margin-top: var(--spacing-section-xl); margin-bottom: var(--spacing-section-xl); }
+  .my-section-2xl { margin-top: var(--spacing-section-2xl); margin-bottom: var(--spacing-section-2xl); }
+
+  .mt-section-xs { margin-top: var(--spacing-section-xs); }
+  .mt-section-sm { margin-top: var(--spacing-section-sm); }
+  .mt-section-md { margin-top: var(--spacing-section-md); }
+  .mt-section-lg { margin-top: var(--spacing-section-lg); }
+  .mt-section-xl { margin-top: var(--spacing-section-xl); }
+  .mt-section-2xl { margin-top: var(--spacing-section-2xl); }
+
+  .mb-section-xs { margin-bottom: var(--spacing-section-xs); }
+  .mb-section-sm { margin-bottom: var(--spacing-section-sm); }
+  .mb-section-md { margin-bottom: var(--spacing-section-md); }
+  .mb-section-lg { margin-bottom: var(--spacing-section-lg); }
+  .mb-section-xl { margin-bottom: var(--spacing-section-xl); }
+  .mb-section-2xl { margin-bottom: var(--spacing-section-2xl); }
+
+  /* Spacing System - Layout Spacing Utilities */
+  .p-layout-xs { padding: var(--spacing-layout-xs); }
+  .p-layout-sm { padding: var(--spacing-layout-sm); }
+  .p-layout-md { padding: var(--spacing-layout-md); }
+  .p-layout-lg { padding: var(--spacing-layout-lg); }
+  .p-layout-xl { padding: var(--spacing-layout-xl); }
+
+  .px-layout-xs { padding-left: var(--spacing-layout-xs); padding-right: var(--spacing-layout-xs); }
+  .px-layout-sm { padding-left: var(--spacing-layout-sm); padding-right: var(--spacing-layout-sm); }
+  .px-layout-md { padding-left: var(--spacing-layout-md); padding-right: var(--spacing-layout-md); }
+  .px-layout-lg { padding-left: var(--spacing-layout-lg); padding-right: var(--spacing-layout-lg); }
+  .px-layout-xl { padding-left: var(--spacing-layout-xl); padding-right: var(--spacing-layout-xl); }
+
+  .py-layout-xs { padding-top: var(--spacing-layout-xs); padding-bottom: var(--spacing-layout-xs); }
+  .py-layout-sm { padding-top: var(--spacing-layout-sm); padding-bottom: var(--spacing-layout-sm); }
+  .py-layout-md { padding-top: var(--spacing-layout-md); padding-bottom: var(--spacing-layout-md); }
+  .py-layout-lg { padding-top: var(--spacing-layout-lg); padding-bottom: var(--spacing-layout-lg); }
+  .py-layout-xl { padding-top: var(--spacing-layout-xl); padding-bottom: var(--spacing-layout-xl); }
+
+  .mx-layout-xs { margin-left: var(--spacing-layout-xs); margin-right: var(--spacing-layout-xs); }
+  .mx-layout-sm { margin-left: var(--spacing-layout-sm); margin-right: var(--spacing-layout-sm); }
+  .mx-layout-md { margin-left: var(--spacing-layout-md); margin-right: var(--spacing-layout-md); }
+  .mx-layout-lg { margin-left: var(--spacing-layout-lg); margin-right: var(--spacing-layout-lg); }
+  .mx-layout-xl { margin-left: var(--spacing-layout-xl); margin-right: var(--spacing-layout-xl); }
+
+  .my-layout-xs { margin-top: var(--spacing-layout-xs); margin-bottom: var(--spacing-layout-xs); }
+  .my-layout-sm { margin-top: var(--spacing-layout-sm); margin-bottom: var(--spacing-layout-sm); }
+  .my-layout-md { margin-top: var(--spacing-layout-md); margin-bottom: var(--spacing-layout-md); }
+  .my-layout-lg { margin-top: var(--spacing-layout-lg); margin-bottom: var(--spacing-layout-lg); }
+  .my-layout-xl { margin-top: var(--spacing-layout-xl); margin-bottom: var(--spacing-layout-xl); }
+
+  /* Space between utilities (for flex/grid children) */
+  .space-y-component-xs > * + * { margin-top: var(--spacing-component-xs); }
+  .space-y-component-sm > * + * { margin-top: var(--spacing-component-sm); }
+  .space-y-component-md > * + * { margin-top: var(--spacing-component-md); }
+  .space-y-component-lg > * + * { margin-top: var(--spacing-component-lg); }
+  .space-y-component-xl > * + * { margin-top: var(--spacing-component-xl); }
+  .space-y-component-2xl > * + * { margin-top: var(--spacing-component-2xl); }
+  .space-y-component-3xl > * + * { margin-top: var(--spacing-component-3xl); }
+
+  .space-x-component-xs > * + * { margin-left: var(--spacing-component-xs); }
+  .space-x-component-sm > * + * { margin-left: var(--spacing-component-sm); }
+  .space-x-component-md > * + * { margin-left: var(--spacing-component-md); }
+  .space-x-component-lg > * + * { margin-left: var(--spacing-component-lg); }
+  .space-x-component-xl > * + * { margin-left: var(--spacing-component-xl); }
+  .space-x-component-2xl > * + * { margin-left: var(--spacing-component-2xl); }
+  .space-x-component-3xl > * + * { margin-left: var(--spacing-component-3xl); }
 }
 
 /* Screen reader only class for accessibility */
@@ -21,4 +711,37 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
 }

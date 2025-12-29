@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
-import { LoadingSpinner, OptimizedImage } from '../../components/ui';
+import { LoadingSpinner, OptimizedImage, Skeleton, Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui';
 import { BookingFormModal, AuthModal } from '../../components/modals';
+import ImageGallery from '../../components/features/ImageGallery';
 
 const PackageDetails = () => {
   const { id } = useParams();
@@ -74,7 +75,7 @@ const PackageDetails = () => {
 
   const getPackageImages = () => {
     if (packageData?.images && packageData.images.length > 0) {
-      return packageData.images.map(img => img.image_url || img).slice(0, 3);
+      return packageData.images.map(img => img.image_url || img);
     }
     if (packageData?.package_image) {
       return [packageData.package_image];
@@ -84,8 +85,38 @@ const PackageDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f9f5ff] dark:bg-[#1c1022] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen bg-[#f9f5ff] dark:bg-[#1c1022] py-12">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Image Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="h-96 w-full rounded-lg" />
+              <div className="grid grid-cols-3 gap-4">
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+              </div>
+            </div>
+            {/* Content Skeleton */}
+            <div className="space-y-6">
+              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <Skeleton className="h-12 w-40" />
+                <Skeleton className="h-12 w-40" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -263,136 +294,84 @@ const PackageDetails = () => {
               </div>
 
               {/* Right: imagery */}
-              <div className="relative bg-gradient-to-br from-[#f6e8ff] via-[#fde4ff] to-[#ffe8f4] dark:from-[#2a1035] dark:via-[#311644] dark:to-[#3c0b3e] overflow-hidden">
-                <div className="absolute inset-0 opacity-40 mix-blend-soft-light pointer-events-none">
-                  <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/40 dark:bg-white/5 blur-3xl" />
-                  <div className="absolute bottom-0 -left-10 w-48 h-48 rounded-full bg-[#a413ec]/30 blur-3xl" />
-                </div>
-
-                {images.length > 0 ? (
-                  <div className="relative h-full flex flex-col gap-3 p-5 sm:p-6 lg:p-7">
-                    <div className="relative rounded-2xl overflow-hidden shadow-xl shadow-purple-200/60 dark:shadow-black/60 flex-1 min-h-[220px]">
-                      <OptimizedImage
-                        src={images[0]}
-                        alt={`${packageData.name} main`}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-                      <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-200/80">
-                            Signature Scene
-                          </span>
-                          <span className="text-sm font-medium text-white/90 line-clamp-1">
-                            A glimpse into your celebration atmosphere
-                          </span>
-                        </div>
-                        {images.length > 1 && (
-                          <div className="inline-flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-[11px] font-medium text-white/90 backdrop-blur">
-                            <span className="material-symbols-outlined text-sm">photo_library</span>
-                            <span>{images.length} photos</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {images.length > 1 && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {images.slice(1, 3).map((image, index) => (
-                          <div
-                            key={index}
-                            className="relative rounded-2xl overflow-hidden shadow-md shadow-purple-100/70 dark:shadow-black/60 h-28 sm:h-32"
-                          >
-                            <OptimizedImage
-                              src={image}
-                              alt={`${packageData.name} - Image ${index + 2}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8 gap-3">
-                    <span className="material-symbols-outlined text-4xl text-white/80">image_not_supported</span>
-                    <p className="text-sm font-medium text-white/90">
-                      Image preview coming soon
-                    </p>
-                    <p className="text-xs text-white/80 max-w-xs">
-                      This package is fully available even without a gallery — contact us to see sample setups and decor.
-                    </p>
-                  </div>
-                )}
+              <div className="relative bg-gradient-to-br from-[#f6e8ff] via-[#fde4ff] to-[#ffe8f4] dark:from-[#2a1035] dark:via-[#311644] dark:to-[#3c0b3e] overflow-hidden rounded-2xl p-4">
+                <ImageGallery images={images} packageName={packageData.name} className="h-full" />
               </div>
             </div>
           </div>
 
-          {/* Content Sections */}
+          {/* Content Sections with Tabs */}
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
-            {/* Left column: inclusions + description */}
+            {/* Left column: Tabs for organized content */}
             <div className="space-y-6">
-              {inclusionItems.length > 0 && (
-                <div className="bg-white/90 dark:bg-gray-900/70 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-md shadow-purple-100/40 dark:shadow-black/40">
-                  <div className="flex items-center justify-between gap-3 mb-6">
-                    <div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                        What&apos;s Included
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Curated elements designed to cover all the essentials of your celebration.
-                      </p>
-                    </div>
-                    <span className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#a413ec]/10 text-[#a413ec]">
-                      <span className="material-symbols-outlined">checklist</span>
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                    {inclusionItems.map((item, index) => {
-                      const formatted = formatInclusionItem(item);
-                      return (
-                        <div
-                          key={index}
-                          className="group flex items-start gap-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-900/60 px-3.5 py-3.5 sm:px-4 sm:py-4 hover:border-[#a413ec]/40 hover:bg-white dark:hover:bg-gray-900 transition-colors"
-                        >
-                          <div className="flex-shrink-0 text-[#a413ec] pt-0.5">
-                            <span className="material-symbols-outlined text-xl">check_circle</span>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm sm:text-base">
-                              {formatted.title}
-                            </h4>
-                            {formatted.description && (
-                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
-                                {formatted.description}
-                              </p>
-                            )}
-                          </div>
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="space-y-6 mt-6">
+                  {inclusionItems.length > 0 && (
+                    <div className="bg-white/90 dark:bg-gray-900/70 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-md shadow-purple-100/40 dark:shadow-black/40">
+                      <div className="flex items-center justify-between gap-3 mb-6">
+                        <div>
+                          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                            What&apos;s Included
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Curated elements designed to cover all the essentials of your celebration.
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                        <span className="hidden sm:inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#a413ec]/10 text-[#a413ec]">
+                          <span className="material-symbols-outlined">checklist</span>
+                        </span>
+                      </div>
 
-              {getFullDescription() && (
-                <div className="bg-white/90 dark:bg-gray-900/70 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-md shadow-purple-100/40 dark:shadow-black/40">
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                    About This Package
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                    Dive deeper into everything that is thoughtfully planned and coordinated for your event.
-                  </p>
-                  <div className="prose max-w-none">
-                    <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed whitespace-pre-line">
-                      {getFullDescription()}
-                    </p>
-                  </div>
-                </div>
-              )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                        {inclusionItems.map((item, index) => {
+                          const formatted = formatInclusionItem(item);
+                          return (
+                            <div
+                              key={index}
+                              className="group flex items-start gap-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-900/60 px-3.5 py-3.5 sm:px-4 sm:py-4 hover:border-[#a413ec]/40 hover:bg-white dark:hover:bg-gray-900 transition-colors"
+                            >
+                              <div className="flex-shrink-0 text-[#a413ec] pt-0.5">
+                                <span className="material-symbols-outlined text-xl">check_circle</span>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm sm:text-base">
+                                  {formatted.title}
+                                </h4>
+                                {formatted.description && (
+                                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                                    {formatted.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="details" className="mt-6">
+                  {getFullDescription() && (
+                    <div className="bg-white/90 dark:bg-gray-900/70 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-md shadow-purple-100/40 dark:shadow-black/40">
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                        About This Package
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+                        Dive deeper into everything that is thoughtfully planned and coordinated for your event.
+                      </p>
+                      <div className="prose max-w-none">
+                        <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                          {getFullDescription()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Right column: quick facts / highlight card */}
