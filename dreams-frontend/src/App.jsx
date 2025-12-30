@@ -14,9 +14,11 @@ import Portfolio from './pages/public/Portfolio';
 import Reviews from './pages/public/Reviews';
 import PackageDetails from './pages/public/PackageDetails';
 import BookingForm from './pages/public/BookingForm';
+import BookingConfirmation from './pages/public/BookingConfirmation';
 import Recommendations from './pages/public/Recommendations';
 import SetAnEvent from './pages/public/SetAnEvent';
 import ContactUs from './pages/public/ContactUs';
+import Favorites from './pages/public/Favorites';
 // Auth pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -65,9 +67,20 @@ function App() {
               </MainLayout>
             } 
           />
+          <Route 
+            path="/booking-confirmation/:bookingId" 
+            element={
+              <MainLayout>
+                <ProtectedRoute>
+                  <BookingConfirmation />
+                </ProtectedRoute>
+              </MainLayout>
+            } 
+          />
           <Route path="/recommendations" element={<MainLayout><Recommendations /></MainLayout>} />
           <Route path="/set-an-event" element={<MainLayout><SetAnEvent /></MainLayout>} />
           <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
+          <Route path="/favorites" element={<MainLayout><Favorites /></MainLayout>} />
           <Route path="/test-spacing" element={<MainLayout><SpacingSystemTest /></MainLayout>} />
           <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
           <Route path="/register" element={<MainLayout><Register /></MainLayout>} />

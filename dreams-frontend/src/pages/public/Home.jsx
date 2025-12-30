@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Heart, Calendar, Award, Star, ArrowRight, CheckCircle, Users, Clock, TrendingUp } from 'lucide-react';
+import { Sparkles, Heart, Calendar, Award, Star, ArrowRight, CheckCircle, Users, Clock, TrendingUp, Play, Pause } from 'lucide-react';
 import api from '../../api/axios';
-import { PackageCard } from '../../components/features';
+import { PackageCard, ParticlesBackground, NewsletterSignup } from '../../components/features';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '../../components/ui';
+import { useScrollAnimation } from '../../hooks/useScrollAnimation';
+import { useCounterAnimation } from '../../hooks/useCounterAnimation';
 import heroLogo from '../../assets/hero-banner.jpg';
 import { useAuth } from '../../context/AuthContext';
 import { getAllServices } from '../../data/services';
@@ -26,7 +29,25 @@ const Home = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [statsVisible, setStatsVisible] = useState(false);
   const services = getAllServices();
+  
+  // Scroll animations
+  const servicesRef = useScrollAnimation({ threshold: 0.2 });
+  const packagesRef = useScrollAnimation({ threshold: 0.2 });
+  const portfolioRef = useScrollAnimation({ threshold: 0.2 });
+  const reviewsRef = useScrollAnimation({ threshold: 0.2 });
+  
+  // Counter animations for statistics
+  const happyClients = useCounterAnimation(500, 2000, statsVisible);
+  const eventsPlanned = useCounterAnimation(1000, 2000, statsVisible);
+  const avgRatingCount = useCounterAnimation(4.9, 2000, statsVisible);
+  const yearsExp = useCounterAnimation(15, 2000, statsVisible);
+  
+  // Parallax effect
+  const heroRef = useRef(null);
+  const [parallaxOffset, setParallaxOffset] = useState(0);
 
   useEffect(() => {
     const fetchFeaturedPackages = async () => {
@@ -70,6 +91,22 @@ const Home = () => {
     fetchPortfolio();
     fetchReviews();
   }, []);
+
+  // Parallax scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setParallaxOffset(scrollY * 0.5);
+      
+      // Trigger stats animation when stats section is visible
+      if (scrollY > 200 && !statsVisible) {
+        setStatsVisible(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [statsVisible]);
 
   const getInitials = (name = '') => {
     return name
@@ -131,12 +168,12 @@ const Home = () => {
     }
   };
 
-  // Statistics data
+  // Statistics data with animated values
   const stats = [
-    { icon: Users, value: '500+', label: 'Happy Clients' },
-    { icon: Calendar, value: '1000+', label: 'Events Planned' },
-    { icon: Star, value: '4.9', label: 'Average Rating' },
-    { icon: Award, value: '15+', label: 'Years Experience' },
+    { icon: Users, value: `${happyClients}+`, label: 'Happy Clients', target: 500 },
+    { icon: Calendar, value: `${eventsPlanned}+`, label: 'Events Planned', target: 1000 },
+    { icon: Star, value: avgRatingCount.toFixed(1), label: 'Average Rating', target: 4.9 },
+    { icon: Award, value: `${yearsExp}+`, label: 'Years Experience', target: 15 },
   ];
 
   return (
@@ -173,14 +210,51 @@ const Home = () => {
       )}
 
       {/* Enhanced Hero Section */}
-      <section className="relative w-full bg-gradient-to-br from-[#050b23] via-[#0f172a] to-[#050b23] overflow-hidden" id="home">
+      <section 
+        ref={heroRef}
+        className="relative w-full bg-gradient-to-br from-[#050b23] via-[#0f172a] to-[#050b23] overflow-hidden" 
+        id="home"
+      >
+        {/* Particles Background */}
+        <ParticlesBackground 
+          particleCount={60}
+          particleColor="rgba(122, 69, 242, 0.6)"
+          lineColor="rgba(126, 229, 255, 0.3)"
+          speed={0.3}
+        />
+        
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-[#5A45F2] opacity-10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#7ee5ff] opacity-10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div 
+            className="absolute top-20 left-10 w-72 h-72 bg-[#5A45F2] opacity-10 rounded-full blur-3xl animate-pulse"
+            style={{ transform: `translateY(${parallaxOffset * 0.3}px)` }}
+          ></div>
+          <div 
+            className="absolute bottom-20 right-10 w-96 h-96 bg-[#7ee5ff] opacity-10 rounded-full blur-3xl animate-pulse delay-1000"
+            style={{ transform: `translateY(${-parallaxOffset * 0.3}px)` }}
+          ></div>
         </div>
+        
+        {/* Video Background Option (optional) */}
+        {videoPlaying && (
+          <div className="absolute inset-0 z-0">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover opacity-20"
+            >
+              {/* Add video source here when available */}
+              <source src="" type="video/mp4" />
+            </video>
+          </div>
+        )}
 
-        <div className="relative mx-auto flex max-w-7xl flex-col items-center gap-12 px-4 py-20 md:flex-row md:py-32 lg:px-8">
+        <div 
+          className="relative mx-auto flex max-w-7xl flex-col items-center gap-12 px-4 py-20 md:flex-row md:py-32 lg:px-8 z-10"
+          style={{ transform: `translateY(${parallaxOffset * 0.2}px)` }}
+        >
           <div className="flex flex-1 justify-center md:justify-start z-10">
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-r from-[#5A45F2] to-[#7ee5ff] rounded-2xl blur-xl opacity-30 animate-pulse"></div>
@@ -191,6 +265,15 @@ const Home = () => {
             />
             </div>
           </div>
+          
+          {/* Video Toggle Button */}
+          <button
+            onClick={() => setVideoPlaying(!videoPlaying)}
+            className="absolute top-4 right-4 z-20 p-3 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-white hover:bg-white/20 transition-all"
+            aria-label="Toggle video background"
+          >
+            {videoPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+          </button>
 
           <div className="flex flex-1 flex-col items-center text-center md:items-start md:text-left z-10">
             <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 bg-[#5A45F2]/20 backdrop-blur-sm rounded-full border border-[#5A45F2]/30">
@@ -230,14 +313,20 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Statistics Section */}
+      {/* Statistics Section with Counter Animation */}
       <section className="relative -mt-16 z-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 md:p-12 grid grid-cols-2 md:grid-cols-4 gap-8 transition-colors duration-300">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="text-center group">
+                <div 
+                  key={index} 
+                  className={`text-center group transition-all duration-700 ${
+                    statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                  }`}
+                  style={{ transitionDelay: `${index * 100}ms` }}
+                >
                   <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] text-white shadow-lg group-hover:scale-110 transition-transform">
                     <Icon className="w-8 h-8" />
                   </div>
@@ -250,8 +339,14 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Services Preview Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20 md:py-28" id="services">
+      {/* Services Preview Section with Scroll Animation */}
+      <section 
+        ref={servicesRef.ref}
+        className={`max-w-7xl mx-auto px-4 py-20 md:py-28 transition-all duration-700 ${
+          servicesRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+        id="services"
+      >
         <div className="flex flex-col gap-4 text-center mb-16">
           <div className="inline-flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-[#5A45F2]" />
@@ -266,14 +361,17 @@ const Home = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((service) => (
+          {services.map((service, index) => (
             <Link
               key={service.id}
               to={service.link}
-              className="group relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:border-[#5A45F2]/20 transform hover:-translate-y-2"
+              className={`group relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-2xl transition-all duration-500 border border-gray-100 dark:border-gray-700 hover:border-[#5A45F2]/20 transform hover:-translate-y-2 hover:scale-105 ${
+                servicesRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: `${index * 100}ms` }}
             >
               <div className="flex flex-col items-center text-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
                   <span className="material-symbols-outlined text-3xl">{service.icon}</span>
                 </div>
                 <div>
@@ -289,13 +387,21 @@ const Home = () => {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
+              {/* Hover glow effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#5A45F2]/0 to-[#7c3aed]/0 group-hover:from-[#5A45F2]/5 group-hover:to-[#7c3aed]/5 transition-all duration-300 pointer-events-none"></div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Featured Packages Section */}
-      <section className="w-full bg-gradient-to-b from-white to-[#f9f5ff] dark:from-gray-800 dark:to-gray-900 py-20 md:py-28 transition-colors duration-300" id="packages">
+      {/* Featured Packages Section with Scroll Animation */}
+      <section 
+        ref={packagesRef.ref}
+        className={`w-full bg-gradient-to-b from-white to-[#f9f5ff] dark:from-gray-800 dark:to-gray-900 py-20 md:py-28 transition-all duration-700 ${
+          packagesRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+        id="packages"
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col gap-4 text-center mb-16">
             <div className="inline-flex items-center gap-2 mb-2">
@@ -344,8 +450,14 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Portfolio Section */}
-      <section className="w-full bg-white dark:bg-gray-900 py-20 md:py-28 transition-colors duration-300" id="portfolio">
+      {/* Portfolio Section with Scroll Animation */}
+      <section 
+        ref={portfolioRef.ref}
+        className={`w-full bg-white dark:bg-gray-900 py-20 md:py-28 transition-all duration-700 ${
+          portfolioRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+        id="portfolio"
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col gap-4 text-center mb-16">
             <div className="inline-flex items-center gap-2 mb-2">
@@ -411,8 +523,14 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Reviews Section */}
-      <section className="w-full bg-gradient-to-b from-[#f9f5ff] to-white dark:from-gray-900 dark:to-gray-800 py-20 md:py-28 transition-colors duration-300" id="reviews">
+      {/* Reviews Section with Carousel */}
+      <section 
+        ref={reviewsRef.ref}
+        className={`w-full bg-gradient-to-b from-[#f9f5ff] to-white dark:from-gray-900 dark:to-gray-800 py-20 md:py-28 transition-all duration-700 ${
+          reviewsRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+        id="reviews"
+      >
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col gap-4 text-center mb-16">
             <div className="inline-flex items-center gap-2 mb-2">
@@ -441,50 +559,59 @@ const Home = () => {
           </p>
             </div>
         ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredReviews.map((review) => (
-                  <div 
-                    key={review.id} 
-                    className="group flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-[#fbbf24] text-[#fbbf24]" />
-                      ))}
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed flex-grow italic">
-                  &quot;{review.message}&quot;
-                </p>
-                    <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                  {review.avatar_url ? (
-                    <img
-                      src={review.avatar_url}
-                      alt={review.client_name}
-                          className="h-12 w-12 rounded-full object-cover border-2 border-[#5A45F2]/20"
-                    />
-                  ) : (
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white font-bold shadow-md">
-                      {review.client_initials || getInitials(review.client_name)}
-                    </div>
-                  )}
-                  <div>
-                        <h4 className="font-bold text-gray-900 dark:text-white">{review.client_name}</h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{review.event_type || 'Event Client'}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        <div className="flex justify-center mt-12">
-          <Link to="/reviews">
+            <div className="relative">
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2 md:-ml-4">
+                  {featuredReviews.map((review) => (
+                    <CarouselItem key={review.id} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
+                      <div className="group flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-full">
+                        <div className="flex items-center gap-1 mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="w-4 h-4 fill-[#fbbf24] text-[#fbbf24]" />
+                          ))}
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed flex-grow italic">
+                          &quot;{review.message}&quot;
+                        </p>
+                        <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                          {review.avatar_url ? (
+                            <img
+                              src={review.avatar_url}
+                              alt={review.client_name}
+                              className="h-12 w-12 rounded-full object-cover border-2 border-[#5A45F2]/20"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white font-bold shadow-md">
+                              {review.client_initials || getInitials(review.client_name)}
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white">{review.client_name}</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{review.event_type || 'Event Client'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex -left-12" />
+                <CarouselNext className="hidden md:flex -right-12" />
+              </Carousel>
+              <div className="flex justify-center mt-12">
+                <Link to="/reviews">
                   <button className="group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white rounded-lg font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105">
                     <span>View All Reviews</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </Link>
+                  </button>
+                </Link>
               </div>
-            </>
+            </div>
           )}
         </div>
       </section>
@@ -614,6 +741,9 @@ const Home = () => {
           </form>
         </div>
       </section>
+
+      {/* Newsletter Signup Section */}
+      <NewsletterSignup />
     </div>
   );
 };

@@ -90,6 +90,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Booking routes
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings', [BookingController::class, 'index']);
+    Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::patch('/bookings/{id}', [BookingController::class, 'update']);
     
     // Coordinator routes (for coordinators to see their assigned bookings)

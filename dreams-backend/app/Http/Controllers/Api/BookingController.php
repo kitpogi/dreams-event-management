@@ -115,6 +115,54 @@ class BookingController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/bookings/{id}",
+     *     summary="Get a single booking by ID",
+     *     tags={"Bookings"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Booking details",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Booking not found"),
+     *     @OA\Response(response=403, description="Unauthorized"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function show(Request $request, $id)
+    {
+        $booking = BookingDetail::with(['eventPackage.venue', 'client', 'coordinator'])->findOrFail($id);
+
+        // Check authorization
+        if ($request->user()->isAdmin()) {
+            // Admin can see all bookings
+            // If coordinator, only show assigned bookings
+            if ($request->user()->isCoordinator() && $booking->coordinator_id !== $request->user()->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        } else {
+            // Clients can only see their own bookings
+            $client = $this->clientService->getByUserEmail($request->user()->email);
+            if ($client && $booking->client_id !== $client->client_id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            } elseif (!$client) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
+        return response()->json(['data' => $booking]);
+    }
+
+    /**
      * @OA\Post(
      *     path="/api/bookings",
      *     summary="Create a new booking",
@@ -849,57 +897,73 @@ class BookingController extends Controller
      */
     public function getAvailableDates(Request $request)
     {
-        $request->validate([
-            'package_id' => 'required|exists:event_packages,package_id',
-            'start_date' => 'nullable|date|after_or_equal:today',
-            'end_date' => 'nullable|date|after:start_date',
-            'months_ahead' => 'nullable|integer|min:1|max:12',
-        ]);
+        try {
+            $request->validate([
+                'package_id' => 'required|exists:event_packages,package_id',
+                'start_date' => 'nullable|date|after_or_equal:today',
+                'end_date' => 'nullable|date|after:start_date',
+                'months_ahead' => 'nullable|integer|min:1|max:12',
+            ]);
 
-        $packageId = $request->package_id;
-        $startDate = $request->start_date 
-            ? Carbon::parse($request->start_date)->startOfDay()
-            : Carbon::today()->startOfDay();
-        
-        $endDate = $request->end_date
-            ? Carbon::parse($request->end_date)->startOfDay()
-            : $startDate->copy()->addMonths($request->months_ahead ?? 3);
+            $packageId = $request->package_id;
+            $startDate = $request->start_date 
+                ? Carbon::parse($request->start_date)->startOfDay()
+                : Carbon::today()->startOfDay();
+            
+            $endDate = $request->end_date
+                ? Carbon::parse($request->end_date)->startOfDay()
+                : $startDate->copy()->addMonths($request->months_ahead ?? 3);
 
-        $availableDates = [];
-        $unavailableDates = [];
+            $availableDates = [];
+            $unavailableDates = [];
 
-        // Get all bookings for this package in the date range
-        $bookings = BookingDetail::where('package_id', $packageId)
-            ->where('event_date', '>=', $startDate)
-            ->where('event_date', '<=', $endDate)
-            ->whereIn('booking_status', ['Pending', 'Approved', 'Confirmed'])
-            ->pluck('event_date')
-            ->map(function ($date) {
-                return Carbon::parse($date)->format('Y-m-d');
-            })
-            ->toArray();
+            // Get all bookings for this package in the date range
+            $bookings = BookingDetail::where('package_id', $packageId)
+                ->where('event_date', '>=', $startDate)
+                ->where('event_date', '<=', $endDate)
+                ->whereIn('booking_status', ['Pending', 'Approved', 'Confirmed'])
+                ->pluck('event_date')
+                ->map(function ($date) {
+                    return Carbon::parse($date)->format('Y-m-d');
+                })
+                ->toArray();
 
-        // Generate all dates in range
-        $currentDate = $startDate->copy();
-        while ($currentDate->lte($endDate)) {
-            $dateString = $currentDate->format('Y-m-d');
-            if (!in_array($dateString, $bookings)) {
-                $availableDates[] = $dateString;
-            } else {
-                $unavailableDates[] = $dateString;
+            // Generate all dates in range
+            $currentDate = $startDate->copy();
+            while ($currentDate->lte($endDate)) {
+                $dateString = $currentDate->format('Y-m-d');
+                if (!in_array($dateString, $bookings)) {
+                    $availableDates[] = $dateString;
+                } else {
+                    $unavailableDates[] = $dateString;
+                }
+                $currentDate->addDay();
             }
-            $currentDate->addDay();
-        }
 
-        return response()->json([
-            'package_id' => $packageId,
-            'start_date' => $startDate->format('Y-m-d'),
-            'end_date' => $endDate->format('Y-m-d'),
-            'available_dates' => $availableDates,
-            'unavailable_dates' => $unavailableDates,
-            'total_available' => count($availableDates),
-            'total_unavailable' => count($unavailableDates),
-        ]);
+            return response()->json([
+                'package_id' => $packageId,
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date' => $endDate->format('Y-m-d'),
+                'available_dates' => $availableDates,
+                'unavailable_dates' => $unavailableDates,
+                'total_available' => count($availableDates),
+                'total_unavailable' => count($unavailableDates),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error in getAvailableDates: ' . $e->getMessage(), [
+                'package_id' => $request->package_id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Failed to fetch available dates',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     /**

@@ -34,15 +34,14 @@ const FormModal = ({
           onClose();
         }}
       >
-        {(title || showCloseButton) && (
-          <DialogHeader className={showCloseButton ? 'pr-8' : ''}>
-            {title && (
-              <DialogTitle className="text-xl font-bold dark:text-gray-100">
-                {title}
-              </DialogTitle>
-            )}
-          </DialogHeader>
-        )}
+        <DialogHeader className={showCloseButton ? 'pr-8' : ''}>
+          <DialogTitle className={cn(
+            "text-xl font-bold dark:text-gray-100",
+            !title && "sr-only"
+          )}>
+            {title || "Dialog"}
+          </DialogTitle>
+        </DialogHeader>
         
         <div className={cn(
           'mt-4',

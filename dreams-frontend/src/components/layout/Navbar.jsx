@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '../ui/sheet';
-import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart } from 'lucide-react';
 
 const Navbar = () => {
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
@@ -218,6 +218,19 @@ const Navbar = () => {
                           <LayoutDashboard className="w-4 h-4 text-[#5A45F2] group-hover:scale-110 transition-transform" />
                           <span>Dashboard</span>
                         </Link>
+                        <Link
+                          to="/favorites"
+                          className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${
+                            darkMode
+                              ? 'text-gray-200 hover:bg-gradient-to-r hover:from-[#5A45F2]/20 hover:to-[#7c3aed]/20'
+                              : 'text-gray-700 hover:bg-gradient-to-r hover:from-[#5A45F2]/10 hover:to-[#7c3aed]/10'
+                          }`}
+                          onClick={() => setShowDropdown(false)}
+                          role="menuitem"
+                        >
+                          <Heart className="w-4 h-4 text-[#5A45F2] group-hover:scale-110 transition-transform" />
+                          <span>My Favorites</span>
+                        </Link>
                         <button
                           onClick={handleLogout}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${
@@ -365,6 +378,18 @@ const Navbar = () => {
                         >
                           <LayoutDashboard className="w-5 h-5" />
                           <span>Dashboard</span>
+                        </Link>
+                        <Link
+                          to="/favorites"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
+                            darkMode
+                              ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
+                              : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
+                          }`}
+                        >
+                          <Heart className="w-5 h-5" />
+                          <span>My Favorites</span>
                         </Link>
                         <button
                           onClick={() => {

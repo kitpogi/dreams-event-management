@@ -1,19 +1,45 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
-import { Card, Button, LoadingSpinner, SkeletonStatCard, SkeletonList } from '../../../components/ui';
+import { 
+  Card, 
+  Button, 
+  LoadingSpinner, 
+  SkeletonStatCard, 
+  SkeletonList,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  DataTable,
+  Timeline
+} from '../../../components/ui';
 import { TestimonialFormModal } from '../../../components/modals';
+import { Calendar, Clock, Package, Users, Search, Settings, Bell, TrendingUp, Plus } from 'lucide-react';
 
 const ClientDashboard = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTestimonialModal, setShowTestimonialModal] = useState(false);
   const [page, setPage] = useState(1);
   const [perPage] = useState(10);
   const [meta, setMeta] = useState({ total: 0, last_page: 1, status_counts: {} });
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'list');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Update URL when tab changes
+  useEffect(() => {
+    if (activeTab) {
+      setSearchParams({ tab: activeTab });
+    }
+  }, [activeTab, setSearchParams]);
 
   // Redirect admins to admin dashboard
   useEffect(() => {
@@ -181,45 +207,41 @@ const ClientDashboard = () => {
         </p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="mb-8 flex flex-wrap gap-4">
+      {/* Quick Actions Panel */}
+      <Card className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Quick Actions</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Access frequently used features</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Link to="/packages">
-          <Button className="flex items-center gap-2">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            Browse Packages
+            <Button className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700">
+              <Search className="w-4 h-4" />
+              <span className="text-sm">Browse Packages</span>
           </Button>
         </Link>
         <Link to="/recommendations">
-          <Button variant="outline" className="flex items-center gap-2">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-            Get Recommendations
+            <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-sm">Get Recommendations</span>
+            </Button>
+          </Link>
+          <Link to="/dashboard?tab=calendar">
+            <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">View Calendar</span>
+            </Button>
+          </Link>
+          <Link to="/profile/settings">
+            <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="text-sm">Settings</span>
           </Button>
         </Link>
       </div>
+      </Card>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -395,7 +417,7 @@ const ClientDashboard = () => {
         </Card>
       )}
 
-      {/* All Bookings */}
+      {/* All Bookings with Tabs */}
       <Card>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">All Bookings</h2>
@@ -427,96 +449,116 @@ const ClientDashboard = () => {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Package
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Event Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Venue
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Guests
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Price
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {bookings
-                  .sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))
-                  .map((booking) => (
-                    <tr key={booking.booking_id || booking.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {getPackageName(booking)}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="list" className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                List View
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Calendar
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Timeline
+              </TabsTrigger>
+            </TabsList>
+
+            {/* List View Tab */}
+            <TabsContent value="list" className="mt-0">
+              <DataTable
+                data={bookings.sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))}
+                columns={[
+                  {
+                    accessor: 'package_name',
+                    header: 'Package',
+                    sortable: true,
+                    render: (row) => (
+                      <div className="font-medium text-gray-900">
+                        {getPackageName(row)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    ),
+                  },
+                  {
+                    accessor: 'event_date',
+                    header: 'Event Date',
+                    sortable: true,
+                    render: (row) => (
                         <div className="text-sm text-gray-900">
-                          {booking.event_date 
-                            ? new Date(booking.event_date).toLocaleDateString('en-US', {
+                        {row.event_date 
+                          ? new Date(row.event_date).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric',
                               })
                             : 'N/A'}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    ),
+                  },
+                  {
+                    accessor: 'event_venue',
+                    header: 'Venue',
+                    sortable: true,
+                    render: (row) => (
+                      <div className="text-sm text-gray-900">
+                        {row.event_venue || 'TBD'}
+                      </div>
+                    ),
+                  },
+                  {
+                    accessor: 'guest_count',
+                    header: 'Guests',
+                    sortable: true,
+                    render: (row) => (
                         <div className="text-sm text-gray-900">
-                          {booking.event_venue || 'TBD'}
+                        {row.guest_count || row.number_of_guests || 'N/A'}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {booking.guest_count || booking.number_of_guests || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(booking.booking_status || booking.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {getPackagePrice(booking)
-                          ? `₱${parseFloat(getPackagePrice(booking)).toLocaleString('en-US', {
+                    ),
+                  },
+                  {
+                    accessor: 'status',
+                    header: 'Status',
+                    sortable: true,
+                    render: (row) => getStatusBadge(row.booking_status || row.status),
+                  },
+                  {
+                    accessor: 'price',
+                    header: 'Total Price',
+                    sortable: true,
+                    render: (row) => (
+                      <div className="text-sm font-medium text-gray-900">
+                        {getPackagePrice(row)
+                          ? `₱${parseFloat(getPackagePrice(row)).toLocaleString('en-US', {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}`
                           : 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-            <div className="flex items-center justify-between px-4 py-4 border-t bg-gray-50">
-              <div className="text-sm text-gray-600">
-                Page {page} of {meta.last_page || 1} • {meta.total || 0} total
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage((p) => (meta.last_page ? Math.min(meta.last_page, p + 1) : p + 1))}
-                  disabled={meta.last_page ? page >= meta.last_page : false}
-                  className="px-3 py-2 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
+                    ),
+                  },
+                ]}
+                searchable
+                searchPlaceholder="Search bookings..."
+                pagination
+                pageSize={perPage}
+              />
+            </TabsContent>
+
+            {/* Calendar View Tab */}
+            <TabsContent value="calendar" className="mt-0">
+              <BookingCalendarView 
+                bookings={bookings} 
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+              />
+            </TabsContent>
+
+            {/* Timeline View Tab */}
+            <TabsContent value="timeline" className="mt-0">
+              <BookingTimelineView bookings={bookings} />
+            </TabsContent>
+          </Tabs>
         )}
       </Card>
 
@@ -530,6 +572,143 @@ const ClientDashboard = () => {
       />
     </div>
   );
+};
+
+// Calendar View Component
+const BookingCalendarView = ({ bookings, month, onMonthChange }) => {
+  const eventsByDate = useMemo(() => {
+    return bookings.reduce((acc, booking) => {
+      if (!booking.event_date) return acc;
+      const dateStr = new Date(booking.event_date).toISOString().split('T')[0];
+      if (!acc[dateStr]) acc[dateStr] = [];
+      acc[dateStr].push(booking);
+      return acc;
+    }, {});
+  }, [bookings]);
+
+  const sortedDates = useMemo(() => Object.keys(eventsByDate).sort(), [eventsByDate]);
+
+  const formatDisplayDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const getStatusBadge = (status) => {
+    const normalizedStatus = (status || '').toLowerCase();
+    const statusStyles = {
+      confirmed: 'bg-green-100 text-green-800 border-green-200',
+      approved: 'bg-green-100 text-green-800 border-green-200',
+      pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      cancelled: 'bg-red-100 text-red-800 border-red-200',
+      completed: 'bg-blue-100 text-blue-800 border-blue-200',
+    };
+    const statusKey = normalizedStatus in statusStyles ? normalizedStatus : 'default';
+    return (
+      <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${statusStyles[statusKey] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {(status || 'Unknown').charAt(0).toUpperCase() + (status || 'Unknown').slice(1)}
+      </span>
+    );
+  };
+
+  const getPackageName = (booking) => {
+    return booking?.eventPackage?.package_name || 
+           booking?.event_package?.package_name || 
+           booking?.package?.name || 
+           booking?.package?.package_name || 
+           'N/A';
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <input
+          type="month"
+          value={month}
+          onChange={(e) => onMonthChange(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      {sortedDates.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <p>No bookings in this month.</p>
+        </div>
+      ) : (
+        sortedDates.map((date) => (
+          <Card key={date} className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900">{formatDisplayDate(date)}</h3>
+              <span className="text-sm text-gray-500">{eventsByDate[date].length} booking(s)</span>
+            </div>
+            <div className="space-y-3">
+              {eventsByDate[date].map((booking) => (
+                <div
+                  key={booking.booking_id || booking.id}
+                  className="p-3 border rounded-lg bg-white shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+                >
+                  <div className="flex-1">
+                    <p className="text-base font-semibold text-gray-900">
+                      {getPackageName(booking)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {booking.event_venue || 'Venue TBD'} • {booking.guest_count || booking.number_of_guests || 'N/A'} guests
+                    </p>
+                    {booking.event_time && (
+                      <p className="text-sm text-gray-500">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {booking.event_time}
+                      </p>
+                    )}
+                  </div>
+                  {getStatusBadge(booking.booking_status || booking.status)}
+                </div>
+              ))}
+            </div>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+};
+
+// Timeline View Component
+const BookingTimelineView = ({ bookings }) => {
+  const timelineItems = useMemo(() => {
+    return bookings
+      .sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))
+      .map((booking) => {
+        const getPackageName = (b) => {
+          return b?.eventPackage?.package_name || 
+                 b?.event_package?.package_name || 
+                 b?.package?.name || 
+                 b?.package?.package_name || 
+                 'N/A';
+        };
+
+        return {
+          id: booking.booking_id || booking.id,
+          title: getPackageName(booking),
+          subtitle: `Booking #${booking.booking_id || booking.id}`,
+          description: booking.special_requests || `Event scheduled for ${booking.event_date ? new Date(booking.event_date).toLocaleDateString() : 'TBD'}`,
+          date: booking.created_at || booking.updated_at,
+          status: booking.booking_status || booking.status,
+          venue: booking.event_venue,
+          guests: booking.guest_count || booking.number_of_guests,
+        };
+      });
+  }, [bookings]);
+
+  if (timelineItems.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+        <p>No booking history available.</p>
+      </div>
+    );
+  }
+
+  return <Timeline items={timelineItems} orientation="vertical" />;
 };
 
 export default ClientDashboard;

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../../api/axios';
-import { PackageCard, PackageSearchAutocomplete } from '../../components/features';
+import { PackageCard, PackageSearchAutocomplete, QuickViewModal, PackageComparison } from '../../components/features';
 import { Card, Button, Input, Badge, Label } from '../../components/ui';
+import { useToast } from '../../hooks/use-toast';
+import { Grid3x3, List, Scale } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -28,33 +30,105 @@ import { Filter, X, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+  FILTERS: 'packages_filters',
+  PAGE: 'packages_page',
+  VIEW_MODE: 'packages_view_mode',
+  COMPARISON: 'packages_comparison',
+  TEMP_PRICE_RANGE: 'packages_temp_price_range',
+};
+
+// Helper functions for localStorage
+const saveToStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Error saving to localStorage (${key}):`, error);
+  }
+};
+
+const loadFromStorage = (key, defaultValue) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error(`Error loading from localStorage (${key}):`, error);
+    return defaultValue;
+  }
+};
+
 const Packages = () => {
+  // Load initial state from localStorage
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => loadFromStorage(STORAGE_KEYS.PAGE, 1));
   const [perPage] = useState(9);
   const [meta, setMeta] = useState({ total: 0, last_page: 1 });
-  const [filters, setFilters] = useState({
-    search: '',
-    minPrice: '',
-    maxPrice: '',
-    category: '',
-    sort: 'newest',
-    dateFrom: null,
-    dateTo: null,
+  const [filters, setFilters] = useState(() => {
+    const savedFilters = loadFromStorage(STORAGE_KEYS.FILTERS, {
+      search: '',
+      minPrice: '',
+      maxPrice: '',
+      category: '',
+      sort: 'newest',
+      dateFrom: null,
+      dateTo: null,
+    });
+    // Convert date strings back to Date objects
+    if (savedFilters.dateFrom) {
+      savedFilters.dateFrom = new Date(savedFilters.dateFrom);
+    }
+    if (savedFilters.dateTo) {
+      savedFilters.dateTo = new Date(savedFilters.dateTo);
+    }
+    return savedFilters;
   });
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 500000]); // Default range, will be updated
-  const [tempPriceRange, setTempPriceRange] = useState([0, 500000]);
+  const [tempPriceRange, setTempPriceRange] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.TEMP_PRICE_RANGE, [0, 500000])
+  );
+  const [viewMode, setViewMode] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.VIEW_MODE, 'grid')
+  );
+  const [quickViewPackage, setQuickViewPackage] = useState(null);
+  const [comparisonPackages, setComparisonPackages] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.COMPARISON, [])
+  );
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const { toast } = useToast();
 
+  // Save state to localStorage whenever it changes
   useEffect(() => {
-    fetchPackages(page);
+    saveToStorage(STORAGE_KEYS.PAGE, page);
   }, [page]);
 
   useEffect(() => {
-    // Fetch price range only once on mount
+    saveToStorage(STORAGE_KEYS.FILTERS, filters);
+  }, [filters]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.VIEW_MODE, viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.COMPARISON, comparisonPackages);
+  }, [comparisonPackages]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.TEMP_PRICE_RANGE, tempPriceRange);
+  }, [tempPriceRange]);
+
+  // Initial load: fetch price range first
+  useEffect(() => {
     fetchPriceRange();
   }, []);
+
+  // Fetch packages when page changes
+  useEffect(() => {
+    fetchPackages(page);
+  }, [page]);
 
   const fetchPriceRange = async () => {
     try {
@@ -67,10 +141,15 @@ const Packages = () => {
           const minPrice = Math.floor(Math.min(...prices));
           const maxPrice = Math.ceil(Math.max(...prices));
           setPriceRange([minPrice, maxPrice]);
-          // Initialize temp range with current filters or full range
-          const currentMin = filters.minPrice ? parseInt(filters.minPrice) : minPrice;
-          const currentMax = filters.maxPrice ? parseInt(filters.maxPrice) : maxPrice;
-          setTempPriceRange([currentMin, currentMax]);
+          // Initialize temp range with saved filters or full range
+          const savedTempRange = loadFromStorage(STORAGE_KEYS.TEMP_PRICE_RANGE, null);
+          if (savedTempRange && savedTempRange[0] >= minPrice && savedTempRange[1] <= maxPrice) {
+            setTempPriceRange(savedTempRange);
+          } else {
+            const currentMin = filters.minPrice ? parseInt(filters.minPrice) : minPrice;
+            const currentMax = filters.maxPrice ? parseInt(filters.maxPrice) : maxPrice;
+            setTempPriceRange([currentMin, currentMax]);
+          }
         }
       }
     } catch (error) {
@@ -130,7 +209,7 @@ const Packages = () => {
   };
 
   const handleClearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       search: '',
       minPrice: '',
       maxPrice: '',
@@ -138,9 +217,13 @@ const Packages = () => {
       sort: 'newest',
       dateFrom: null,
       dateTo: null,
-    });
+    };
+    setFilters(clearedFilters);
     setTempPriceRange(priceRange);
     setPage(1);
+    // Clear from localStorage (will be saved by useEffect, but we can also clear explicitly)
+    saveToStorage(STORAGE_KEYS.FILTERS, clearedFilters);
+    saveToStorage(STORAGE_KEYS.PAGE, 1);
   };
 
   const handlePriceRangeChange = (values) => {
@@ -215,6 +298,50 @@ const Packages = () => {
   const activeFilters = getActiveFilters();
   const activeFiltersCount = activeFilters.length;
 
+  const handleQuickView = (pkg) => {
+    setQuickViewPackage(pkg);
+  };
+
+  const handleAddToComparison = (pkg) => {
+    const packageId = pkg.package_id || pkg.id;
+    if (!comparisonPackages.find(p => (p.package_id || p.id) === packageId)) {
+      if (comparisonPackages.length < 3) {
+        setComparisonPackages([...comparisonPackages, pkg]);
+        toast({
+          title: 'Added to comparison',
+          description: `${pkg.package_name || pkg.name} has been added to comparison.`,
+        });
+      } else {
+        toast({
+          title: 'Comparison limit reached',
+          description: 'You can compare up to 3 packages. Remove one to add another.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      toast({
+        title: 'Already in comparison',
+        description: 'This package is already in your comparison list.',
+      });
+    }
+  };
+
+  const handleRemoveFromComparison = (packageId) => {
+    setComparisonPackages(comparisonPackages.filter(p => (p.package_id || p.id) !== packageId));
+  };
+
+  const handleOpenComparison = () => {
+    if (comparisonPackages.length > 0) {
+      setComparisonOpen(true);
+    } else {
+      toast({
+        title: 'No packages to compare',
+        description: 'Please add packages to comparison first.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 max-w-7xl">
       <div className="mb-8">
@@ -230,6 +357,41 @@ const Packages = () => {
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
+          
+          {/* Comparison Button */}
+          {comparisonPackages.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleOpenComparison}
+              className="relative"
+            >
+              <Scale className="mr-2 h-4 w-4" />
+              Compare ({comparisonPackages.length})
+            </Button>
+          )}
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+              className="h-8 w-8"
+              aria-label="Grid view"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+              className="h-8 w-8"
+              aria-label="List view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
           <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" className="relative">
@@ -473,13 +635,22 @@ const Packages = () => {
         </div>
       ) : packages.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+            : 'flex flex-col gap-6'
+          }>
             {packages.map((pkg) => (
-              <PackageCard key={pkg.package_id || pkg.id} package={pkg} />
+              <PackageCard 
+                key={pkg.package_id || pkg.id} 
+                package={pkg}
+                onQuickView={handleQuickView}
+                onAddToComparison={handleAddToComparison}
+                viewMode={viewMode}
+              />
             ))}
           </div>
-          <div className="flex items-center justify-between mt-8 bg-gray-50 border rounded-lg px-4 py-3">
-            <div className="text-sm text-gray-600">
+          <div className="flex items-center justify-between mt-8 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+            <div className="text-sm text-gray-600 dark:text-gray-300">
               Page {page} of {meta.last_page || 1} • {meta.total || 0} total
             </div>
             <div className="flex gap-2">
@@ -487,7 +658,7 @@ const Packages = () => {
                 variant="outline"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </Button>
@@ -495,7 +666,7 @@ const Packages = () => {
                 variant="outline"
                 onClick={() => setPage((p) => (meta.last_page ? Math.min(meta.last_page, p + 1) : p + 1))}
                 disabled={meta.last_page ? page >= meta.last_page : false}
-                className="disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </Button>
@@ -509,6 +680,28 @@ const Packages = () => {
           </div>
         </div>
       )}
+
+      {/* Quick View Modal */}
+      {quickViewPackage && (
+        <QuickViewModal
+          package={quickViewPackage}
+          isOpen={!!quickViewPackage}
+          onClose={() => setQuickViewPackage(null)}
+          onFavoriteToggle={(isFavorite, itemId) => {
+            if (isFavorite) {
+              handleAddToComparison(quickViewPackage);
+            }
+          }}
+        />
+      )}
+
+      {/* Comparison Modal */}
+      <PackageComparison
+        packages={comparisonPackages}
+        isOpen={comparisonOpen}
+        onClose={() => setComparisonOpen(false)}
+        onRemove={handleRemoveFromComparison}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { Input } from './Input';
 import { cn } from '@/lib/utils';
@@ -30,10 +30,18 @@ const TimePicker = ({
 }) => {
   const [timeValue, setTimeValue] = useState(value || '');
 
+  // Sync internal state with external value prop
+  useEffect(() => {
+    if (value !== undefined && value !== timeValue) {
+      setTimeValue(value || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   const handleChange = (e) => {
     const newTime = e.target.value;
     setTimeValue(newTime);
-    
+
     if (onChange) {
       onChange(newTime);
     }

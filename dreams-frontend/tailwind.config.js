@@ -357,27 +357,227 @@ module.exports = {
 			'layout-lg': 'var(--spacing-layout-lg)',           // 3rem (48px) - large layout spacing
 			'layout-xl': 'var(--spacing-layout-xl)',           // 4rem (64px) - extra large layout spacing
 		},
+		boxShadow: {
+			// Elevation system - progressive depth levels
+			'elevation-0': 'var(--shadow-elevation-0)',
+			'elevation-1': 'var(--shadow-elevation-1)',
+			'elevation-2': 'var(--shadow-elevation-2)',
+			'elevation-3': 'var(--shadow-elevation-3)',
+			'elevation-4': 'var(--shadow-elevation-4)',
+			'elevation-5': 'var(--shadow-elevation-5)',
+			// Semantic shadows - component-specific
+			'card': 'var(--shadow-card)',
+			'card-hover': 'var(--shadow-card-hover)',
+			'dropdown': 'var(--shadow-dropdown)',
+			'popover': 'var(--shadow-popover)',
+			'modal': 'var(--shadow-modal)',
+			'tooltip': 'var(--shadow-tooltip)',
+			'button': 'var(--shadow-button)',
+			'button-hover': 'var(--shadow-button-hover)',
+			'input-focus': 'var(--shadow-input-focus)',
+			// Colored shadows (brand accents)
+			'primary': 'var(--shadow-primary)',
+			'primary-lg': 'var(--shadow-primary-lg)',
+			'success': 'var(--shadow-success)',
+			'warning': 'var(--shadow-warning)',
+			'error': 'var(--shadow-error)',
+			'info': 'var(--shadow-info)',
+			// Inner shadows
+			'inner-sm': 'var(--shadow-inner-sm)',
+			'inner': 'var(--shadow-inner)',
+			'inner-lg': 'var(--shadow-inner-lg)',
+			// Keep default Tailwind shadows as fallback
+			'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+			'DEFAULT': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+			'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+			'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+			'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+			'2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+			'none': 'none',
+		},
+		// Transition durations
+		transitionDuration: {
+			'instant': 'var(--duration-instant)',
+			'fast': 'var(--duration-fast)',
+			'normal': 'var(--duration-normal)',
+			'slow': 'var(--duration-slow)',
+			'slower': 'var(--duration-slower)',
+			'slowest': 'var(--duration-slowest)',
+		},
+		// Easing functions
+		transitionTimingFunction: {
+			'ease-linear': 'var(--ease-linear)',
+			'ease-in': 'var(--ease-in)',
+			'ease-out': 'var(--ease-out)',
+			'ease-in-out': 'var(--ease-in-out)',
+			'ease-bounce': 'var(--ease-bounce)',
+			'ease-elastic': 'var(--ease-elastic)',
+			'ease-spring': 'var(--ease-spring)',
+			'ease-snap': 'var(--ease-snap)',
+		},
   		keyframes: {
   			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
+  				from: { height: '0' },
+  				to: { height: 'var(--radix-accordion-content-height)' }
   			},
   			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
-  			}
+  				from: { height: 'var(--radix-accordion-content-height)' },
+  				to: { height: '0' }
+  			},
+			// Fade animations
+			'fade-in': {
+				from: { opacity: '0' },
+				to: { opacity: '1' }
+			},
+			'fade-out': {
+				from: { opacity: '1' },
+				to: { opacity: '0' }
+			},
+			'fade-in-up': {
+				from: { opacity: '0', transform: 'translateY(10px)' },
+				to: { opacity: '1', transform: 'translateY(0)' }
+			},
+			'fade-in-down': {
+				from: { opacity: '0', transform: 'translateY(-10px)' },
+				to: { opacity: '1', transform: 'translateY(0)' }
+			},
+			'fade-in-left': {
+				from: { opacity: '0', transform: 'translateX(-10px)' },
+				to: { opacity: '1', transform: 'translateX(0)' }
+			},
+			'fade-in-right': {
+				from: { opacity: '0', transform: 'translateX(10px)' },
+				to: { opacity: '1', transform: 'translateX(0)' }
+			},
+			// Slide animations
+			'slide-in-up': {
+				from: { transform: 'translateY(100%)' },
+				to: { transform: 'translateY(0)' }
+			},
+			'slide-in-down': {
+				from: { transform: 'translateY(-100%)' },
+				to: { transform: 'translateY(0)' }
+			},
+			'slide-in-left': {
+				from: { transform: 'translateX(-100%)' },
+				to: { transform: 'translateX(0)' }
+			},
+			'slide-in-right': {
+				from: { transform: 'translateX(100%)' },
+				to: { transform: 'translateX(0)' }
+			},
+			// Scale animations
+			'scale-in': {
+				from: { opacity: '0', transform: 'scale(0.9)' },
+				to: { opacity: '1', transform: 'scale(1)' }
+			},
+			'scale-out': {
+				from: { opacity: '1', transform: 'scale(1)' },
+				to: { opacity: '0', transform: 'scale(0.9)' }
+			},
+			'pop-in': {
+				'0%': { opacity: '0', transform: 'scale(0.8)' },
+				'70%': { transform: 'scale(1.05)' },
+				'100%': { opacity: '1', transform: 'scale(1)' }
+			},
+			'zoom-in': {
+				from: { opacity: '0', transform: 'scale(0.5)' },
+				to: { opacity: '1', transform: 'scale(1)' }
+			},
+			// Bounce animations
+			'bounce-in': {
+				'0%': { opacity: '0', transform: 'scale(0.3)' },
+				'50%': { transform: 'scale(1.05)' },
+				'70%': { transform: 'scale(0.9)' },
+				'100%': { opacity: '1', transform: 'scale(1)' }
+			},
+			'bounce-subtle': {
+				'0%, 100%': { transform: 'translateY(0)' },
+				'50%': { transform: 'translateY(-5px)' }
+			},
+			// Shake animations
+			'shake': {
+				'0%, 100%': { transform: 'translateX(0)' },
+				'10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
+				'20%, 40%, 60%, 80%': { transform: 'translateX(4px)' }
+			},
+			'wiggle': {
+				'0%, 100%': { transform: 'rotate(0deg)' },
+				'25%': { transform: 'rotate(-3deg)' },
+				'75%': { transform: 'rotate(3deg)' }
+			},
+			// Pulse animations
+			'pulse-scale': {
+				'0%, 100%': { transform: 'scale(1)' },
+				'50%': { transform: 'scale(1.05)' }
+			},
+			'heartbeat': {
+				'0%, 100%': { transform: 'scale(1)' },
+				'14%': { transform: 'scale(1.1)' },
+				'28%': { transform: 'scale(1)' },
+				'42%': { transform: 'scale(1.1)' },
+				'70%': { transform: 'scale(1)' }
+			},
+			// Float animation
+			'float': {
+				'0%, 100%': { transform: 'translateY(0)' },
+				'50%': { transform: 'translateY(-10px)' }
+			},
+			// Glow animation
+			'glow': {
+				'0%, 100%': { boxShadow: '0 0 5px hsl(var(--primary) / 40%)' },
+				'50%': { boxShadow: '0 0 20px hsl(var(--primary) / 60%), 0 0 30px hsl(var(--primary) / 40%)' }
+			},
+			// Shimmer animation
+			'shimmer': {
+				'0%': { backgroundPosition: '-200% 0' },
+				'100%': { backgroundPosition: '200% 0' }
+			},
+			// Flip animations
+			'flip-in-x': {
+				from: { opacity: '0', transform: 'perspective(400px) rotateX(90deg)' },
+				to: { opacity: '1', transform: 'perspective(400px) rotateX(0deg)' }
+			},
+			'flip-in-y': {
+				from: { opacity: '0', transform: 'perspective(400px) rotateY(90deg)' },
+				to: { opacity: '1', transform: 'perspective(400px) rotateY(0deg)' }
+			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+			// Fade animations
+			'fade-in': 'fade-in var(--duration-normal) var(--ease-out) forwards',
+			'fade-out': 'fade-out var(--duration-normal) var(--ease-in) forwards',
+			'fade-in-up': 'fade-in-up var(--duration-normal) var(--ease-out) forwards',
+			'fade-in-down': 'fade-in-down var(--duration-normal) var(--ease-out) forwards',
+			'fade-in-left': 'fade-in-left var(--duration-normal) var(--ease-out) forwards',
+			'fade-in-right': 'fade-in-right var(--duration-normal) var(--ease-out) forwards',
+			// Slide animations
+			'slide-in-up': 'slide-in-up var(--duration-slow) var(--ease-out) forwards',
+			'slide-in-down': 'slide-in-down var(--duration-slow) var(--ease-out) forwards',
+			'slide-in-left': 'slide-in-left var(--duration-slow) var(--ease-out) forwards',
+			'slide-in-right': 'slide-in-right var(--duration-slow) var(--ease-out) forwards',
+			// Scale animations
+			'scale-in': 'scale-in var(--duration-normal) var(--ease-spring) forwards',
+			'scale-out': 'scale-out var(--duration-normal) var(--ease-in) forwards',
+			'pop-in': 'pop-in var(--duration-slow) var(--ease-spring) forwards',
+			'zoom-in': 'zoom-in var(--duration-slow) var(--ease-out) forwards',
+			// Bounce animations
+			'bounce-in': 'bounce-in var(--duration-slower) var(--ease-bounce) forwards',
+			'bounce-subtle': 'bounce-subtle 2s var(--ease-in-out) infinite',
+			// Shake animations
+			'shake': 'shake var(--duration-slower) var(--ease-in-out)',
+			'wiggle': 'wiggle var(--duration-slow) var(--ease-in-out)',
+			// Pulse animations
+			'pulse-scale': 'pulse-scale 2s var(--ease-in-out) infinite',
+			'heartbeat': 'heartbeat 1.5s var(--ease-in-out) infinite',
+			// Other animations
+			'float': 'float 3s var(--ease-in-out) infinite',
+			'glow': 'glow 2s var(--ease-in-out) infinite',
+			'shimmer': 'shimmer 1.5s infinite',
+			'flip-in-x': 'flip-in-x var(--duration-slower) var(--ease-out) forwards',
+			'flip-in-y': 'flip-in-y var(--duration-slower) var(--ease-out) forwards',
   		}
   	}
   },
