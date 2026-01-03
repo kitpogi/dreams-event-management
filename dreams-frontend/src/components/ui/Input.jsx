@@ -67,9 +67,9 @@ const Input = React.forwardRef(({
   }
 
   const inputClasses = cn(
-    "flex h-10 w-full rounded-md border bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all",
-    hasError && "border-destructive focus-visible:ring-destructive",
-    hasSuccess && "border-success-500 focus-visible:ring-success-500",
+    "flex h-10 w-full rounded-md border bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all focus-ring-animated",
+    hasError && "border-destructive focus-visible:ring-destructive animate-error-shake",
+    hasSuccess && "border-success-500 focus-visible:ring-success-500 animate-success-pulse",
     !hasError && !hasSuccess && "border-input focus-visible:ring-ring",
     floatingLabel && label && isFloating && "pt-5 pb-1",
     floatingLabel && label && !isFloating && "py-2",

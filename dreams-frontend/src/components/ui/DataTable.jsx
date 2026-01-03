@@ -19,6 +19,9 @@ import {
   Download,
   FileDown,
   Minus,
+  Trash2,
+  Edit,
+  MoreVertical,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -40,6 +43,7 @@ const DataTable = ({
   selectable = false,
   onSelectionChange,
   exportable = false,
+  bulkActions = [],
   getRowId = (row) => row.id || row._id,
   className,
 }) => {
@@ -258,11 +262,40 @@ const DataTable = ({
               </div>
             )}
             {selectable && selectedRows.size > 0 && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''} selected
               </div>
             )}
           </div>
+          {selectable && selectedRows.size > 0 && bulkActions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="h-4 w-4 mr-2" />
+                    Bulk Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {bulkActions.map((action, index) => (
+                    <DropdownMenuItem
+                      key={index}
+                      onClick={() => {
+                        const selectedData = filteredData.filter((row) =>
+                          selectedRows.has(getRowId(row))
+                        );
+                        action.onAction(Array.from(selectedRows), selectedData);
+                      }}
+                      className={action.destructive ? 'text-red-600 focus:text-red-600' : ''}
+                    >
+                      {action.icon && <action.icon className="h-4 w-4 mr-2" />}
+                      {action.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
           {exportable && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -313,9 +346,9 @@ const DataTable = ({
                   </div>
                 </TableHead>
               )}
-              {columns.map((column) => (
+              {columns.map((column, columnIndex) => (
                 <TableHead
-                  key={column.accessor || column.id}
+                  key={column.accessor || column.id || `column-${columnIndex}`}
                   className={cn(
                     column.sortable && 'cursor-pointer hover:bg-muted/50',
                     column.className
@@ -339,7 +372,7 @@ const DataTable = ({
               </TableRow>
             ) : (
               paginatedData.map((row, rowIndex) => {
-                const rowId = getRowId(row);
+                const rowId = getRowId(row) ?? `row-${rowIndex}`;
                 const isSelected = selectedRows.has(rowId);
                 return (
                   <TableRow
@@ -355,9 +388,9 @@ const DataTable = ({
                         />
                       </TableCell>
                     )}
-                    {columns.map((column) => (
+                    {columns.map((column, columnIndex) => (
                       <TableCell
-                        key={column.accessor || column.id}
+                        key={`${rowId}-${column.accessor || column.id || columnIndex}`}
                         className={column.cellClassName}
                       >
                         {column.render

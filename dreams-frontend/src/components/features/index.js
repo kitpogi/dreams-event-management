@@ -9,4 +9,12 @@ export { default as NewsletterSignup } from './NewsletterSignup';
 export { default as QuickViewModal } from './QuickViewModal';
 export { default as PackageComparison } from './PackageComparison';
 export { default as BookingStatusTracker } from './BookingStatusTracker';
+export { default as NotificationCenter } from './NotificationCenter';
+export { default as AnalyticsCharts } from './AnalyticsCharts';
+export { PageTransition } from './PageTransition';
+export { ScrollReveal } from './ScrollReveal';
+export { default as SkipLinks } from './SkipLinks';
+export { default as KeyboardShortcuts } from './KeyboardShortcuts';
+export { default as ScreenReaderAnnouncements } from './ScreenReaderAnnouncements';
+export { useScreenReaderAnnouncement } from './ScreenReaderAnnouncements';
 

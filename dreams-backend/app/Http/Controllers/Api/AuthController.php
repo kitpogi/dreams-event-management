@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
@@ -663,6 +664,169 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'If that email address exists in our system and is not verified, we will send a verification link.'
         ], 200);
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/api/auth/profile",
+     *     summary="Update user profile",
+     *     tags={"Authentication"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="John Doe"),
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="phone", type="string", example="+1234567890")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Profile updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Profile updated successfully"),
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'sometimes|nullable|string|max:20',
+        ]);
+
+        // If email is being changed, mark as unverified
+        if (isset($validated['email']) && $validated['email'] !== $user->email) {
+            $validated['email_verified_at'] = null;
+        }
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth/upload-avatar",
+     *     summary="Upload profile picture",
+     *     tags={"Authentication"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 @OA\Property(
+     *                     property="profile_picture",
+     *                     type="string",
+     *                     format="binary"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Avatar uploaded successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Profile picture uploaded successfully"),
+     *             @OA\Property(property="profile_picture", type="string", example="/storage/profile_pictures/abc123.jpg"),
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120', // 5MB max
+        ]);
+
+        $user = $request->user();
+
+        // Delete old profile picture if it exists
+        if ($user->profile_picture) {
+            $oldPath = str_replace('/storage/', '', $user->profile_picture);
+            if (Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+
+        // Store new profile picture
+        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+        $url = '/storage/' . $path;
+
+        // Update user
+        $user->update(['profile_picture' => $url]);
+
+        return response()->json([
+            'message' => 'Profile picture uploaded successfully',
+            'profile_picture' => $url,
+            'user' => $user->fresh(),
+        ]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth/change-password",
+     *     summary="Change password",
+     *     tags={"Authentication"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"current_password", "new_password", "new_password_confirmation"},
+     *             @OA\Property(property="current_password", type="string", format="password", example="oldpassword123"),
+     *             @OA\Property(property="new_password", type="string", format="password", example="newpassword123", minLength=8),
+     *             @OA\Property(property="new_password_confirmation", type="string", format="password", example="newpassword123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password changed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Password changed successfully")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['The provided password is incorrect.'],
+            ]);
+        }
+
+        // Update password
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return response()->json([
+            'message' => 'Password changed successfully',
+        ]);
     }
 }
 

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
+import AdminNavbar from '../../../components/layout/AdminNavbar';
 import { ConfirmationModal, LoadingSpinner } from '../../../components/ui';
+import { useSidebar } from '../../../context/SidebarContext';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -16,6 +18,7 @@ const initialFormState = {
 };
 
 const ManagePortfolio = () => {
+  const { isCollapsed } = useSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState(initialFormState);
@@ -172,85 +175,105 @@ const ManagePortfolio = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Manage Portfolio</h1>
-            <p className="text-sm text-gray-500">
-              Upload event photos and keep your public portfolio fresh.
-            </p>
-          </div>
-          {feedback.message && (
-            <div
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                feedback.type === 'error'
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-green-100 text-green-700'
-              }`}
-            >
-              {feedback.message}
+      <AdminNavbar />
+      <main
+        className="flex-1 bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen transition-all duration-300 pt-16"
+        style={{
+          marginLeft: isCollapsed ? '5rem' : '16rem',
+          width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
+        }}
+      >
+        <div className="p-4 sm:p-6 lg:p-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white transition-colors duration-300">
+                Manage Portfolio
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
+                Upload event photos and keep your public portfolio fresh.
+              </p>
             </div>
-          )}
-        </div>
+            {feedback.message && (
+              <div
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${
+                  feedback.type === 'error'
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                }`}
+              >
+                {feedback.message}
+              </div>
+            )}
+          </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <section className="bg-white rounded-xl shadow-md p-6 lg:col-span-1">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              {editingId ? 'Edit Portfolio Item' : 'Add Portfolio Item'}
-            </h2>
+          <div className="grid lg:grid-cols-3 gap-8">
+            <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 lg:col-span-1 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 transition-colors duration-300">
+                {editingId ? 'Edit Portfolio Item' : 'Add Portfolio Item'}
+              </h2>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
+                  Title
+                </label>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
+                  Category
+                </label>
                 <input
                   type="text"
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="Weddings, Corporate..."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
+                  Event Date
+                </label>
                 <input
                   type="date"
                   name="event_date"
                   value={formData.event_date}
                   onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
+                  Description
+                </label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                   rows="3"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
                   placeholder="Share highlights that appear on hover."
                 ></textarea>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
+                    Display Order
+                  </label>
                   <input
                     type="number"
                     name="display_order"
                     value={formData.display_order}
                     onChange={handleInputChange}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
                     min="0"
                   />
                 </div>
@@ -261,29 +284,32 @@ const ManagePortfolio = () => {
                     name="is_featured"
                     checked={formData.is_featured}
                     onChange={handleInputChange}
-                    className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 transition-colors duration-300"
                   />
-                  <label htmlFor="is_featured" className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="is_featured"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300"
+                  >
                     Featured
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
                   {editingId ? 'Replace Image' : 'Upload Image'}
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  className="w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/30 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 transition-colors duration-300"
                 />
                 {editingId && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">
                     Leave blank to keep the existing image.
                   </p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">
                   JPG/PNG/WEBP, max 5MB.
                 </p>
               </div>
@@ -291,7 +317,7 @@ const ManagePortfolio = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  className="flex-1 bg-indigo-600 dark:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors duration-300 disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : editingId ? 'Update Item' : 'Add Item'}
                 </button>
@@ -299,7 +325,7 @@ const ManagePortfolio = () => {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300"
                   >
                     Cancel
                   </button>
@@ -308,29 +334,29 @@ const ManagePortfolio = () => {
             </form>
           </section>
 
-          <section className="lg:col-span-2 bg-white rounded-xl shadow-md">
+          <section className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-colors duration-300">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
                       Preview
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
                       Title & Category
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
                       Event Date
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
                       Featured
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                   {loading ? (
                     <tr>
                       <td colSpan="5" className="py-10 text-center">
@@ -339,41 +365,51 @@ const ManagePortfolio = () => {
                     </tr>
                   ) : items.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="py-10 text-center text-gray-500">
+                      <td
+                        colSpan="5"
+                        className="py-10 text-center text-gray-500 dark:text-gray-400 transition-colors duration-300"
+                      >
                         No portfolio entries yet. Start by adding one on the left.
                       </td>
                     </tr>
                   ) : (
                     items.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
+                      <tr
+                        key={item.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300"
+                      >
                         <td className="px-4 py-3">
                           {item.image_url || item.image_path ? (
                             <img
                               src={item.image_url || item.image_path}
                               alt={item.title}
-                              className="h-20 w-32 object-cover rounded-lg border border-gray-200"
+                              className="h-20 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600 transition-colors duration-300"
                             />
                           ) : (
-                            <div className="h-20 w-32 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                            <div className="h-20 w-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm transition-colors duration-300">
                               No image
                             </div>
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-semibold text-gray-900">{item.title}</p>
-                          <p className="text-sm text-gray-500">{item.category || 'Uncategorized'}</p>
+                          <p className="font-semibold text-gray-900 dark:text-white transition-colors duration-300">
+                            {item.title}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
+                            {item.category || 'Uncategorized'}
+                          </p>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
                           {item.event_date
                             ? new Date(item.event_date).toLocaleDateString()
                             : '—'}
                         </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            className={`px-2 py-1 text-xs font-semibold rounded-full transition-colors duration-300 ${
                               item.is_featured
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-600'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                             }`}
                           >
                             {item.is_featured ? 'Featured' : 'Hidden'}
@@ -383,13 +419,13 @@ const ManagePortfolio = () => {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleEdit(item)}
-                              className="px-3 py-1.5 rounded-md bg-indigo-50 text-indigo-700 text-sm font-semibold hover:bg-indigo-100"
+                              className="px-3 py-1.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors duration-300"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteClick(item.id)}
-                              className="px-3 py-1.5 rounded-md bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100"
+                              className="px-3 py-1.5 rounded-md bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-300"
                             >
                               Delete
                             </button>
@@ -414,6 +450,7 @@ const ManagePortfolio = () => {
           cancelText="Cancel"
           variant="danger"
         />
+        </div>
       </main>
     </div>
   );

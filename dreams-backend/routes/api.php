@@ -86,12 +86,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Auth routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::patch('/auth/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/auth/upload-avatar', [AuthController::class, 'uploadAvatar']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
-    // Booking routes
+    // Booking routes - specific routes must come before dynamic routes
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings', [BookingController::class, 'index']);
-    Route::get('/bookings/{id}', [BookingController::class, 'show']);
-    Route::patch('/bookings/{id}', [BookingController::class, 'update']);
     
     // Coordinator routes (for coordinators to see their assigned bookings)
     Route::get('/bookings/my-assignments', [BookingController::class, 'getCoordinatorBookings']);
@@ -99,6 +100,23 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Availability checking routes
     Route::get('/bookings/check-availability', [BookingController::class, 'checkAvailability']);
     Route::get('/bookings/available-dates', [BookingController::class, 'getAvailableDates']);
+    
+    // Admin booking routes (must come before dynamic /bookings/{id} route)
+    Route::middleware(['admin', 'throttle:admin'])->group(function () {
+        Route::get('/bookings/calendar', [BookingController::class, 'calendar']);
+        Route::get('/bookings/export', [BookingController::class, 'export']);
+        Route::get('/bookings/past', [BookingController::class, 'getPastEvents']);
+        Route::get('/analytics', [BookingController::class, 'analytics']);
+        Route::patch('/bookings/status/{id}', [BookingController::class, 'adminUpdateStatus']);
+        Route::post('/bookings/{id}/assign-coordinator', [BookingController::class, 'assignCoordinator']);
+        Route::delete('/bookings/{id}/unassign-coordinator', [BookingController::class, 'unassignCoordinator']);
+        Route::get('/coordinators', [BookingController::class, 'getCoordinators']);
+        Route::patch('/bookings/{id}/notes', [BookingController::class, 'updateNotes']);
+    });
+    
+    // Dynamic booking routes (must come after specific routes)
+    Route::get('/bookings/{id}', [BookingController::class, 'show']);
+    Route::patch('/bookings/{id}', [BookingController::class, 'update']);
 
     // Client testimonial submission
     Route::post('/testimonials/submit', [TestimonialController::class, 'clientSubmit']);
@@ -131,17 +149,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         
         // AI Image Analysis for package creation
         Route::post('/analyze-package-image', [ImageAnalysisController::class, 'analyzePackageImage']);
-
-        // Booking management
-        Route::get('/bookings/calendar', [BookingController::class, 'calendar']);
-        Route::get('/bookings/export', [BookingController::class, 'export']);
-        Route::patch('/bookings/status/{id}', [BookingController::class, 'adminUpdateStatus']);
-        Route::get('/bookings/past', [BookingController::class, 'getPastEvents']);
-        Route::get('/analytics', [BookingController::class, 'analytics']);
-        Route::post('/bookings/{id}/assign-coordinator', [BookingController::class, 'assignCoordinator']);
-        Route::delete('/bookings/{id}/unassign-coordinator', [BookingController::class, 'unassignCoordinator']);
-        Route::get('/coordinators', [BookingController::class, 'getCoordinators']);
-        Route::patch('/bookings/{id}/notes', [BookingController::class, 'updateNotes']);
 
         // Client preference management (admin)
         Route::get('/clients/{clientId}/preferences/summary', [EventPreferenceController::class, 'getClientSummary']);

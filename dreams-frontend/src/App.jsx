@@ -1,49 +1,15 @@
+import { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SidebarProvider } from './context/SidebarContext';
 import { ProtectedRoute } from './components/features';
 import { MainLayout, AdminLayout } from './components/layout';
-import { ErrorBoundary, Toaster } from './components/ui';
-// Public pages
-import Home from './pages/public/Home';
-import Packages from './pages/public/Packages';
-import Services from './pages/public/Services';
-import Portfolio from './pages/public/Portfolio';
-import Reviews from './pages/public/Reviews';
-import PackageDetails from './pages/public/PackageDetails';
-import BookingForm from './pages/public/BookingForm';
-import BookingConfirmation from './pages/public/BookingConfirmation';
-import Recommendations from './pages/public/Recommendations';
-import SetAnEvent from './pages/public/SetAnEvent';
-import ContactUs from './pages/public/ContactUs';
-import Favorites from './pages/public/Favorites';
-// Auth pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import VerifyEmail from './pages/auth/VerifyEmail';
-// Client dashboard pages
-import ClientDashboard from './pages/Dashboard/client/ClientDashboard';
-import SubmitTestimonial from './pages/Dashboard/client/SubmitTestimonial';
-// Admin dashboard pages
-import AdminDashboard from './pages/Dashboard/admin/AdminDashboard';
-import ManagePackages from './pages/Dashboard/admin/ManagePackages';
-import CreatePackage from './pages/Dashboard/admin/CreatePackage';
-import EditPackage from './pages/Dashboard/admin/EditPackage';
-import ManageBookings from './pages/Dashboard/admin/ManageBookings';
-import ManageClients from './pages/Dashboard/admin/ManageClients';
-import ManageContactInquiries from './pages/Dashboard/admin/ManageContactInquiries';
-import ManageVenues from './pages/Dashboard/admin/ManageVenues';
-import ManagePortfolio from './pages/Dashboard/admin/ManagePortfolio';
-import ManageTestimonials from './pages/Dashboard/admin/ManageTestimonials';
-import AnalyticsDashboard from './pages/Dashboard/admin/AnalyticsDashboard';
-import AdminBookingsCalendar from './pages/Dashboard/admin/AdminBookingsCalendar';
-import AuditLogs from './pages/Dashboard/admin/AuditLogs';
-// Test component for UI verification
-import SpacingSystemTest from './components/test/SpacingSystemTest';
+import { ErrorBoundary, Toaster, LazyRoute } from './components/ui';
+// Lazy-loaded routes
+import * as LazyRoutes from './routes/lazyRoutes';
 
 function App() {
   return (
@@ -51,18 +17,18 @@ function App() {
       <AuthProvider>
         <Router>
         <Routes>
-          <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-          <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
-          <Route path="/portfolio" element={<MainLayout><Portfolio /></MainLayout>} />
-          <Route path="/reviews" element={<MainLayout><Reviews /></MainLayout>} />
-          <Route path="/packages" element={<MainLayout><Packages /></MainLayout>} />
-          <Route path="/packages/:id" element={<MainLayout><PackageDetails /></MainLayout>} />
+          <Route path="/" element={<MainLayout><LazyRoute component={LazyRoutes.Home} /></MainLayout>} />
+          <Route path="/services" element={<MainLayout><LazyRoute component={LazyRoutes.Services} /></MainLayout>} />
+          <Route path="/portfolio" element={<MainLayout><LazyRoute component={LazyRoutes.Portfolio} /></MainLayout>} />
+          <Route path="/reviews" element={<MainLayout><LazyRoute component={LazyRoutes.Reviews} /></MainLayout>} />
+          <Route path="/packages" element={<MainLayout><LazyRoute component={LazyRoutes.Packages} /></MainLayout>} />
+          <Route path="/packages/:id" element={<MainLayout><LazyRoute component={LazyRoutes.PackageDetails} /></MainLayout>} />
           <Route 
             path="/booking/:packageId" 
             element={
               <MainLayout>
                 <ProtectedRoute>
-                  <BookingForm />
+                  <LazyRoute component={LazyRoutes.BookingForm} />
                 </ProtectedRoute>
               </MainLayout>
             } 
@@ -72,28 +38,28 @@ function App() {
             element={
               <MainLayout>
                 <ProtectedRoute>
-                  <BookingConfirmation />
+                  <LazyRoute component={LazyRoutes.BookingConfirmation} />
                 </ProtectedRoute>
               </MainLayout>
             } 
           />
-          <Route path="/recommendations" element={<MainLayout><Recommendations /></MainLayout>} />
-          <Route path="/set-an-event" element={<MainLayout><SetAnEvent /></MainLayout>} />
-          <Route path="/contact-us" element={<MainLayout><ContactUs /></MainLayout>} />
-          <Route path="/favorites" element={<MainLayout><Favorites /></MainLayout>} />
-          <Route path="/test-spacing" element={<MainLayout><SpacingSystemTest /></MainLayout>} />
-          <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
-          <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
-          <Route path="/forgot-password" element={<MainLayout><ForgotPassword /></MainLayout>} />
-          <Route path="/reset-password" element={<MainLayout><ResetPassword /></MainLayout>} />
-          <Route path="/verify-email" element={<MainLayout><VerifyEmail /></MainLayout>} />
+          <Route path="/recommendations" element={<MainLayout><LazyRoute component={LazyRoutes.Recommendations} /></MainLayout>} />
+          <Route path="/set-an-event" element={<MainLayout><LazyRoute component={LazyRoutes.SetAnEvent} /></MainLayout>} />
+          <Route path="/contact-us" element={<MainLayout><LazyRoute component={LazyRoutes.ContactUs} /></MainLayout>} />
+          <Route path="/favorites" element={<MainLayout><LazyRoute component={LazyRoutes.Favorites} /></MainLayout>} />
+          <Route path="/test-spacing" element={<MainLayout><LazyRoute component={LazyRoutes.SpacingSystemTest} /></MainLayout>} />
+          <Route path="/login" element={<MainLayout><LazyRoute component={LazyRoutes.Login} /></MainLayout>} />
+          <Route path="/register" element={<MainLayout><LazyRoute component={LazyRoutes.Register} /></MainLayout>} />
+          <Route path="/forgot-password" element={<MainLayout><LazyRoute component={LazyRoutes.ForgotPassword} /></MainLayout>} />
+          <Route path="/reset-password" element={<MainLayout><LazyRoute component={LazyRoutes.ResetPassword} /></MainLayout>} />
+          <Route path="/verify-email" element={<MainLayout><LazyRoute component={LazyRoutes.VerifyEmail} /></MainLayout>} />
           <Route 
             path="/dashboard" 
             element={
               <MainLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute>
-                    <ClientDashboard />
+                    <LazyRoute component={LazyRoutes.ClientDashboard} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </MainLayout>
@@ -105,7 +71,19 @@ function App() {
               <MainLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute>
-                    <SubmitTestimonial />
+                    <LazyRoute component={LazyRoutes.SubmitTestimonial} />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              </MainLayout>
+            } 
+          />
+          <Route 
+            path="/profile/settings" 
+            element={
+              <MainLayout>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute>
+                    <LazyRoute component={LazyRoutes.ProfileSettings} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </MainLayout>
@@ -117,7 +95,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <AdminDashboard />
+                    <LazyRoute component={LazyRoutes.AdminDashboard} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -129,7 +107,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManagePackages />
+                    <LazyRoute component={LazyRoutes.ManagePackages} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -141,7 +119,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <CreatePackage />
+                    <LazyRoute component={LazyRoutes.CreatePackage} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -153,7 +131,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <EditPackage />
+                    <LazyRoute component={LazyRoutes.EditPackage} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -165,7 +143,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManageBookings />
+                    <LazyRoute component={LazyRoutes.ManageBookings} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -177,7 +155,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <AdminBookingsCalendar />
+                    <LazyRoute component={LazyRoutes.AdminBookingsCalendar} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -189,7 +167,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManageClients />
+                    <LazyRoute component={LazyRoutes.ManageClients} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -201,7 +179,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManageContactInquiries />
+                    <LazyRoute component={LazyRoutes.ManageContactInquiries} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -213,7 +191,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManageVenues />
+                    <LazyRoute component={LazyRoutes.ManageVenues} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -225,7 +203,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManagePortfolio />
+                    <LazyRoute component={LazyRoutes.ManagePortfolio} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -237,7 +215,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <ManageTestimonials />
+                    <LazyRoute component={LazyRoutes.ManageTestimonials} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -249,7 +227,7 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <AuditLogs />
+                    <LazyRoute component={LazyRoutes.AuditLogs} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>
@@ -261,7 +239,19 @@ function App() {
               <AdminLayout>
                 <ErrorBoundary showContact>
                   <ProtectedRoute requireAdmin>
-                    <AnalyticsDashboard />
+                    <LazyRoute component={LazyRoutes.AnalyticsDashboard} />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              </AdminLayout>
+            } 
+          />
+          <Route 
+            path="/admin/profile/settings" 
+            element={
+              <AdminLayout>
+                <ErrorBoundary showContact>
+                  <ProtectedRoute requireAdmin>
+                    <LazyRoute component={LazyRoutes.ProfileSettings} />
                   </ProtectedRoute>
                 </ErrorBoundary>
               </AdminLayout>

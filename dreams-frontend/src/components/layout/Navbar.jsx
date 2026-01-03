@@ -11,6 +11,8 @@ import {
   SheetTrigger,
 } from '../ui/sheet';
 import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart } from 'lucide-react';
+import { NotificationCenter } from '../features';
+import { ensureAbsoluteUrl } from '../../utils/imageUtils';
 
 const Navbar = () => {
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
@@ -68,6 +70,7 @@ const Navbar = () => {
   return (
     <>
       <nav 
+        id="main-navigation"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled 
             ? darkMode
@@ -152,8 +155,10 @@ const Navbar = () => {
               </button>
 
               {isAuthenticated ? (
-                <div className="relative user-menu">
-                  <button
+                <>
+                  <NotificationCenter />
+                  <div className="relative user-menu">
+                    <button
                     onClick={() => setShowDropdown(!showDropdown)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${
                       darkMode 
@@ -164,8 +169,21 @@ const Navbar = () => {
                     aria-haspopup="true"
                     aria-label={`User menu for ${user?.name || 'user'}`}
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white text-sm font-bold shadow-md">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white text-sm font-bold shadow-md overflow-hidden">
+                      {user?.profile_picture ? (
+                        <img
+                          src={ensureAbsoluteUrl(user.profile_picture)}
+                          alt={user?.name || 'Profile'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to initials if image fails
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                      <span style={{ display: user?.profile_picture ? 'none' : 'block' }}>
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
                     </div>
                     <span className={`hidden md:inline text-sm font-medium max-w-[120px] truncate ${
                       darkMode ? 'text-gray-200' : 'text-gray-700'
@@ -247,6 +265,7 @@ const Navbar = () => {
                     </div>
                   )}
                 </div>
+                </>
               ) : (
                 <div className="hidden sm:flex items-center gap-2">
                   <button 

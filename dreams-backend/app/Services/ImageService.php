@@ -6,14 +6,27 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use Exception;
 
 class ImageService
 {
     protected $manager;
+    protected $hasDriver = false;
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver());
+        try {
+            if (extension_loaded('gd')) {
+                $this->manager = new ImageManager(new Driver());
+                $this->hasDriver = true;
+            } elseif (extension_loaded('imagick')) {
+                $this->manager = new ImageManager(new ImagickDriver());
+                $this->hasDriver = true;
+            }
+        } catch (Exception $e) {
+            $this->hasDriver = false;
+        }
     }
 
     /**
@@ -33,34 +46,46 @@ class ImageService
         ?int $maxHeight = 1080,
         int $quality = 85
     ): string {
-        // Create image instance
-        $image = $this->manager->read($file->getRealPath());
-
-        // Get original dimensions
-        $originalWidth = $image->width();
-        $originalHeight = $image->height();
-
-        // Resize if needed (maintain aspect ratio)
-        if ($maxWidth && $maxHeight) {
-            if ($originalWidth > $maxWidth || $originalHeight > $maxHeight) {
-                $image->scaleDown($maxWidth, $maxHeight);
-            }
-        } elseif ($maxWidth && $originalWidth > $maxWidth) {
-            $image->scaleDown($maxWidth);
-        } elseif ($maxHeight && $originalHeight > $maxHeight) {
-            $image->scaleDown(null, $maxHeight);
+        // If no image driver is available, just store the file as is
+        if (!$this->hasDriver) {
+            $filename = uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+            return $file->storeAs($directory, $filename, 'public');
         }
 
-        // Generate unique filename
-        $extension = $file->getClientOriginalExtension();
-        $filename = uniqid() . '_' . time() . '.' . $extension;
-        $path = $directory . '/' . $filename;
+        try {
+            // Create image instance
+            $image = $this->manager->read($file->getRealPath());
 
-        // Encode and save
-        $encoded = $image->encode();
-        Storage::disk('public')->put($path, $encoded);
+            // Get original dimensions
+            $originalWidth = $image->width();
+            $originalHeight = $image->height();
 
-        return $path;
+            // Resize if needed (maintain aspect ratio)
+            if ($maxWidth && $maxHeight) {
+                if ($originalWidth > $maxWidth || $originalHeight > $maxHeight) {
+                    $image->scaleDown($maxWidth, $maxHeight);
+                }
+            } elseif ($maxWidth && $originalWidth > $maxWidth) {
+                $image->scaleDown($maxWidth);
+            } elseif ($maxHeight && $originalHeight > $maxHeight) {
+                $image->scaleDown(null, $maxHeight);
+            }
+
+            // Generate unique filename
+            $extension = $file->getClientOriginalExtension();
+            $filename = uniqid() . '_' . time() . '.' . $extension;
+            $path = $directory . '/' . $filename;
+
+            // Encode and save
+            $encoded = $image->encode();
+            Storage::disk('public')->put($path, (string) $encoded);
+
+            return $path;
+        } catch (Exception $e) {
+            // Fallback to basic storage if processing fails
+            $filename = uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+            return $file->storeAs($directory, $filename, 'public');
+        }
     }
 
     /**
@@ -73,23 +98,32 @@ class ImageService
      */
     public function createThumbnail(string $imagePath, int $width = 300, int $height = 300): string
     {
-        $fullPath = Storage::disk('public')->path($imagePath);
-        
-        if (!file_exists($fullPath)) {
-            throw new \Exception("Image not found: {$imagePath}");
+        if (!$this->hasDriver) {
+            // Can't create thumbnail without driver, return original path
+            return $imagePath;
         }
 
-        $image = $this->manager->read($fullPath);
-        $image->cover($width, $height);
+        try {
+            $fullPath = Storage::disk('public')->path($imagePath);
+            
+            if (!file_exists($fullPath)) {
+                return $imagePath;
+            }
 
-        // Generate thumbnail path
-        $pathInfo = pathinfo($imagePath);
-        $thumbnailPath = $pathInfo['dirname'] . '/thumbs/' . $pathInfo['filename'] . '_thumb.' . $pathInfo['extension'];
+            $image = $this->manager->read($fullPath);
+            $image->cover($width, $height);
 
-        $encoded = $image->encode();
-        Storage::disk('public')->put($thumbnailPath, $encoded);
+            // Generate thumbnail path
+            $pathInfo = pathinfo($imagePath);
+            $thumbnailPath = $pathInfo['dirname'] . '/thumbs/' . $pathInfo['filename'] . '_thumb.' . $pathInfo['extension'];
 
-        return $thumbnailPath;
+            $encoded = $image->encode();
+            Storage::disk('public')->put($thumbnailPath, (string) $encoded);
+
+            return $thumbnailPath;
+        } catch (Exception $e) {
+            return $imagePath;
+        }
     }
 
     /**

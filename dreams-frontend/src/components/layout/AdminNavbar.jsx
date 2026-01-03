@@ -1,0 +1,187 @@
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useSidebar } from '../../context/SidebarContext';
+import { useTheme } from '../../context/ThemeContext';
+import { NotificationCenter } from '../features';
+import { Button } from '../ui/Button';
+import ProfileSettingsModal from '../modals/ProfileSettingsModal';
+import {
+  PanelLeft,
+  PanelRight,
+  ChevronDown,
+  Settings,
+  LogOut,
+  LayoutDashboard,
+  Moon,
+  Sun,
+} from 'lucide-react';
+import { ensureAbsoluteUrl } from '../../utils/imageUtils';
+
+const AdminNavbar = () => {
+  const { user, logout, isAdmin } = useAuth();
+  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { darkMode, toggleDarkMode } = useTheme();
+  const navigate = useNavigate();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  const dashboardPath = isAdmin ? '/admin/dashboard' : '/dashboard';
+
+  // Dropdown only closes when clicking the toggle button itself
+  // Removed outside click handler as per user request
+
+  const handleLogout = () => {
+    logout();
+    setShowProfileMenu(false);
+  };
+
+  return (
+    <nav 
+      className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-50 transition-all duration-300"
+      style={{ 
+        left: isCollapsed ? '5rem' : '16rem',
+        width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)'
+      }}
+    >
+      <div className="flex items-center justify-between h-full px-4 lg:px-6">
+        {/* Left side - Sidebar toggle button */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? (
+              <PanelRight className="w-5 h-5" />
+            ) : (
+              <PanelLeft className="w-5 h-5" />
+            )}
+          </Button>
+        </div>
+
+        {/* Right side - Dark Mode Toggle, Notifications and Profile */}
+        <div className="flex items-center gap-3">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {darkMode ? (
+              <Sun className="w-5 h-5 text-yellow-400" />
+            ) : (
+              <Moon className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Notification Center */}
+          <NotificationCenter />
+
+          {/* Profile Menu */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-expanded={showProfileMenu}
+              aria-haspopup="true"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center text-white text-sm font-bold shadow-md overflow-hidden">
+                {user?.profile_picture ? (
+                  <img
+                    src={ensureAbsoluteUrl(user.profile_picture)}
+                    alt={user?.name || 'Profile'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to initials if image fails
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span>{user?.name?.charAt(0).toUpperCase() || 'A'}</span>
+                )}
+              </div>
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {user?.name || 'Admin'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.email || ''}
+                </p>
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
+                  showProfileMenu ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {showProfileMenu && (
+              <div
+                className="absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border overflow-hidden z-50 animate-fade-in bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                role="menu"
+                aria-orientation="vertical"
+              >
+                <div className="p-2">
+                  <div className="px-3 py-2 mb-2 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-sm font-semibold truncate text-gray-900 dark:text-white">
+                      {user?.name || 'Admin'}
+                    </p>
+                    <p className="text-xs truncate text-gray-500 dark:text-gray-400">
+                      {user?.email || ''}
+                    </p>
+                  </div>
+                  
+                  <Link
+                    to={dashboardPath}
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary-600/10 hover:to-primary-700/10 dark:hover:from-primary-600/20 dark:hover:to-primary-700/20"
+                    onClick={() => setShowProfileMenu(false)}
+                    role="menuitem"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-primary-600 group-hover:scale-110 transition-transform" />
+                    <span>Dashboard</span>
+                  </Link>
+                  
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary-600/10 hover:to-primary-700/10 dark:hover:from-primary-600/20 dark:hover:to-primary-700/20"
+                    role="menuitem"
+                  >
+                    <Settings className="w-4 h-4 text-primary-600 group-hover:scale-110 transition-transform" />
+                    <span>Profile Settings</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20"
+                    role="menuitem"
+                  >
+                    <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Settings Modal */}
+      <ProfileSettingsModal 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
+    </nav>
+  );
+};
+
+export default AdminNavbar;
+

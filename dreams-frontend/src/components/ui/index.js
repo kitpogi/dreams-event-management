@@ -5,6 +5,8 @@ export { default as Input } from './Input';
 export { default as Card } from './Card';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as LazyRoute } from './LazyRoute';
+export { VirtualList } from './VirtualList';
 export { default as ConfirmationModal } from './ConfirmationModal';
 export { default as FormModal } from './FormModal';
 export { default as OptimizedImage } from './OptimizedImage';
@@ -185,4 +187,14 @@ export { default as RichTextEditor } from './RichTextEditor';
 export { default as DatePicker } from './DatePicker';
 export { default as TimePicker } from './TimePicker';
 export { default as DateTimePicker } from './DateTimePicker';
+
+// Utility components
+export { default as EmptyState } from './EmptyState';
+export { default as ErrorState } from './ErrorState';
+export { StatusBadge } from './StatusBadge';
+export { AvatarGroup } from './AvatarGroup';
+export { TagInput } from './TagInput';
+export { Rating } from './Rating';
+export { PriceDisplay } from './PriceDisplay';
+export { CountdownTimer } from './CountdownTimer';
 

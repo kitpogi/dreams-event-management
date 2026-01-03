@@ -12,11 +12,36 @@ import {
 import { Package, Calendar, Users, Clock, TrendingUp } from 'lucide-react';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
+import AdminNavbar from '../../../components/layout/AdminNavbar';
 import { LoadingSpinner, StatsCard, DataTable, Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
+import { useSidebar } from '../../../context/SidebarContext';
+
+// Helper function to ensure absolute URL for profile picture
+const ensureAbsoluteUrl = (url) => {
+  if (!url) return null;
+  // If already absolute, return as is
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+    return url;
+  }
+  // If relative URL starting with /, prepend API base URL (without /api)
+  if (url.startsWith('/')) {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    const baseUrl = apiBase.replace('/api', '');
+    return baseUrl + url;
+  }
+  // If it's a storage path, prepend /storage/
+  if (url && !url.includes('://') && !url.startsWith('/')) {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    const baseUrl = apiBase.replace('/api', '');
+    return `${baseUrl}/storage/${url}`;
+  }
+  return url;
+};
 
 const AdminDashboard = () => {
   const { user, isCoordinator } = useAuth();
+  const { isCollapsed } = useSidebar();
   const [stats, setStats] = useState({
     totalPackages: 0,
     totalBookings: 0,
@@ -113,36 +138,51 @@ const AdminDashboard = () => {
   return (
     <div className="flex">
       <AdminSidebar />
-      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-10 bg-gray-50 min-h-screen">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8">
+      <AdminNavbar />
+      <main 
+        className="flex-1 bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen transition-all duration-300 pt-16"
+        style={{ 
+          marginLeft: isCollapsed ? '5rem' : '16rem',
+          width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)'
+        }}
+      >
+        <div className="p-4 sm:p-6 lg:p-10">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-6 sm:mb-8">
           {isCoordinator ? 'Coordinator Dashboard' : 'Admin Dashboard'}
         </h1>
 
         {/* Coordinator Profile Section */}
         {isCoordinator && user && (
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg p-8 mb-8 text-white">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-600 dark:to-purple-700 rounded-xl shadow-lg p-8 mb-8 text-white transition-all duration-300">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               {/* Profile Picture/Avatar */}
               <div className="relative">
                 <div className="bg-white/20 rounded-full p-1 border-4 border-white/30">
                   {user.profile_picture ? (
                     <img
-                      src={user.profile_picture}
+                      src={ensureAbsoluteUrl(user.profile_picture)}
                       alt={user.name}
                       className="h-24 w-24 rounded-full object-cover"
+                      onError={(e) => {
+                        // Fallback to initials if image fails to load
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className="h-24 w-24 rounded-full bg-white/30 flex items-center justify-center">
-                      <span className="text-3xl font-bold text-white">
-                        {user.name
-                          ?.split(' ')
-                          .map(n => n[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2) || 'CO'}
-                      </span>
-                    </div>
-                  )}
+                  ) : null}
+                  <div 
+                    className="h-24 w-24 rounded-full bg-white/30 flex items-center justify-center"
+                    style={{ display: user.profile_picture ? 'none' : 'flex' }}
+                  >
+                    <span className="text-3xl font-bold text-white">
+                      {user.name
+                        ?.split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2) || 'CO'}
+                    </span>
+                  </div>
                 </div>
                 <div className="absolute -bottom-1 -right-1 bg-green-400 border-4 border-indigo-500 rounded-full h-6 w-6"></div>
               </div>
@@ -295,15 +335,25 @@ const AdminDashboard = () => {
               )}
             </div>
 
-            <section className="bg-white p-6 shadow-md rounded-xl">
+            <section className="bg-white dark:bg-gray-800 p-6 shadow-md rounded-xl border border-gray-200 dark:border-gray-700 transition-colors duration-300">
               <Tabs defaultValue="recent" className="w-full">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-800">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white transition-colors duration-300">
                     {isCoordinator ? 'My Recent Bookings' : 'Recent Activities'}
                   </h2>
-                  <TabsList>
-                    <TabsTrigger value="recent">Recent</TabsTrigger>
-                    <TabsTrigger value="all">All Bookings</TabsTrigger>
+                  <TabsList className="bg-gray-100 dark:bg-gray-700">
+                    <TabsTrigger 
+                      value="recent"
+                      className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+                    >
+                      Recent
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="all"
+                      className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+                    >
+                      All Bookings
+                    </TabsTrigger>
                   </TabsList>
                 </div>
                 <TabsContent value="recent" className="mt-6">
@@ -315,13 +365,24 @@ const AdminDashboard = () => {
                           accessor: 'client_name',
                           header: 'Client',
                           sortable: true,
-                          render: (row) => row.client?.name || row.client_name || 'N/A',
+                          render: (row) => {
+                            if (row.client) {
+                              const fname = row.client.client_fname || '';
+                              const lname = row.client.client_lname || '';
+                              return fname || lname ? `${fname} ${lname}`.trim() : 'N/A';
+                            }
+                            return row.client_name || 'N/A';
+                          },
                         },
                         {
                           accessor: 'package_name',
                           header: 'Package',
                           sortable: true,
-                          render: (row) => row.package?.package_name || row.package_name || 'N/A',
+                          render: (row) => row.eventPackage?.package_name || 
+                                         row.event_package?.package_name || 
+                                         row.package?.package_name || 
+                                         row.package_name || 
+                                         'N/A',
                         },
                         {
                           accessor: 'event_date',
@@ -338,14 +399,14 @@ const AdminDashboard = () => {
                           render: (row) => {
                             const status = (row.booking_status || row.status || '').toLowerCase();
                             const colors = {
-                              pending: 'bg-yellow-100 text-yellow-800',
-                              confirmed: 'bg-green-100 text-green-800',
-                              completed: 'bg-blue-100 text-blue-800',
-                              cancelled: 'bg-red-100 text-red-800',
+                              pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+                              confirmed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+                              completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+                              cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
                             };
                             return (
                               <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                colors[status] || 'bg-gray-100 text-gray-800'
+                                colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                               }`}>
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
                               </span>
@@ -356,24 +417,56 @@ const AdminDashboard = () => {
                           accessor: 'total_amount',
                           header: 'Amount',
                           sortable: true,
-                          render: (row) => row.total_amount 
-                            ? `₱${parseFloat(row.total_amount).toLocaleString()}`
-                            : 'N/A',
+                          render: (row) => {
+                            // Try multiple possible paths for package price
+                            const price = row?.eventPackage?.package_price || 
+                                        row?.event_package?.package_price || 
+                                        row?.eventPackage?.price ||
+                                        row?.event_package?.price ||
+                                        row?.package?.package_price || 
+                                        row?.package?.price ||
+                                        row?.total_amount ||
+                                        row?.package_price ||
+                                        row?.price ||
+                                        null;
+                            
+                            if (price === null || price === undefined || price === '' || isNaN(parseFloat(price))) {
+                              return 'N/A';
+                            }
+                            
+                            const numericPrice = parseFloat(price);
+                            return isNaN(numericPrice) 
+                              ? 'N/A' 
+                              : `₱${numericPrice.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`;
+                          },
                         },
                       ]}
                       searchable
                       pagination={false}
                     />
                   ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      No recent bookings found.
+                    <div className="text-center py-12">
+                      <Calendar className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        No recent bookings found.
+                      </p>
                     </div>
                   )}
                 </TabsContent>
                 <TabsContent value="all" className="mt-6">
-                  <div className="text-center py-12 text-gray-500">
-                    <Link to="/admin/bookings" className="text-indigo-600 hover:text-indigo-700">
-                      View all bookings →
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">View and manage all bookings</p>
+                    <Link 
+                      to="/admin/bookings" 
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors duration-300 font-medium"
+                    >
+                      View all bookings
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </Link>
                   </div>
                 </TabsContent>
@@ -381,6 +474,7 @@ const AdminDashboard = () => {
             </section>
           </>
         )}
+        </div>
       </main>
     </div>
   );

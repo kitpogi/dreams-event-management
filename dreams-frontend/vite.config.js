@@ -20,6 +20,48 @@ export default defineConfig({
         }
       }
     } : {}),
-  }
+  },
+  build: {
+    // Optimize bundle size
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+          ],
+          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'chart-vendor': ['recharts'],
+          'utils-vendor': ['axios', 'date-fns', 'lucide-react'],
+        },
+      },
+    },
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+      },
+    },
+    // Chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Source maps for production (set to false for smaller bundles)
+    sourcemap: false,
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'axios',
+    ],
+  },
 })
 

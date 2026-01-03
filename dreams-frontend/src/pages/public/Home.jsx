@@ -199,7 +199,7 @@ const Home = () => {
                 </button>
                 <button
                   onClick={() => navigate('/register')}
-                  className="px-6 py-2.5 border-2 border-[#5A45F2] text-[#5A45F2] rounded-lg hover:bg-[#5A45F2] hover:text-white transition-all font-medium"
+                  className="px-6 py-2.5 border-2 border-[#5A45F2] text-[#5A45F2] dark:text-white dark:border-white rounded-lg hover:bg-[#5A45F2] hover:text-white dark:hover:bg-white dark:hover:text-gray-900 transition-all font-medium"
                 >
                   Sign Up
                 </button>
@@ -418,7 +418,7 @@ const Home = () => {
 
           {packageLoading ? (
             <div className="text-center py-20">
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#5A45F2] border-t-transparent"></div>
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#5A45F2] dark:border-[#7ee5ff] border-t-transparent"></div>
               <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg">Loading packages...</p>
           </div>
         ) : featuredPackages.length > 0 ? (
@@ -439,8 +439,8 @@ const Home = () => {
             </>
         ) : (
             <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
-                <Calendar className="w-10 h-10 text-gray-400" />
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6">
+                <Calendar className="w-10 h-10 text-gray-400 dark:text-gray-500" />
               </div>
               <p className="text-gray-600 dark:text-gray-300 text-lg">
               No featured packages available at the moment. Please check back soon.
@@ -474,12 +474,12 @@ const Home = () => {
           
           {portfolioLoading ? (
             <div className="text-center py-20">
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#5A45F2] border-t-transparent"></div>
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#5A45F2] dark:border-[#7ee5ff] border-t-transparent"></div>
             </div>
           ) : featuredPortfolio.length === 0 ? (
             <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
-                <Award className="w-10 h-10 text-gray-400" />
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6">
+                <Award className="w-10 h-10 text-gray-400 dark:text-gray-500" />
               </div>
               <p className="text-gray-600 dark:text-gray-300 text-lg">
               No featured portfolio entries yet. Check back soon!
@@ -547,14 +547,14 @@ const Home = () => {
           
         {reviewsLoading ? (
             <div className="text-center py-20">
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#5A45F2] border-t-transparent"></div>
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#5A45F2] dark:border-[#7ee5ff] border-t-transparent"></div>
           </div>
         ) : featuredReviews.length === 0 ? (
             <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
-                <Heart className="w-10 h-10 text-gray-400" />
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 mb-6">
+                <Heart className="w-10 h-10 text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600 dark:text-gray-300 text-lg">
             No featured testimonials yet. Collect reviews from your clients to showcase them here.
           </p>
             </div>

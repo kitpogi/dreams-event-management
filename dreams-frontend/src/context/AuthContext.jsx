@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
+import { ensureAbsoluteUrl } from '../utils/imageUtils';
 
 const AuthContext = createContext();
 
@@ -35,6 +36,11 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       const userData = response.data;
       
+      // Ensure profile picture URL is absolute
+      if (userData.profile_picture) {
+        userData.profile_picture = ensureAbsoluteUrl(userData.profile_picture);
+      }
+      
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
       
@@ -66,6 +72,11 @@ export const AuthProvider = ({ children }) => {
 
       const response = await api.post('/auth/login', { email, password });
       const { token: newToken, user: userData } = response.data;
+      
+      // Ensure profile picture URL is absolute
+      if (userData.profile_picture) {
+        userData.profile_picture = ensureAbsoluteUrl(userData.profile_picture);
+      }
       
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -110,6 +121,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/register', userData);
       const { token: newToken, user: newUser, message } = response.data;
+      
+      // Ensure profile picture URL is absolute
+      if (newUser.profile_picture) {
+        newUser.profile_picture = ensureAbsoluteUrl(newUser.profile_picture);
+      }
       
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
@@ -164,6 +180,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = (userData) => {
+    // Ensure profile picture URL is absolute before updating
+    if (userData.profile_picture) {
+      userData.profile_picture = ensureAbsoluteUrl(userData.profile_picture);
+    }
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const value = {
     user,
     token,
@@ -173,6 +198,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     fetchCurrentUser,
+    updateUser,
     loading,
     isAuthenticated: !!user && !!token,
     // Coordinators have admin privileges

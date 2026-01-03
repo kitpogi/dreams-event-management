@@ -12,22 +12,29 @@ import {
 } from '../ui/command';
 import { Home, Package, Image, Star, Calendar, LayoutDashboard, Users, Settings, LogOut, FileText, Building, Mail, BarChart3, ClipboardList } from 'lucide-react';
 
-const CommandPalette = () => {
-  const [open, setOpen] = useState(false);
+const CommandPalette = ({ open: controlledOpen, onOpenChange }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, isAdmin, logout } = useAuth();
 
-  useEffect(() => {
-    const down = (e) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
-    };
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
 
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, []);
+  useEffect(() => {
+    // Only handle keyboard shortcut if not controlled externally
+    if (controlledOpen === undefined) {
+      const down = (e) => {
+        if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          setOpen((open) => !open);
+        }
+      };
+
+      document.addEventListener('keydown', down);
+      return () => document.removeEventListener('keydown', down);
+    }
+  }, [controlledOpen, setOpen]);
 
   const publicRoutes = [
     { path: '/', label: 'Home', icon: Home, shortcut: 'H' },

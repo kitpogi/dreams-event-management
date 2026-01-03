@@ -1,10 +1,20 @@
+import { SidebarProvider } from '../../context/SidebarContext';
+import { PageTransition, SkipLinks, KeyboardShortcuts, ScreenReaderAnnouncements } from '../features';
+
 const AdminLayout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="lg:ml-64">
-        {children}
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50">
+        <SkipLinks />
+        <KeyboardShortcuts />
+        <ScreenReaderAnnouncements />
+        <div id="admin-content" tabIndex={-1}>
+          <PageTransition variant="fade">
+            {children}
+          </PageTransition>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

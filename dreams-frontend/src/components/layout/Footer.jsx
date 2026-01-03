@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="w-full bg-[#FFF7F0] dark:bg-gray-900 border-t border-[#e7dbcf] dark:border-gray-800 transition-colors duration-300">
+    <footer id="footer" className="w-full bg-[#FFF7F0] dark:bg-gray-900 border-t border-[#e7dbcf] dark:border-gray-800 transition-colors duration-300" role="contentinfo">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-4 text-[#1f2933] dark:text-gray-200">
