@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';

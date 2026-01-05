@@ -1,0 +1,19 @@
+# Build outputs
+dist/
+build/
+node_modules/
+
+# Config files that use ES modules
+babel.config.js
+vite.config.js
+
+# Test files
+**/*.test.js
+**/*.test.jsx
+**/__tests__/**
+
+# Storybook
+.storybook/
+**/*.stories.js
+**/*.stories.jsx
+

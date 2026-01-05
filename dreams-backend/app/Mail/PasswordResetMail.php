@@ -24,7 +24,7 @@ class PasswordResetMail extends Mailable
         $this->token = $token;
         $this->email = $email;
         // Frontend URL for password reset - should be in .env
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
         $this->resetUrl = $frontendUrl . '/reset-password?token=' . $token . '&email=' . urlencode($email);
     }
 

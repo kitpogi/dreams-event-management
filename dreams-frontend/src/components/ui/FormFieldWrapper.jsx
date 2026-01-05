@@ -1,4 +1,4 @@
-import React from 'react';
+import { cloneElement } from 'react';
 import { FormItem, FormLabel, FormControl, FormDescription, FormMessage } from './form';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ const FormFieldWrapper = ({
       
       <div className="relative">
         <FormControl>
-          {React.cloneElement(children, {
+          {cloneElement(children, {
             className: cn(
               children.props.className,
               hasError && 'border-destructive focus-visible:ring-destructive',

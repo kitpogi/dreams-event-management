@@ -1,10 +1,11 @@
-import { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { SidebarProvider } from './context/SidebarContext';
+// SidebarProvider available but not currently used in App.jsx
+// import { SidebarProvider } from './context/SidebarContext';
 import { ProtectedRoute } from './components/features';
 import { MainLayout, AdminLayout } from './components/layout';
 import { ErrorBoundary, Toaster, LazyRoute } from './components/ui';
@@ -15,7 +16,12 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
         <Routes>
           <Route path="/" element={<MainLayout><LazyRoute component={LazyRoutes.Home} /></MainLayout>} />
           <Route path="/services" element={<MainLayout><LazyRoute component={LazyRoutes.Services} /></MainLayout>} />

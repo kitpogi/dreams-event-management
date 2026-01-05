@@ -29,8 +29,8 @@ DB_PASSWORD=
 
 ```env
 # Comma-separated list of allowed origins for CORS
-# Example: http://localhost:5173,http://localhost:3000,https://yourdomain.com
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+# Example: http://localhost:3000,https://yourdomain.com
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 **Note:** If `CORS_ALLOWED_ORIGINS` is not set, CORS will be disabled (empty array). This is intentional to prevent accidental exposure in production.
@@ -39,8 +39,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 ```env
 # Comma-separated list of stateful domains for Sanctum SPA authentication
-# Example: localhost,localhost:5173,localhost:3000,yourdomain.com
-SANCTUM_STATEFUL_DOMAINS=localhost,localhost:5173,localhost:3000
+# Example: localhost,localhost:3000,yourdomain.com
+SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000
 ```
 
 **Note:** If `SANCTUM_STATEFUL_DOMAINS` is not set, it will default to the current application URL with port. It's recommended to explicitly set this for development and production.

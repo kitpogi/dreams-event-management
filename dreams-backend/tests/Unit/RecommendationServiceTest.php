@@ -91,7 +91,7 @@ class RecommendationServiceTest extends TestCase
 
         $elegantPackage = $scored->firstWhere('package.package_id', $package1->package_id);
         $this->assertEquals(15, $elegantPackage['score']);
-        $this->assertStringContainsString('Theme match', $elegantPackage['justification']);
+        $this->assertStringContainsString('motif/theme match', $elegantPackage['justification']);
     }
 
     /** @test */
@@ -160,7 +160,9 @@ class RecommendationServiceTest extends TestCase
         $this->assertEquals($package->package_id, $formatted[0]['id']);
         $this->assertEquals('Test Package', $formatted[0]['name']);
         $this->assertEquals(50000, $formatted[0]['price']);
-        $this->assertEquals(70, $formatted[0]['score']);
+        $this->assertEquals(70, $formatted[0]['raw_score']); // Check raw_score instead of normalized score
+        $this->assertGreaterThanOrEqual(0, $formatted[0]['score']); // Normalized score should be 0-1
+        $this->assertLessThanOrEqual(1, $formatted[0]['score']);
     }
 
     /** @test */

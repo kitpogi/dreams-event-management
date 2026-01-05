@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, X, File, FileText, Image, Video, Music, FileCheck } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';

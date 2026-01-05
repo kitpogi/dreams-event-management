@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ContactFormModal } from '../../components/modals';
 
 const ContactUs = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleClose = () => {
     navigate(-1);
@@ -13,6 +14,7 @@ const ContactUs = () => {
       <ContactFormModal
         isOpen={true}
         onClose={handleClose}
+        initialData={location.state || {}}
       />
     </div>
   );

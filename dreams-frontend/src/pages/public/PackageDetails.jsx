@@ -1,3 +1,4 @@
+import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -8,6 +9,7 @@ import { BookingFormModal, AuthModal } from '../../components/modals';
 import ImageGallery from '../../components/features/ImageGallery';
 import PackageComparison from '../../components/features/PackageComparison';
 import PackageCard from '../../components/features/PackageCard';
+import { AnimatedBackground } from '../../components/features';
 import { Star, User, Scale, ExternalLink, Play } from 'lucide-react';
 
 const PackageDetails = () => {
@@ -300,8 +302,15 @@ const PackageDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] font-display text-gray-800 dark:text-gray-200">
-      <div className="container mx-auto px-4 py-10 md:py-16">
+    <div className="relative min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] font-display text-gray-800 dark:text-gray-200">
+      {/* Animated Background - Subtle waves */}
+      <AnimatedBackground 
+        type="waves"
+        colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
+        speed={0.4}
+        className="opacity-10 dark:opacity-5"
+      />
+      <div className="container mx-auto px-4 py-10 md:py-16 relative z-10">
         <div className="max-w-6xl mx-auto">
           
           {/* ========== BREADCRUMB NAVIGATION ========== */}

@@ -21,5 +21,23 @@ export default {
   transformIgnorePatterns: [
     'node_modules/(?!(lucide-react|@heroicons)/)',
   ],
+  // Performance optimizations
+  maxWorkers: '50%', // Use 50% of available CPU cores for parallel execution
+  cache: true, // Enable Jest cache for faster subsequent runs
+  cacheDirectory: '<rootDir>/.jest-cache',
+  // Exclude large directories from transformation
+  modulePathIgnorePatterns: [
+    '<rootDir>/node_modules',
+    '<rootDir>/dist',
+    '<rootDir>/build',
+  ],
+  // Only transform files that need it
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+  ],
+  // Reduce verbosity for faster output
+  verbose: false,
 };
 

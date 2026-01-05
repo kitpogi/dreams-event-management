@@ -22,7 +22,7 @@ class EmailVerificationMail extends Mailable
     {
         $this->user = $user;
         // Frontend URL for email verification - should be in .env
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
         $this->verificationUrl = $frontendUrl . '/verify-email?token=' . $token . '&email=' . urlencode($user->email);
     }
 

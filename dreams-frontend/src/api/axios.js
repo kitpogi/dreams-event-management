@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 // Ensure API base URL is configured
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL;
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 if (!apiBaseURL) {
-  throw new Error('VITE_API_BASE_URL environment variable is not set. Please configure it in your .env file.');
+  console.warn('VITE_API_BASE_URL environment variable is not set. Using default: http://localhost:8000/api');
 }
 
 const api = axios.create({

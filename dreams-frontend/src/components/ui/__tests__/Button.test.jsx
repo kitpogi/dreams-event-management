@@ -11,7 +11,7 @@ describe('Button Component', () => {
   it('applies primary variant by default', () => {
     render(<Button>Primary Button</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-indigo-600');
+    expect(button).toHaveClass('bg-primary');
   });
 
   it('applies secondary variant when specified', () => {
@@ -23,14 +23,14 @@ describe('Button Component', () => {
   it('applies outline variant when specified', () => {
     render(<Button variant="outline">Outline Button</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('border-2');
-    expect(button).toHaveClass('border-indigo-600');
+    expect(button).toHaveClass('border');
+    expect(button).toHaveClass('bg-background');
   });
 
   it('applies danger variant when specified', () => {
-    render(<Button variant="danger">Danger Button</Button>);
+    render(<Button variant="destructive">Danger Button</Button>);
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-red-600');
+    expect(button).toHaveClass('bg-destructive');
   });
 
   it('applies custom className', () => {

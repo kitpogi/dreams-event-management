@@ -8,7 +8,7 @@
 - ✅ Updated `dreams-backend/config/cors.php` to use environment variable for allowed origins
 - ⚠️ **Note:** You need to create `.env` files manually:
   - `dreams-frontend/.env` with `VITE_API_BASE_URL=http://localhost:8000/api`
-  - `dreams-backend/.env` with `CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000`
+  - `dreams-backend/.env` with `CORS_ALLOWED_ORIGINS=http://localhost:3000`
 
 ### 2. Toast Notifications
 
@@ -60,7 +60,7 @@ VITE_APP_NAME=D'Dreams Events
 **Update `dreams-backend/.env` (add if not exists):**
 
 ```env
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 ### 2. Clear Backend Config Cache

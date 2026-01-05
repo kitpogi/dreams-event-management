@@ -3,119 +3,51 @@
 namespace App\Services;
 
 use App\Models\EventPackage;
+use App\Services\ScoringStrategies\CategoryScoringStrategy;
+use App\Services\ScoringStrategies\BudgetScoringStrategy;
+use App\Services\ScoringStrategies\CapacityScoringStrategy;
+use App\Services\ScoringStrategies\ThemeScoringStrategy;
+use App\Services\ScoringStrategies\PreferenceScoringStrategy;
 
 class RecommendationService
 {
+    protected $strategies;
+
+    public function __construct()
+    {
+        // Initialize all scoring strategies
+        $this->strategies = [
+            new CategoryScoringStrategy(),
+            new BudgetScoringStrategy(),
+            new CapacityScoringStrategy(),
+            new ThemeScoringStrategy(),
+            new PreferenceScoringStrategy(),
+        ];
+    }
+
     /**
-     * Score packages based on criteria
+     * Score packages based on criteria using scoring strategies
      */
     public function scorePackages($packages, $criteria)
     {
-        $type = $criteria['type'] ?? null;
-        $budget = $criteria['budget'] ?? null;
-        $guests = $criteria['guests'] ?? null;
-        $theme = $criteria['theme'] ?? null;
-        $preferences = $criteria['preferences'] ?? [];
+        return $packages->map(function ($package) use ($criteria) {
+            $totalScore = 0;
+            $justifications = [];
 
-        return $packages->map(function ($package) use ($type, $budget, $guests, $theme, $preferences) {
-            $score = 0;
-            $justification = [];
-
-            // +40 for category/type match
-            if ($type && $package->package_category === $type) {
-                $score += 40;
-                $justification[] = "Type match (+40)";
-            }
-
-            // Budget scoring
-            if ($budget && $budget > 0 && $package->package_price) {
-                if ($package->package_price <= $budget) {
-                    $score += 30;
-                    $justification[] = "Within budget (+30)";
-                } elseif ($package->package_price <= $budget * 1.2) {
-                    $score += 10;
-                    $justification[] = "Slightly over budget (+10)";
-                }
-            }
-
-            // Guest capacity scoring
-            if ($guests && $guests > 0 && $package->capacity) {
-                $packageCapacity = (int) $package->capacity;
-                $guestCount = (int) $guests;
+            // Apply each scoring strategy
+            foreach ($this->strategies as $strategy) {
+                $result = $strategy->score($package, $criteria);
+                $totalScore += $result['score'];
                 
-                if ($packageCapacity >= $guestCount) {
-                    // Perfect match or can accommodate
-                    if ($packageCapacity <= $guestCount * 1.2) {
-                        // Within 20% of capacity - perfect fit
-                        $score += 25;
-                        $justification[] = "Perfect capacity match (+25)";
-                    } elseif ($packageCapacity <= $guestCount * 1.5) {
-                        // Within 50% - good fit
-                        $score += 15;
-                        $justification[] = "Good capacity match (+15)";
-                    } else {
-                        // Can accommodate but larger
-                        $score += 5;
-                        $justification[] = "Can accommodate guests (+5)";
-                    }
-                } else {
-                    // Package capacity is less than required guests
-                    // Don't add points, but don't penalize heavily (might still be suitable with adjustments)
-                }
-            }
-
-            // Theme/motif matching (can be comma-separated list)
-            if ($theme) {
-                $themes = array_map('trim', explode(',', $theme));
-                $packageDescription = strtolower($package->package_description ?? '');
-                $packageName = strtolower($package->package_name ?? '');
-                $matchedThemes = 0;
-                
-                foreach ($themes as $themeItem) {
-                    $themeLower = strtolower(trim($themeItem));
-                    if (!empty($themeLower)) {
-                        if (strpos($packageDescription, $themeLower) !== false || 
-                            strpos($packageName, $themeLower) !== false) {
-                            $matchedThemes++;
-                        }
-                    }
-                }
-                
-                if ($matchedThemes > 0) {
-                    // Score based on number of matched themes
-                    // +15 for first match, +5 for each additional match (max +25)
-                    $themeScore = 15 + (($matchedThemes - 1) * 5);
-                    $themeScore = min($themeScore, 25); // Cap at 25 points
-                    $score += $themeScore;
-                    $justification[] = "{$matchedThemes} motif/theme match(es) (+{$themeScore})";
-                }
-            }
-
-            // +5 for each preference keyword match
-            if (!empty($preferences) && is_array($preferences)) {
-                $packageDescription = strtolower($package->package_description ?? '');
-                $packageName = strtolower($package->package_name ?? '');
-                $matchedPreferences = 0;
-
-                foreach ($preferences as $preference) {
-                    $prefLower = strtolower($preference);
-                    if (strpos($packageDescription, $prefLower) !== false || 
-                        strpos($packageName, $prefLower) !== false) {
-                        $matchedPreferences++;
-                    }
-                }
-
-                if ($matchedPreferences > 0) {
-                    $preferenceScore = $matchedPreferences * 5;
-                    $score += $preferenceScore;
-                    $justification[] = "{$matchedPreferences} preference match(es) (+{$preferenceScore})";
+                if (!empty($result['justification'])) {
+                    $justifications[] = $result['justification'];
                 }
             }
 
             return [
                 'package' => $package,
-                'score' => $score,
-                'justification' => implode(', ', $justification) ?: 'No matches found',
+                'score' => $totalScore,
+                'justification' => implode(', ', $justifications) ?: 'No matches found',
             ];
         })->sortByDesc('score');
     }
@@ -145,6 +77,8 @@ class RecommendationService
                 'price' => $item['package']->package_price,
                 'capacity' => $item['package']->capacity,
                 'package_image' => $item['package']->package_image,
+                'category' => $item['package']->package_category, // Include category for filtering
+                'package_category' => $item['package']->package_category, // Alias for compatibility
                 'score' => $normalizedScore, // Normalized 0-1 range
                 'match_score' => $normalizedScore, // Alias for compatibility
                 'raw_score' => $item['score'], // Keep raw score for reference

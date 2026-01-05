@@ -1,17 +1,39 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../api/axios';
 import { bookingService } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui';
-import { User, Mail, Phone, Calendar, Clock, MapPin, Users, DollarSign, CheckCircle2, AlertCircle, Star, Package, ArrowLeft, ArrowRight, Check, Sparkles, Info, Filter, SortAsc, SortDesc } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Clock, MapPin, Users, CheckCircle2, AlertCircle, Star, Package, ArrowLeft, ArrowRight, Check, Sparkles, Info, Filter, SortAsc, SortDesc, HelpCircle, MessageCircle } from 'lucide-react';
+import { getEventTheme } from '../../constants/eventThemes';
+import { validateField, validateForm } from '../../utils/eventFormValidation';
+import { formatPhoneNumber, formatBudget, formatPrice, formatMatchScore, getPackageImage } from '../../utils/eventFormFormatting';
+import { MOTIFS_OPTIONS, STORAGE_KEY, getMotifsForEventType } from '../../constants/eventFormConstants';
+import StepIndicator from '../../components/events/StepIndicator';
 
 const SetAnEvent = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
+  
+  // Load saved form data from sessionStorage on mount
+  const loadSavedFormData = () => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Error loading saved form data:', error);
+    }
+    return null;
+  };
+  
+  // Initialize state with saved data or defaults
+  const savedData = loadSavedFormData();
+  const [currentStep, setCurrentStep] = useState(savedData?.currentStep || 1);
+  const [formData, setFormData] = useState(savedData?.formData || {
     first_name: '',
     last_name: '',
     email: '',
@@ -24,135 +46,77 @@ const SetAnEvent = () => {
     guest_range: '',
     budget_range: '',
   });
-  const [formErrors, setFormErrors] = useState({});
-  const [touched, setTouched] = useState({});
-  const [recommendations, setRecommendations] = useState([]);
-  const [filteredRecommendations, setFilteredRecommendations] = useState([]);
-  const [selectedPackage, setSelectedPackage] = useState(null);
-  const [specialRequests, setSpecialRequests] = useState('');
+  const [formErrors, setFormErrors] = useState(savedData?.formErrors || {});
+  const [touched, setTouched] = useState(savedData?.touched || {});
+  const [recommendations, setRecommendations] = useState(savedData?.recommendations || []);
+  const [filteredRecommendations, setFilteredRecommendations] = useState(savedData?.filteredRecommendations || []);
+  const [selectedPackage, setSelectedPackage] = useState(savedData?.selectedPackage || null);
+  const [specialRequests, setSpecialRequests] = useState(savedData?.specialRequests || '');
   const [loading, setLoading] = useState(false);
   const [submittingBooking, setSubmittingBooking] = useState(false);
-  const [sortBy, setSortBy] = useState('match-score'); // 'match-score', 'price-low', 'price-high'
-  const [priceFilter, setPriceFilter] = useState('all'); // 'all', 'within-budget', 'over-budget'
-
-  const motifsOptions = [
-    'Whimsic',
-    'Vintage',
-    'Civil',
-    'Tradition',
-    'Micro',
-    'Elopeme',
-    'Modern',
-    'Interfaith',
-  ];
-
-  // Validation functions
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  const validatePhone = (phone) => {
-    const re = /^[\d\s\-\+\(\)]+$/;
-    return re.test(phone) && phone.replace(/\D/g, '').length >= 10;
-  };
-
-  const formatPhoneNumber = (value) => {
-    const phoneNumber = value.replace(/\D/g, '');
-    if (phoneNumber.length <= 3) return phoneNumber;
-    if (phoneNumber.length <= 6) return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3)}`;
-    if (phoneNumber.length <= 10) return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6)}`;
-    return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
-  };
-
-  const formatBudget = (value) => {
-    const numValue = value.replace(/[^\d.]/g, '');
-    if (!numValue) return '';
-    return parseFloat(numValue).toLocaleString('en-US', { maximumFractionDigits: 2 });
-  };
-
-  const validateField = (name, value) => {
-    let error = '';
-    
-    switch (name) {
-      case 'first_name':
-      case 'last_name':
-        if (!value.trim()) {
-          error = 'This field is required';
-        } else if (value.trim().length < 2) {
-          error = 'Must be at least 2 characters';
+  const [sortBy, setSortBy] = useState(savedData?.sortBy || 'match-score'); // 'match-score', 'price-low', 'price-high'
+  const [priceFilter, setPriceFilter] = useState(savedData?.priceFilter || 'all'); // 'all', 'within-budget', 'over-budget'
+  
+  // Get current theme based on event type (after formData is initialized)
+  const theme = getEventTheme(formData.event_type);
+  const ThemeIcon = theme.icon;
+  
+  // Get available motifs based on event type
+  const availableMotifs = useMemo(() => {
+    return getMotifsForEventType(formData.event_type || 'other');
+  }, [formData.event_type]);
+  
+  // Clear invalid motifs when event type changes
+  useEffect(() => {
+    if (formData.event_type && formData.motifs.length > 0) {
+      const validMotifs = formData.motifs.filter(motif => 
+        availableMotifs.includes(motif)
+      );
+      if (validMotifs.length !== formData.motifs.length) {
+        setFormData(prev => ({
+          ...prev,
+          motifs: validMotifs,
+        }));
+        if (validMotifs.length === 0) {
+          setFormErrors(prev => ({
+            ...prev,
+            motifs: '',
+          }));
         }
-        break;
-      case 'email':
-        if (!value.trim()) {
-          error = 'Email is required';
-        } else if (!validateEmail(value)) {
-          error = 'Please enter a valid email address';
-        }
-        break;
-      case 'phone_number':
-        if (!value.trim()) {
-          error = 'Phone number is required';
-        } else if (!validatePhone(value)) {
-          error = 'Please enter a valid phone number';
-        }
-        break;
-      case 'event_date':
-        if (!value) {
-          error = 'Event date is required';
-        } else {
-          const selectedDate = new Date(value);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          if (selectedDate < today) {
-            error = 'Event date cannot be in the past';
-          }
-        }
-        break;
-      case 'event_time':
-        if (!value) {
-          error = 'Event time is required';
-        }
-        break;
-      case 'venue':
-        if (!value.trim()) {
-          error = 'Venue is required';
-        } else if (value.trim().length < 3) {
-          error = 'Please provide a valid venue name';
-        }
-        break;
-      case 'event_type':
-        if (!value) {
-          error = 'Please select an event type';
-        }
-        break;
-      case 'guest_range':
-        if (!value) {
-          error = 'Number of guests is required';
-        } else if (parseInt(value) < 1) {
-          error = 'Must be at least 1 guest';
-        } else if (parseInt(value) > 10000) {
-          error = 'Maximum 10,000 guests';
-        }
-        break;
-      case 'budget_range':
-        if (!value) {
-          error = 'Budget is required';
-        } else {
-          const budget = parseFloat(value.replace(/,/g, ''));
-          if (isNaN(budget) || budget < 0) {
-            error = 'Please enter a valid budget amount';
-          } else if (budget < 1000) {
-            error = 'Minimum budget is ₱1,000';
-          }
-        }
-        break;
-      default:
-        break;
+      }
     }
-    
-    return error;
+  }, [formData.event_type, availableMotifs]);
+  
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    try {
+      const dataToSave = {
+        currentStep,
+        formData,
+        formErrors,
+        touched,
+        recommendations,
+        filteredRecommendations,
+        selectedPackage,
+        specialRequests,
+        sortBy,
+        priceFilter,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    } catch (error) {
+      console.error('Error saving form data:', error);
+    }
+  }, [currentStep, formData, formErrors, touched, recommendations, filteredRecommendations, selectedPackage, specialRequests, sortBy, priceFilter]);
+  
+  // Clear saved data after successful booking
+  const clearSavedData = () => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Error clearing saved form data:', error);
+    }
   };
+
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
@@ -204,27 +168,14 @@ const SetAnEvent = () => {
       
       // Validate on change if field has been touched
       if (touched[name]) {
-        const error = validateField(name, processedValue);
+        const error = validateField(name, processedValue, formData);
         setFormErrors({ ...formErrors, [name]: error });
       }
     }
   };
 
-  const validateForm = () => {
-    const errors = {};
-    const fieldsToValidate = ['first_name', 'last_name', 'email', 'phone_number', 'event_date', 'event_time', 'venue', 'event_type', 'guest_range', 'budget_range'];
-    
-    fieldsToValidate.forEach(field => {
-      const error = validateField(field, formData[field]);
-      if (error) {
-        errors[field] = error;
-      }
-    });
-    
-    if (formData.motifs.length === 0) {
-      errors.motifs = 'Please select at least one motif';
-    }
-    
+  const validateFormStep1 = () => {
+    const errors = validateForm(formData);
     setFormErrors(errors);
     const allTouched = {
       first_name: true,
@@ -240,14 +191,13 @@ const SetAnEvent = () => {
       motifs: true,
     };
     setTouched(allTouched);
-    
     return Object.keys(errors).length === 0;
   };
 
   const handleStep1Submit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateFormStep1()) {
       toast.error('Please fix the errors in the form');
       // Scroll to first error
       const firstErrorField = Object.keys(formErrors)[0] || Object.keys(validateForm())[0];
@@ -283,10 +233,27 @@ const SetAnEvent = () => {
 
       // Store recommendations and move to Step 2
       const recs = response.data.data || [];
-      setRecommendations(recs);
-      setFilteredRecommendations(recs);
+      
+      // Filter packages to only show those matching the selected event type
+      const filteredRecs = formData.event_type 
+        ? recs.filter(pkg => {
+            const packageCategory = (pkg.category || pkg.package_category || '').toLowerCase();
+            const eventType = formData.event_type.toLowerCase();
+            return packageCategory === eventType;
+          })
+        : recs;
+      
+      setRecommendations(filteredRecs);
+      setFilteredRecommendations(filteredRecs);
       setCurrentStep(2);
-      toast.success('We found some perfect matches for you!');
+      
+      if (filteredRecs.length === 0) {
+        toast.warning('No packages found for your event type. Showing all available packages.');
+        setRecommendations(recs);
+        setFilteredRecommendations(recs);
+      } else {
+        toast.success('We found some perfect matches for you!');
+      }
     } catch (error) {
       console.error('Error submitting event:', error);
       toast.error(error.response?.data?.message || 'Failed to submit event details');
@@ -305,6 +272,7 @@ const SetAnEvent = () => {
     
     if (!isAuthenticated) {
       toast.info('Please login to complete your booking');
+      // Save current state before navigating to login
       navigate('/login', { state: { from: '/set-an-event' } });
       return;
     }
@@ -327,6 +295,9 @@ const SetAnEvent = () => {
 
       await bookingService.create(payload);
       
+      // Clear saved form data after successful booking
+      clearSavedData();
+      
       toast.success('Booking created successfully! We will contact you soon.');
       navigate('/dashboard');
     } catch (error) {
@@ -341,28 +312,6 @@ const SetAnEvent = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    if (!price) return 'Price on request';
-    return `₱${parseFloat(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatMatchScore = (score) => {
-    if (!score) return '0%';
-    const percentage = Math.round(parseFloat(score) * 100);
-    return `${percentage}%`;
-  };
-
-  const getPackageImage = (pkg) => {
-    // Check for package_image first (from recommendation response)
-    if (pkg.package_image) {
-      return pkg.package_image;
-    }
-    // Check for images array (from package details)
-    if (pkg.images && pkg.images.length > 0) {
-      return pkg.images[0].image_url || pkg.images[0];
-    }
-    return null; // Return null to show placeholder
-  };
 
   // Filter and sort recommendations
   useEffect(() => {
@@ -410,47 +359,29 @@ const SetAnEvent = () => {
   }, [sortBy, priceFilter, recommendations, formData.budget_range]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+    <div className={`min-h-screen bg-gradient-to-br ${theme.gradient} dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 transition-all duration-500`}>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300">Set An Event with Us</h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 transition-colors duration-300">The small details make the difference</p>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            {formData.event_type && (
+              <div className={`p-3 rounded-full bg-gradient-to-r ${theme.primary} shadow-lg transform transition-all duration-300 hover:scale-110`}>
+                <ThemeIcon className="w-8 h-8 text-white" />
+              </div>
+            )}
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+              {formData.event_type ? `Plan Your ${theme.name} Event` : 'Set An Event with Us'}
+            </h1>
+          </div>
+          <p className="text-lg text-gray-600 dark:text-gray-300 transition-colors duration-300">
+            {formData.event_type 
+              ? `Let's create an unforgettable ${theme.name.toLowerCase()} celebration` 
+              : 'The small details make the difference'}
+          </p>
         </div>
 
         {/* How to get started section */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center transition-colors duration-300">How to get started</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className={`text-center ${currentStep >= 1 ? 'opacity-100' : 'opacity-50'}`}>
-              <div className={`rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 ${currentStep === 1 ? 'bg-amber-600' : currentStep > 1 ? 'bg-green-500' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 transition-colors duration-300">Step 1: Tell us your vision</h3>
-              <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">Share your event dreams and ideas in our easy form.</p>
-            </div>
-            <div className={`text-center ${currentStep >= 2 ? 'opacity-100' : 'opacity-50'}`}>
-              <div className={`rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 ${currentStep === 2 ? 'bg-amber-600' : currentStep > 2 ? 'bg-green-500' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
-                <svg className={`w-8 h-8 ${currentStep >= 2 ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 transition-colors duration-300">Step 2: Discover perfect matches</h3>
-              <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">We'll recommend the top packages tailored to your needs.</p>
-            </div>
-            <div className={`text-center ${currentStep >= 3 ? 'opacity-100' : 'opacity-50'}`}>
-              <div className={`rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 ${currentStep === 3 ? 'bg-amber-600' : currentStep > 3 ? 'bg-green-500' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
-                <svg className={`w-8 h-8 ${currentStep >= 3 ? 'text-white' : 'text-amber-600 dark:text-amber-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 transition-colors duration-300">Step 3: Book with ease</h3>
-              <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">Choose your package and we'll contact you as soon as possible.</p>
-            </div>
-          </div>
-        </div>
+        <StepIndicator currentStep={currentStep} theme={theme} />
 
         {/* Step 1: Form Section */}
         {currentStep === 1 && (
@@ -461,8 +392,8 @@ const SetAnEvent = () => {
               {/* Personal Information */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <User className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  <div className={`p-2 ${theme.primaryLight} rounded-lg transition-all duration-300`}>
+                    <User className={`w-5 h-5 ${theme.primaryText} transition-colors duration-300`} />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 transition-colors duration-300">Personal Information</h3>
                 </div>
@@ -484,7 +415,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.first_name && touched.first_name
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -513,7 +444,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.last_name && touched.last_name
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -542,7 +473,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.email && touched.email
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -572,7 +503,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.phone_number && touched.phone_number
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -593,8 +524,8 @@ const SetAnEvent = () => {
               {/* Event Details */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <Calendar className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  <div className={`p-2 ${theme.primaryLight} rounded-lg transition-all duration-300`}>
+                    <Calendar className={`w-5 h-5 ${theme.primaryText} transition-colors duration-300`} />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 transition-colors duration-300">Event Details</h3>
                 </div>
@@ -616,7 +547,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.event_date && touched.event_date
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -644,7 +575,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.event_time && touched.event_time
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -673,7 +604,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.venue && touched.venue
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -700,7 +631,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 appearance-none ${
                           formErrors.event_type && touched.event_type
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       >
                         <option value="">Choose Event Type</option>
@@ -730,14 +661,22 @@ const SetAnEvent = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">
                     Select Motifs (Max 3) *
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {motifsOptions.map((motif) => (
+                  {!formData.event_type ? (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        Please select an event type first to see available motifs
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {availableMotifs.map((motif) => (
                       <label 
                         key={motif} 
                         className={`flex items-center space-x-2 cursor-pointer p-3 rounded-lg border-2 transition-all duration-200 ${
                           formData.motifs.includes(motif)
-                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700'
+                            ? `${theme.primaryBorder} ${theme.primaryLight}`
+                            : `border-gray-200 dark:border-gray-700 ${theme.primaryBorder.replace('border-', 'hover:border-')}`
                         }`}
                       >
                         <input
@@ -746,15 +685,16 @@ const SetAnEvent = () => {
                           value={motif}
                           checked={formData.motifs.includes(motif)}
                           onChange={handleChange}
-                          className="w-4 h-4 text-amber-600 border-gray-300 dark:border-gray-600 rounded focus:ring-amber-500 dark:bg-gray-800"
+                          className={`w-4 h-4 ${theme.primaryText} border-gray-300 dark:border-gray-600 rounded ${theme.primaryRing.replace('focus:', 'focus:')} dark:bg-gray-800`}
                         />
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">{motif}</span>
                         {formData.motifs.includes(motif) && (
-                          <CheckCircle2 className="w-4 h-4 text-amber-600 dark:text-amber-400 ml-auto" />
+                          <CheckCircle2 className={`w-4 h-4 ${theme.primaryText} ml-auto transition-colors duration-300`} />
                         )}
                       </label>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-3 flex items-center justify-between">
                     <div>
                       {formErrors.motifs && touched.motifs && (
@@ -766,7 +706,7 @@ const SetAnEvent = () => {
                     </div>
                     <p className={`text-xs font-medium transition-colors duration-300 ${
                       formData.motifs.length === 3 
-                        ? 'text-amber-600 dark:text-amber-400' 
+                        ? theme.primaryText
                         : 'text-gray-500 dark:text-gray-400'
                     }`}>
                       Selected: {formData.motifs.length}/3
@@ -778,8 +718,8 @@ const SetAnEvent = () => {
               {/* Guest and Budget */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  <div className={`p-2 ${theme.primaryLight} rounded-lg transition-all duration-300`}>
+                    <Users className={`w-5 h-5 ${theme.primaryText} transition-colors duration-300`} />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 transition-colors duration-300">Guest and Budget</h3>
                 </div>
@@ -803,7 +743,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.guest_range && touched.guest_range
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -836,7 +776,7 @@ const SetAnEvent = () => {
                         className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
                           formErrors.budget_range && touched.budget_range
                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-amber-500 focus:border-amber-500'
+                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
                         } dark:bg-gray-800 dark:text-white`}
                       />
                       {formErrors.budget_range && touched.budget_range && (
@@ -862,7 +802,7 @@ const SetAnEvent = () => {
                   <Button
                     type="submit"
                     disabled={loading || formData.motifs.length === 0}
-                    className="w-full sm:w-auto min-w-[200px] bg-amber-600 hover:bg-amber-700 text-white py-3 px-8 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                    className={`w-full sm:w-auto min-w-[200px] bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white py-3 px-8 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none`}
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -891,8 +831,8 @@ const SetAnEvent = () => {
         {currentStep === 2 && (
           <div>
             <div className="mb-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-4">
-                <Sparkles className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${theme.primaryLight} mb-4 transition-all duration-300`}>
+                <Sparkles className={`w-8 h-8 ${theme.primaryText} transition-colors duration-300`} />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 transition-colors duration-300">Step 2: Discover Perfect Matches</h2>
               <p className="text-gray-600 dark:text-gray-300 text-lg transition-colors duration-300 max-w-2xl mx-auto">
@@ -913,7 +853,7 @@ const SetAnEvent = () => {
                       <select
                         value={priceFilter}
                         onChange={(e) => setPriceFilter(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className={`px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 ${theme.primaryRing}`}
                       >
                         <option value="all">All Packages</option>
                         <option value="within-budget">Within Budget</option>
@@ -928,7 +868,7 @@ const SetAnEvent = () => {
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className={`px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 ${theme.primaryRing}`}
                       >
                         <option value="match-score">Match Score (High to Low)</option>
                         <option value="price-low">Price (Low to High)</option>
@@ -938,7 +878,7 @@ const SetAnEvent = () => {
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Showing <span className="font-semibold text-amber-600 dark:text-amber-400">{filteredRecommendations.length}</span> of <span className="font-semibold">{recommendations.length}</span> {recommendations.length === 1 ? 'package' : 'packages'}
+                      Showing <span className={`font-semibold ${theme.primaryText}`}>{filteredRecommendations.length}</span> of <span className="font-semibold">{recommendations.length}</span> {recommendations.length === 1 ? 'package' : 'packages'}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <Info className="w-4 h-4" />
@@ -962,7 +902,7 @@ const SetAnEvent = () => {
                       >
                         {/* Badge for top match */}
                         {index === 0 && matchPercentage >= 80 && (
-                          <div className="absolute top-3 left-3 z-10 flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold rounded-full shadow-lg">
+                          <div className={`absolute top-3 left-3 z-10 flex items-center gap-1 px-3 py-1 bg-gradient-to-r ${theme.primary} text-white text-xs font-bold rounded-full shadow-lg`}>
                             <Star className="w-3 h-3 fill-current" />
                             <span>Best Match</span>
                           </div>
@@ -990,7 +930,7 @@ const SetAnEvent = () => {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                           
                           {/* Match Score Badge */}
-                          <div className="absolute top-4 right-4 flex flex-col items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xl border-4 border-white dark:border-gray-800">
+                          <div className={`absolute top-4 right-4 flex flex-col items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br ${theme.primary} text-white shadow-xl border-4 border-white dark:border-gray-800`}>
                             <span className="text-xs font-semibold opacity-90">Match</span>
                             <p className="text-2xl font-bold leading-none">{matchPercentage}%</p>
                           </div>
@@ -1004,7 +944,7 @@ const SetAnEvent = () => {
                           </div>
                           
                           <div className="flex items-center gap-2 mb-4">
-                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 transition-colors duration-300">
+                            <p className={`text-2xl font-bold ${theme.primaryText} transition-colors duration-300`}>
                               {formatPrice(packagePrice)}
                             </p>
                           </div>
@@ -1013,11 +953,11 @@ const SetAnEvent = () => {
                           <div className="mb-4">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Match Score</span>
-                              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{matchPercentage}%</span>
+                              <span className={`text-xs font-bold ${theme.primaryText}`}>{matchPercentage}%</span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                               <div 
-                                className="h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-500 rounded-full"
+                                className={`h-full bg-gradient-to-r ${theme.primary} transition-all duration-500 rounded-full`}
                                 style={{ width: `${matchPercentage}%` }}
                               />
                             </div>
@@ -1033,7 +973,7 @@ const SetAnEvent = () => {
                           <div className="mt-auto pt-4 space-y-2">
                             <button
                               onClick={() => handlePackageSelect(pkg)}
-                              className="w-full flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-base font-bold leading-normal shadow-lg transition-all duration-200 hover:from-amber-700 hover:to-amber-800 hover:shadow-xl transform hover:scale-105"
+                              className={`w-full flex items-center justify-center gap-2 rounded-lg h-12 px-6 bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white text-base font-bold leading-normal shadow-lg transition-all duration-200 hover:shadow-xl transform hover:scale-105`}
                             >
                               <Package className="w-5 h-5" />
                               <span className="truncate">Select Package</span>
@@ -1041,7 +981,7 @@ const SetAnEvent = () => {
                             </button>
                             <Link
                               to={`/packages/${packageId}`}
-                              className="block w-full text-center text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium transition-colors"
+                              className={`block w-full text-center text-sm ${theme.primaryText} hover:opacity-80 font-medium transition-colors`}
                               onClick={(e) => e.stopPropagation()}
                             >
                               View Details →
@@ -1055,8 +995,8 @@ const SetAnEvent = () => {
                 {filteredRecommendations.length === 0 && recommendations.length > 0 && (
                   <div className="rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-white dark:bg-gray-800 p-12 shadow-sm transition-all duration-300 text-center">
                     <div className="flex flex-col items-center">
-                      <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
-                        <Filter className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+                      <div className={`w-20 h-20 rounded-full ${theme.primaryLight} flex items-center justify-center mb-4 transition-all duration-300`}>
+                        <Filter className={`w-10 h-10 ${theme.primaryText} transition-colors duration-300`} />
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No packages match your filters</h3>
                       <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md">
@@ -1088,7 +1028,7 @@ const SetAnEvent = () => {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Link to="/contact-us">
-                      <Button className="bg-amber-600 hover:bg-amber-700 text-white px-6">
+                      <Button className={`bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white px-6`}>
                         Contact Us for Custom Packages
                       </Button>
                     </Link>
@@ -1099,6 +1039,63 @@ const SetAnEvent = () => {
                     >
                       Modify Search Criteria
                     </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Help Section - Options when user doesn't like the packages */}
+            {recommendations.length > 0 && (
+              <div className="mt-8 rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 p-6 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-full ${theme.primaryLight} flex-shrink-0`}>
+                    <HelpCircle className={`w-6 h-6 ${theme.primaryText}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                      Not finding what you're looking for?
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      We're here to help! Our team can create a custom package tailored specifically to your vision and requirements.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Link to="/contact-us" state={{ 
+                        from: 'set-an-event',
+                        // Personal Information
+                        first_name: formData.first_name,
+                        last_name: formData.last_name,
+                        email: formData.email,
+                        mobile_number: formData.phone_number,
+                        // Event Details
+                        event_type: formData.event_type,
+                        date_of_event: formData.event_date,
+                        preferred_venue: formData.venue,
+                        budget: formData.budget_range ? formData.budget_range.replace(/,/g, '') : '',
+                        estimated_guests: formData.guest_range,
+                        // Additional info for message
+                        motifs: formData.motifs.join(', '),
+                        event_time: formData.event_time,
+                      }}>
+                        <Button className={`bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white px-6 flex items-center gap-2`}>
+                          <MessageCircle className="w-4 h-4" />
+                          Request Custom Package
+                        </Button>
+                      </Link>
+                      <Link to="/packages">
+                        <Button variant="outline" className="px-6 flex items-center gap-2">
+                          <Package className="w-4 h-4" />
+                          Browse All Packages
+                        </Button>
+                      </Link>
+                      <Button
+                        onClick={() => setCurrentStep(1)}
+                        variant="outline"
+                        className="px-6 flex items-center gap-2"
+                      >
+                        <Filter className="w-4 h-4" />
+                        Modify Search
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1134,8 +1131,8 @@ const SetAnEvent = () => {
               {/* Selected Package Card */}
               <div className="rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm transition-all duration-300 hover:shadow-lg">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <Package className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <div className={`p-2 ${theme.primaryLight} rounded-lg transition-all duration-300`}>
+                    <Package className={`w-6 h-6 ${theme.primaryText} transition-colors duration-300`} />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">Selected Package</h3>
                 </div>
@@ -1151,7 +1148,7 @@ const SetAnEvent = () => {
                     <div>
                       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Price</span>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 transition-colors duration-300">
+                        <p className={`text-2xl font-bold ${theme.primaryText} transition-colors duration-300`}>
                           {formatPrice(selectedPackage.price || selectedPackage.package_price)}
                         </p>
                       </div>
@@ -1163,7 +1160,7 @@ const SetAnEvent = () => {
                       <div className="flex items-center gap-3 mt-1">
                         <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full"
+                            className={`h-full bg-gradient-to-r ${theme.primary} rounded-full`}
                             style={{ width: `${Math.round(parseFloat(selectedPackage.score || selectedPackage.match_score || 0) * 100)}%` }}
                           />
                         </div>
@@ -1250,7 +1247,7 @@ const SetAnEvent = () => {
                         {formData.motifs.map((motif, idx) => (
                           <span 
                             key={idx}
-                            className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium rounded-full border border-amber-200 dark:border-amber-800"
+                            className={`px-3 py-1 ${theme.primaryLight} ${theme.primaryText} text-sm font-medium rounded-full border ${theme.primaryBorder}`}
                           >
                             {motif}
                           </span>
@@ -1280,7 +1277,7 @@ const SetAnEvent = () => {
                         onChange={(e) => setSpecialRequests(e.target.value)}
                         rows="5"
                         placeholder="Any additional requirements, special requests, or notes for your event..."
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors duration-300 resize-none"
+                        className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:ring-2 ${theme.primaryRing} transition-colors duration-300 resize-none`}
                       />
                       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         Let us know if you have any specific requirements or preferences for your event.
@@ -1300,7 +1297,7 @@ const SetAnEvent = () => {
                       <Button
                         type="submit"
                         disabled={submittingBooking}
-                        className="px-8 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none flex items-center gap-2"
+                        className={`px-8 py-3 bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none flex items-center gap-2`}
                       >
                         {submittingBooking ? (
                           <>
@@ -1338,7 +1335,7 @@ const SetAnEvent = () => {
                         Back to Packages
                       </Button>
                       <Link to="/login" state={{ from: '/set-an-event' }}>
-                        <Button className="px-6 bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2">
+                        <Button className={`px-6 bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white flex items-center gap-2`}>
                           <User className="w-4 h-4" />
                           Login to Book
                         </Button>

@@ -107,12 +107,12 @@ baseURL: 'http://localhost:8000/api',  // Hardcoded
 **Location:** `dreams-backend/config/cors.php`
 
 ```php
-'allowed_origins' => ['http://localhost:5173'],
+'allowed_origins' => ['http://localhost:3000'],
 ```
 
 **Problem:**
 
-- Only allows port 5173 (Vite default)
+- Only allows port 3000
 - Frontend might run on different port
 - Production deployment will fail
 
@@ -276,7 +276,7 @@ const api = axios.create({
 **Update:** `dreams-backend/config/cors.php`
 
 ```php
-'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')),
+'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')),
 ```
 
 ### 2. Toast Notifications

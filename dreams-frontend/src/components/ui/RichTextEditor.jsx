@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Bold, Italic, Underline, List, ListOrdered, Link, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from './Button';
 import { cn } from '@/lib/utils';

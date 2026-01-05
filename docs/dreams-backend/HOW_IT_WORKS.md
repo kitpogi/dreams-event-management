@@ -7,7 +7,7 @@ This guide explains exactly how the HTTP endpoint works in your current setup an
 - **OS:** Windows
 - **Server:** XAMPP (Apache + PHP)
 - **Backend:** Laravel running on `http://localhost:8000`
-- **Frontend:** React running on `http://localhost:5173`
+- **Frontend:** React running on `http://localhost:3000`
 
 ## How It Works - Step by Step
 

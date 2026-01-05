@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\RecommendationService;
+use App\Services\Cache\RecommendationCacheService;
 use App\Models\EventPackage;
 use App\Models\Recommendation;
 use App\Models\Client;
@@ -16,11 +17,16 @@ class RecommendationController extends Controller
 {
     protected $recommendationService;
     protected $preferenceSummaryService;
+    protected $cacheService;
 
-    public function __construct(RecommendationService $recommendationService, PreferenceSummaryService $preferenceSummaryService)
-    {
+    public function __construct(
+        RecommendationService $recommendationService,
+        PreferenceSummaryService $preferenceSummaryService,
+        RecommendationCacheService $cacheService
+    ) {
         $this->recommendationService = $recommendationService;
         $this->preferenceSummaryService = $preferenceSummaryService;
+        $this->cacheService = $cacheService;
     }
 
     public function recommend(Request $request)
@@ -41,20 +47,44 @@ class RecommendationController extends Controller
             'venue' => 'nullable|string|max:255',
         ]);
 
-        // Get all packages
-        $packages = EventPackage::all();
+        // Get packages - filter by event type if provided
+        $eventType = $request->input('type');
+        if ($eventType) {
+            $packages = EventPackage::where('package_category', $eventType)->get();
+            // If no packages found for the specific type, fall back to all packages
+            if ($packages->isEmpty()) {
+                $packages = EventPackage::all();
+            }
+        } else {
+            $packages = EventPackage::all();
+        }
 
         // Score packages using service
         $criteria = [
-            'type' => $request->input('type'),
+            'type' => $eventType,
             'budget' => $request->input('budget'),
             'guests' => $request->input('guests'),
             'theme' => $request->input('theme'),
             'preferences' => $request->input('preferences', []),
         ];
 
-        $scoredPackages = $this->recommendationService->scorePackages($packages, $criteria);
-        $results = $this->recommendationService->formatResults($scoredPackages, 5);
+        // Try to get from cache first
+        $cachedResults = $this->cacheService->get($criteria);
+        
+        if ($cachedResults !== null) {
+            // Cache hit - return cached results
+            $results = collect($cachedResults);
+            // Still need to score packages for saving to database (if user is authenticated)
+            // But we can skip the expensive scoring if not needed
+            $scoredPackages = null; // Will be calculated only if needed for saving
+        } else {
+            // Cache miss - calculate recommendations
+            $scoredPackages = $this->recommendationService->scorePackages($packages, $criteria);
+            $results = $this->recommendationService->formatResults($scoredPackages, 5);
+            
+            // Store in cache for future requests (convert to array for storage)
+            $this->cacheService->put($criteria, $results->toArray());
+        }
 
         // Save contact inquiry if submitted from Set An Event form
         if ($request->filled('first_name') && $request->filled('last_name') && $request->filled('email')) {
@@ -97,6 +127,11 @@ class RecommendationController extends Controller
         if ($request->user()) {
             $client = Client::where('client_email', $request->user()->email)->first();
             if ($client) {
+                // If we used cache, we need to score packages for saving to database
+                if ($scoredPackages === null) {
+                    $scoredPackages = $this->recommendationService->scorePackages($packages, $criteria);
+                }
+                
                 // Save recommendations
                 foreach ($scoredPackages->take(5) as $item) {
                     Recommendation::create([

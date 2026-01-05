@@ -15,7 +15,7 @@ This guide helps you verify that UI improvements (especially the spacing system)
 
 2. **Navigate to the test page:**
 
-   - Open: `http://localhost:5173/test-spacing`
+   - Open: `http://localhost:3000/test-spacing`
    - You should see a comprehensive visual test of all spacing utilities
 
 3. **What to look for:**

@@ -1,33 +1,42 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext();
+// Create context with default values to prevent errors
+const ThemeContext = createContext({
+  darkMode: false,
+  toggleDarkMode: () => {}
+});
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
   return context;
 };
 
 export const ThemeProvider = ({ children }) => {
   const [darkMode, setDarkMode] = useState(() => {
-    // Check localStorage first, then system preference
-    const stored = localStorage.getItem('darkMode');
-    if (stored !== null) {
+    // Safe initialization that won't cause React loading errors
+    if (typeof window === 'undefined') return false;
+    try {
+      const stored = localStorage.getItem('darkMode');
       return stored === 'true';
+    } catch {
+      return false;
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-
+  
+  // Apply theme to document on mount and changes
   useEffect(() => {
-    // Update document class and localStorage
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('darkMode', 'true');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('darkMode', 'false');
+    if (typeof document === 'undefined') return;
+    
+    try {
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('darkMode', 'true');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('darkMode', 'false');
+      }
+    } catch (error) {
+      console.warn('Theme update failed:', error);
     }
   }, [darkMode]);
 

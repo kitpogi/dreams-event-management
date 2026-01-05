@@ -37,12 +37,12 @@ php artisan migrate
 
 ### 5. Configure Sanctum for SPA
 The Sanctum configuration is already set up in `config/sanctum.php` with:
-- Stateful domains: `localhost:5173`, `localhost:3000`
+- Stateful domains: `localhost:3000`
 - CSRF protection configured
 
 ### 6. Configure CORS
 CORS is configured in `config/cors.php` to allow:
-- Origin: `http://localhost:5173`
+- Origin: `http://localhost:3000`
 - Credentials: enabled
 
 ### 7. Start the Server

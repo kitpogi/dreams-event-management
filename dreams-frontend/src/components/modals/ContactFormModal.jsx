@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../api/axios';
 import { Button, FormModal } from '../ui';
+import { STORAGE_KEY } from '../../constants/eventFormConstants';
 
-const ContactFormModal = ({ isOpen, onClose, onSuccess }) => {
+const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -19,6 +20,49 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  // Populate form with initialData when modal opens (only once, not after submission)
+  useEffect(() => {
+    if (isOpen && initialData && Object.keys(initialData).length > 0 && !hasSubmitted) {
+      // Build message from available data
+      let message = '';
+      if (initialData.motifs) {
+        message += `Selected Motifs: ${initialData.motifs}\n`;
+      }
+      if (initialData.event_time) {
+        message += `Event Time: ${initialData.event_time}\n`;
+      }
+      if (initialData.message) {
+        message += initialData.message;
+      }
+      if (message || initialData.from === 'set-an-event') {
+        message += '\n\nI would like to request a custom package tailored to my needs.';
+      }
+
+      setFormData({
+        first_name: initialData.first_name || '',
+        last_name: initialData.last_name || '',
+        email: initialData.email || '',
+        mobile_number: initialData.mobile_number || '',
+        event_type: initialData.event_type || '',
+        date_of_event: initialData.date_of_event || '',
+        preferred_venue: initialData.preferred_venue || '',
+        budget: initialData.budget || '',
+        estimated_guests: initialData.estimated_guests || '',
+        message: message.trim(),
+      });
+    }
+  }, [isOpen, initialData, hasSubmitted]);
+
+  // Reset form and submission state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasSubmitted(false);
+      setSubmitSuccess(false);
+      setErrors({});
+    }
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,6 +121,9 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess }) => {
       });
 
       setSubmitSuccess(true);
+      setHasSubmitted(true);
+      
+      // Clear form data after successful submission
       setFormData({
         first_name: '',
         last_name: '',
@@ -89,7 +136,17 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess }) => {
         estimated_guests: '',
         message: '',
       });
+      setErrors({});
 
+      // Clear SetAnEvent form data from sessionStorage after successful contact submission
+      // This prevents the form from persisting after the user has submitted their inquiry
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch (error) {
+        console.error('Error clearing SetAnEvent form data:', error);
+      }
+
+      // Show success message and close modal after 2 seconds
       setTimeout(() => {
         setSubmitSuccess(false);
         onClose();

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
@@ -16,10 +16,13 @@ import {
   Timeline
 } from '../../../components/ui';
 import { TestimonialFormModal } from '../../../components/modals';
-import { AnalyticsCharts } from '../../../components/features';
-import { Calendar, Clock, Package, Users, Search, Settings, Bell, TrendingUp, Plus, BarChart3, Sparkles } from 'lucide-react';
+import BookingCancellationModal from '../../../components/modals/BookingCancellationModal';
+import { AnalyticsCharts, AnimatedBackground } from '../../../components/features';
+import { Calendar, Clock, Package, Users, Search, Settings, Bell, TrendingUp, Plus, BarChart3, Sparkles, X } from 'lucide-react';
 
 const ClientDashboard = () => {
+  const { user, isAdmin } = useAuth();
+  
   // Get time-based greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -34,12 +37,13 @@ const ClientDashboard = () => {
     const firstName = user.name.split(' ')[0];
     return firstName;
   };
-  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTestimonialModal, setShowTestimonialModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const [page, setPage] = useState(1);
   const [perPage] = useState(10);
   const [meta, setMeta] = useState({ total: 0, last_page: 1, status_counts: {} });
@@ -49,12 +53,20 @@ const ClientDashboard = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Update URL when tab changes
+  // Handle tab change - update both state and URL
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    setSearchParams({ tab: newTab }, { replace: true });
+  };
+
+  // Sync activeTab with URL parameter when it changes (e.g., browser back/forward or direct navigation)
   useEffect(() => {
-    if (activeTab) {
-      setSearchParams({ tab: activeTab });
+    const tabFromUrl = searchParams.get('tab') || 'list';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
     }
-  }, [activeTab, setSearchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Redirect admins to admin dashboard
   useEffect(() => {
@@ -81,11 +93,46 @@ const ClientDashboard = () => {
       setMeta(response.data.meta || { total: 0, last_page: 1, status_counts: {} });
       setPage(response.data.meta?.current_page || pageToLoad);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
-      setBookings([]);
+      // Handle 401 errors gracefully (token expired/invalid)
+      if (error.response?.status === 401) {
+        // The axios interceptor will handle redirecting to login
+        setBookings([]);
+        setMeta({ total: 0, last_page: 1, status_counts: {} });
+      } else {
+        console.error('Error fetching bookings:', error);
+        setBookings([]);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancelClick = (booking) => {
+    setSelectedBooking(booking);
+    setShowCancelModal(true);
+  };
+
+  const handleCancelSuccess = () => {
+    fetchBookings(page);
+  };
+
+  const canCancelBooking = (booking) => {
+    const status = (booking.booking_status || booking.status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'completed') {
+      return false;
+    }
+    
+    // Check if event date is within 7 days
+    if (booking.event_date) {
+      const eventDate = new Date(booking.event_date);
+      const today = new Date();
+      const daysUntilEvent = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+      if (daysUntilEvent >= 0 && daysUntilEvent < 7) {
+        return false;
+      }
+    }
+    
+    return true;
   };
 
   const getStatusBadge = (status) => {
@@ -229,8 +276,16 @@ const ClientDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Welcome Section */}
+    <div className="relative min-h-screen">
+      {/* Subtle Animated Background */}
+      <AnimatedBackground 
+        type="dots"
+        colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
+        speed={0.2}
+        className="opacity-5 dark:opacity-10"
+      />
+      <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
+        {/* Welcome Section */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
@@ -404,7 +459,20 @@ const ClientDashboard = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {getPackageName(booking)}
                       </h3>
-                      {getStatusBadge(booking.booking_status || booking.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(booking.booking_status || booking.status)}
+                        {canCancelBooking(booking) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelClick(booking)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-gray-300">
                       <div>
@@ -511,7 +579,7 @@ const ClientDashboard = () => {
             </Link>
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="list" className="flex items-center gap-2">
                 <Package className="w-4 h-4" />
@@ -603,6 +671,32 @@ const ClientDashboard = () => {
                       </div>
                     ),
                   },
+                  {
+                    accessor: 'actions',
+                    header: 'Actions',
+                    sortable: false,
+                    render: (row) => (
+                      <div className="flex items-center gap-2">
+                        {canCancelBooking(row) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelClick(row)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        )}
+                        {(row.booking_status || row.status || '').toLowerCase() === 'cancelled' && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">Cancelled</span>
+                        )}
+                        {(row.booking_status || row.status || '').toLowerCase() === 'completed' && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">Completed</span>
+                        )}
+                      </div>
+                    ),
+                  },
                 ]}
                 searchable
                 searchPlaceholder="Search bookings..."
@@ -641,6 +735,17 @@ const ClientDashboard = () => {
           // Optionally refresh bookings or show success message
         }}
       />
+
+      <BookingCancellationModal
+        isOpen={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        onSuccess={handleCancelSuccess}
+      />
+      </div>
     </div>
   );
 };

@@ -383,6 +383,126 @@ class BookingController extends Controller
     }
 
     /**
+     * @OA\Post(
+     *     path="/api/bookings/{id}/cancel",
+     *     summary="Cancel a booking (client-initiated)",
+     *     tags={"Bookings"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Booking ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="cancellation_reason", type="string", example="Change of plans", description="Optional reason for cancellation")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Booking cancelled successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Booking cancelled successfully"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Cannot cancel this booking"),
+     *     @OA\Response(response=403, description="Unauthorized - booking does not belong to user"),
+     *     @OA\Response(response=404, description="Booking not found")
+     * )
+     */
+    public function cancel(Request $request, $id)
+    {
+        $booking = BookingDetail::with(['client', 'eventPackage'])->findOrFail($id);
+
+        // Check if user owns the booking
+        $client = $this->clientService->getByUserEmail($request->user()->email);
+        if (!$client || $booking->client_id !== $client->client_id) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only cancel your own bookings.'
+            ], 403);
+        }
+
+        // Validate cancellation is allowed
+        $currentStatus = $booking->booking_status;
+        
+        // Cannot cancel if already completed or cancelled
+        if ($currentStatus === 'Completed') {
+            return response()->json([
+                'message' => 'Cannot cancel a completed booking.'
+            ], 400);
+        }
+
+        if ($currentStatus === 'Cancelled') {
+            return response()->json([
+                'message' => 'This booking is already cancelled.'
+            ], 400);
+        }
+
+        // Check if event date is too close (within 7 days)
+        if ($booking->event_date) {
+            $eventDate = Carbon::parse($booking->event_date);
+            $daysUntilEvent = Carbon::now()->diffInDays($eventDate, false);
+            
+            if ($daysUntilEvent >= 0 && $daysUntilEvent < 7) {
+                return response()->json([
+                    'message' => 'Cannot cancel booking less than 7 days before the event date. Please contact support for assistance.'
+                ], 400);
+            }
+        }
+
+        // Store old status before update
+        $oldStatus = $booking->booking_status;
+
+        // Update booking status to Cancelled
+        $updateData = ['booking_status' => 'Cancelled'];
+        
+        // Store cancellation reason if provided
+        if ($request->has('cancellation_reason') && $request->cancellation_reason) {
+            // Add cancellation reason to special_requests or create a new field
+            // For now, we'll append it to special_requests
+            $existingRequests = $booking->special_requests ?? '';
+            $cancellationNote = "\n\n[Cancellation Reason: " . $request->cancellation_reason . "]";
+            $updateData['special_requests'] = $existingRequests . $cancellationNote;
+        }
+
+        $booking->update($updateData);
+
+        // Reload booking with relationships
+        $booking->refresh();
+        $booking->load(['client', 'eventPackage']);
+
+        // Log the cancellation
+        $this->logAudit(
+            'booking.cancelled',
+            $booking,
+            ['booking_status' => $oldStatus],
+            ['booking_status' => 'Cancelled'],
+            "Client cancelled booking #{$booking->booking_id} (was: {$oldStatus})"
+        );
+
+        // Send cancellation email notification
+        if ($booking->client && $booking->client->client_email) {
+            try {
+                Mail::to($booking->client->client_email)->send(
+                    new BookingStatusUpdateMail($booking, $oldStatus, 'Cancelled')
+                );
+            } catch (\Exception $e) {
+                // Log error but don't fail the request
+                Log::error('Failed to send booking cancellation email: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'message' => 'Booking cancelled successfully',
+            'data' => $booking,
+        ]);
+    }
+
+    /**
      * Get past events (completed bookings) for coordinators/admins
      */
     public function getPastEvents(Request $request)
@@ -910,20 +1030,28 @@ class BookingController extends Controller
                 ? Carbon::parse($request->start_date)->startOfDay()
                 : Carbon::today()->startOfDay();
             
+            $monthsAhead = $request->has('months_ahead') 
+                ? (int) $request->months_ahead 
+                : 3;
+            
             $endDate = $request->end_date
                 ? Carbon::parse($request->end_date)->startOfDay()
-                : $startDate->copy()->addMonths($request->months_ahead ?? 3);
+                : $startDate->copy()->addMonths($monthsAhead);
 
             $availableDates = [];
             $unavailableDates = [];
 
             // Get all bookings for this package in the date range
             $bookings = BookingDetail::where('package_id', $packageId)
-                ->where('event_date', '>=', $startDate)
-                ->where('event_date', '<=', $endDate)
+                ->whereDate('event_date', '>=', $startDate->format('Y-m-d'))
+                ->whereDate('event_date', '<=', $endDate->format('Y-m-d'))
                 ->whereIn('booking_status', ['Pending', 'Approved', 'Confirmed'])
                 ->pluck('event_date')
                 ->map(function ($date) {
+                    // Handle both Carbon instances and date strings
+                    if ($date instanceof Carbon) {
+                        return $date->format('Y-m-d');
+                    }
                     return Carbon::parse($date)->format('Y-m-d');
                 })
                 ->toArray();

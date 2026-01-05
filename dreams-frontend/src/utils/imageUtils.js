@@ -3,6 +3,21 @@
  */
 
 /**
+ * Gets the API base URL from environment variables
+ * Supports both Vite (import.meta.env) and Jest (process.env)
+ * @returns {string} - The API base URL
+ */
+const getApiBaseUrl = () => {
+  // In Jest/test environment, use process.env
+  if (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE_URL) {
+    return process.env.VITE_API_BASE_URL;
+  }
+  // In Vite, use import.meta.env
+   
+  return import.meta.env?.VITE_API_BASE_URL || 'http://localhost:8000/api';
+};
+
+/**
  * Ensures a URL is absolute by prepending the API base URL if needed
  * @param {string|null} url - The URL to process
  * @returns {string|null} - The absolute URL or null
@@ -16,7 +31,7 @@ export const ensureAbsoluteUrl = (url) => {
   }
   
   // Get API base URL with fallback
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const apiBase = getApiBaseUrl();
   const baseUrl = apiBase.replace('/api', '');
   
   // If relative URL starting with /, prepend API base URL (without /api)

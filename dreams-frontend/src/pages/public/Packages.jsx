@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../../api/axios';
 import { PackageCard, PackageSearchAutocomplete, QuickViewModal, PackageComparison } from '../../components/features';
 import { Card, Button, Input, Badge, Label } from '../../components/ui';

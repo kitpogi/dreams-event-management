@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { Input } from './Input';
 import { cn } from '@/lib/utils';

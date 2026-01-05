@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
 import AdminSidebar from '../../../components/layout/AdminSidebar';
@@ -22,6 +22,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Calendar, TrendingUp, Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { UserActivityChart } from '../../../components/features';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
@@ -376,6 +377,11 @@ const AnalyticsDashboard = () => {
               </ResponsiveContainer>
             </Card>
           )}
+
+          {/* User Activity Chart */}
+          <div className="mb-8">
+            <UserActivityChart />
+          </div>
 
           {/* Popular Packages Table */}
           <Card className="p-6 mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">

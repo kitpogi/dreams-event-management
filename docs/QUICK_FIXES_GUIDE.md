@@ -34,13 +34,13 @@ const api = axios.create({
 Update `dreams-backend/.env`:
 
 ```env
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 Update `dreams-backend/config/cors.php`:
 
 ```php
-'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')),
+'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')),
 ```
 
 ---

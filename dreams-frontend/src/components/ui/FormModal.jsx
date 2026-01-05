@@ -41,6 +41,9 @@ const FormModal = ({
           )}>
             {title || "Dialog"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {title ? `Dialog for ${title}` : "Dialog content"}
+          </DialogDescription>
         </DialogHeader>
         
         <div className={cn(

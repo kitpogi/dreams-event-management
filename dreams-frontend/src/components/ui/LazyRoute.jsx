@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Skeleton } from './skeleton';
 import { cn } from '@/lib/utils';
 

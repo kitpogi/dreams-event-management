@@ -27,7 +27,7 @@ import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 
 const NotificationCenter = () => {
-  const { user, isAdmin, isCoordinator } = useAuth();
+  const { user, isAdmin, isCoordinator, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,39 +38,67 @@ const NotificationCenter = () => {
   const isAdminUser = isAdmin || isCoordinator;
 
   useEffect(() => {
-    fetchNotifications();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [isAdminUser]);
+    // Only fetch notifications if user is authenticated
+    if (isAuthenticated) {
+      fetchNotifications();
+      // Poll for new notifications every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    } else {
+      // Clear notifications if user is not authenticated
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, [isAdminUser, isAuthenticated]);
 
   const fetchNotifications = async () => {
+    // Don't fetch if user is not authenticated
+    if (!isAuthenticated) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
     try {
       setLoading(true);
       const allNotifications = [];
 
       // Fetch bookings
-      const bookingsResponse = await api.get('/bookings');
-      const bookings = bookingsResponse.data.data || bookingsResponse.data || [];
+      try {
+        const bookingsResponse = await api.get('/bookings');
+        const bookings = bookingsResponse.data.data || bookingsResponse.data || [];
 
-      if (isAdminUser) {
-        // Admin-specific notifications
-        const adminNotifications = generateAdminNotifications(bookings);
-        allNotifications.push(...adminNotifications);
+        if (isAdminUser) {
+          // Admin-specific notifications
+          const adminNotifications = generateAdminNotifications(bookings);
+          allNotifications.push(...adminNotifications);
 
-        // Fetch contact inquiries for admins
-        try {
-          const inquiriesResponse = await api.get('/contact-inquiries');
-          const inquiries = inquiriesResponse.data.data || inquiriesResponse.data || [];
-          const inquiryNotifications = generateInquiryNotifications(inquiries);
-          allNotifications.push(...inquiryNotifications);
-        } catch (error) {
-          console.error('Error fetching contact inquiries:', error);
+          // Fetch contact inquiries for admins
+          try {
+            const inquiriesResponse = await api.get('/contact-inquiries');
+            const inquiries = inquiriesResponse.data.data || inquiriesResponse.data || [];
+            const inquiryNotifications = generateInquiryNotifications(inquiries);
+            allNotifications.push(...inquiryNotifications);
+          } catch (error) {
+            // Silently handle 401 errors (user might have logged out)
+            if (error.response?.status !== 401) {
+              console.error('Error fetching contact inquiries:', error);
+            }
+          }
+        } else {
+          // Client-specific notifications
+          const clientNotifications = generateClientNotifications(bookings);
+          allNotifications.push(...clientNotifications);
         }
-      } else {
-        // Client-specific notifications
-        const clientNotifications = generateClientNotifications(bookings);
-        allNotifications.push(...clientNotifications);
+      } catch (error) {
+        // Silently handle 401 errors (user might have logged out)
+        if (error.response?.status === 401) {
+          // Token expired or invalid, clear notifications
+          setNotifications([]);
+          setUnreadCount(0);
+          return;
+        }
+        console.error('Error fetching bookings:', error);
       }
 
       // Sort by date (newest first)
@@ -81,7 +109,13 @@ const NotificationCenter = () => {
       setNotifications(sortedNotifications);
       setUnreadCount(sortedNotifications.filter((n) => !n.read).length);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Silently handle 401 errors (user might have logged out)
+      if (error.response?.status !== 401) {
+        console.error('Error fetching notifications:', error);
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
     } finally {
       setLoading(false);
     }

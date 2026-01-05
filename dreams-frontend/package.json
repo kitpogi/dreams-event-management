@@ -10,7 +10,14 @@
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:a11y": "jest --testPathPattern=a11y",
+    "test:performance": "jest --testPathPattern=performance",
+    "test:responsive": "jest --testPathPattern=responsive",
+    "test:darkmode": "jest --testPathPattern=darkmode",
+    "test:integration": "jest --testPathPattern=integration",
+    "storybook": "storybook dev -p 6007",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -52,6 +59,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@axe-core/react": "^4.11.0",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
     "@tailwindcss/container-queries": "^0.1.1",
@@ -72,9 +80,28 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.2.0",
+    "jest-axe": "^10.0.0",
     "jest-environment-jsdom": "^30.2.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
-    "vite": "^7.2.6"
+    "vite": "^7.2.6",
+    "storybook": "^10.1.11",
+    "@storybook/react-vite": "^10.1.11",
+    "@chromatic-com/storybook": "^4.1.3",
+    "@storybook/addon-vitest": "^10.1.11",
+    "@storybook/addon-a11y": "^10.1.11",
+    "@storybook/addon-docs": "^10.1.11",
+    "@storybook/addon-onboarding": "^10.1.11",
+    "prop-types": "^15.8.1",
+    "eslint-plugin-storybook": "^10.1.11",
+    "vitest": "^4.0.16",
+    "playwright": "^1.57.0",
+    "@vitest/browser-playwright": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.16"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:storybook/recommended"
+    ]
   }
 }

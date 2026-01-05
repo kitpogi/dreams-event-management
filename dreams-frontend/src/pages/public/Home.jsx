@@ -1,18 +1,16 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, Heart, Calendar, Award, Star, ArrowRight, CheckCircle, Users, Clock, TrendingUp, Play, Pause } from 'lucide-react';
 import api from '../../api/axios';
-import { PackageCard, ParticlesBackground, NewsletterSignup } from '../../components/features';
+import { PackageCard, ParticlesBackground, AnimatedBackground, NewsletterSignup } from '../../components/features';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '../../components/ui';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
 import { useCounterAnimation } from '../../hooks/useCounterAnimation';
 import heroLogo from '../../assets/hero-banner.jpg';
-import { useAuth } from '../../context/AuthContext';
 import { getAllServices } from '../../data/services';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const [featuredPackages, setFeaturedPackages] = useState([]);
   const [packageLoading, setPackageLoading] = useState(true);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
@@ -28,7 +26,6 @@ const Home = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
   const services = getAllServices();
@@ -158,14 +155,8 @@ const Home = () => {
   };
 
   const handleSetEventClick = () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-      setTimeout(() => {
-        navigate('/login', { state: { from: '/packages' } });
-      }, 2000);
-    } else {
-      navigate('/packages');
-    }
+    // Navigate directly to set-an-event page (no auth required to view form)
+    navigate('/set-an-event');
   };
 
   // Statistics data with animated values
@@ -178,49 +169,28 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-      {/* Auth Required Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] rounded-full flex items-center justify-center shadow-lg">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Login Required</h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Please log in or sign up to set an event and access our packages.
-              </p>
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={() => navigate('/login', { state: { from: '/packages' } })}
-                  className="px-6 py-2.5 bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white rounded-lg hover:from-[#4a37d8] hover:to-[#6d28d9] transition-all font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="px-6 py-2.5 border-2 border-[#5A45F2] text-[#5A45F2] dark:text-white dark:border-white rounded-lg hover:bg-[#5A45F2] hover:text-white dark:hover:bg-white dark:hover:text-gray-900 transition-all font-medium"
-                >
-                  Sign Up
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Enhanced Hero Section */}
       <section 
         ref={heroRef}
         className="relative w-full bg-gradient-to-br from-[#050b23] via-[#0f172a] to-[#050b23] overflow-hidden" 
         id="home"
       >
+        {/* Animated Background - Gradient Mesh */}
+        <AnimatedBackground 
+          type="mesh"
+          colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
+          speed={0.5}
+          direction="diagonal"
+          blur={true}
+        />
+        
         {/* Particles Background */}
         <ParticlesBackground 
           particleCount={60}
           particleColor="rgba(122, 69, 242, 0.6)"
           lineColor="rgba(126, 229, 255, 0.3)"
           speed={0.3}
+          interactive={true}
         />
         
         {/* Animated Background Elements */}

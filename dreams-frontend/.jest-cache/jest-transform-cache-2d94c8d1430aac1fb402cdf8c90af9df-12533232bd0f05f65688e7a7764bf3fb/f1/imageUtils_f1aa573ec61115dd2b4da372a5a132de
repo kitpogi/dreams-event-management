@@ -1,0 +1,53 @@
+a04e6016919179b2ef97db2fe32738d8
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getInitials = exports.ensureAbsoluteUrl = void 0;
+/**
+ * Mock implementation of imageUtils for Jest tests
+ */
+
+/**
+ * Ensures a URL is absolute by prepending the API base URL if needed
+ * @param {string|null} url - The URL to process
+ * @returns {string|null} - The absolute URL or null
+ */
+const ensureAbsoluteUrl = url => {
+  if (!url) return null;
+
+  // If already absolute, return as is
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
+    return url;
+  }
+
+  // Get API base URL with fallback (using process.env for Jest)
+  const apiBase = process.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+  const baseUrl = apiBase.replace('/api', '');
+
+  // If relative URL starting with /, prepend API base URL (without /api)
+  if (url.startsWith('/')) {
+    return baseUrl + url;
+  }
+
+  // If it's a storage path without leading slash, prepend /storage/
+  if (!url.includes('://') && !url.startsWith('/')) {
+    return `${baseUrl}/storage/${url}`;
+  }
+  return url;
+};
+
+/**
+ * Gets the user's initials from their name
+ * @param {string} name - The user's full name
+ * @param {number} maxLength - Maximum number of initials to return
+ * @returns {string} - The initials
+ */
+exports.ensureAbsoluteUrl = ensureAbsoluteUrl;
+const getInitials = (name, maxLength = 2) => {
+  if (!name) return 'U';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, maxLength);
+};
+exports.getInitials = getInitials;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJlbnN1cmVBYnNvbHV0ZVVybCIsInVybCIsInN0YXJ0c1dpdGgiLCJhcGlCYXNlIiwicHJvY2VzcyIsImVudiIsIlZJVEVfQVBJX0JBU0VfVVJMIiwiYmFzZVVybCIsInJlcGxhY2UiLCJpbmNsdWRlcyIsImV4cG9ydHMiLCJnZXRJbml0aWFscyIsIm5hbWUiLCJtYXhMZW5ndGgiLCJzcGxpdCIsIm1hcCIsIm4iLCJqb2luIiwidG9VcHBlckNhc2UiLCJzbGljZSJdLCJzb3VyY2VzIjpbImltYWdlVXRpbHMuanMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXHJcbiAqIE1vY2sgaW1wbGVtZW50YXRpb24gb2YgaW1hZ2VVdGlscyBmb3IgSmVzdCB0ZXN0c1xyXG4gKi9cclxuXHJcbi8qKlxyXG4gKiBFbnN1cmVzIGEgVVJMIGlzIGFic29sdXRlIGJ5IHByZXBlbmRpbmcgdGhlIEFQSSBiYXNlIFVSTCBpZiBuZWVkZWRcclxuICogQHBhcmFtIHtzdHJpbmd8bnVsbH0gdXJsIC0gVGhlIFVSTCB0byBwcm9jZXNzXHJcbiAqIEByZXR1cm5zIHtzdHJpbmd8bnVsbH0gLSBUaGUgYWJzb2x1dGUgVVJMIG9yIG51bGxcclxuICovXHJcbmV4cG9ydCBjb25zdCBlbnN1cmVBYnNvbHV0ZVVybCA9ICh1cmwpID0+IHtcclxuICBpZiAoIXVybCkgcmV0dXJuIG51bGw7XHJcbiAgXHJcbiAgLy8gSWYgYWxyZWFkeSBhYnNvbHV0ZSwgcmV0dXJuIGFzIGlzXHJcbiAgaWYgKHVybC5zdGFydHNXaXRoKCdodHRwOi8vJykgfHwgdXJsLnN0YXJ0c1dpdGgoJ2h0dHBzOi8vJykgfHwgdXJsLnN0YXJ0c1dpdGgoJ2Jsb2I6JykpIHtcclxuICAgIHJldHVybiB1cmw7XHJcbiAgfVxyXG4gIFxyXG4gIC8vIEdldCBBUEkgYmFzZSBVUkwgd2l0aCBmYWxsYmFjayAodXNpbmcgcHJvY2Vzcy5lbnYgZm9yIEplc3QpXHJcbiAgY29uc3QgYXBpQmFzZSA9IHByb2Nlc3MuZW52LlZJVEVfQVBJX0JBU0VfVVJMIHx8ICdodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpJztcclxuICBjb25zdCBiYXNlVXJsID0gYXBpQmFzZS5yZXBsYWNlKCcvYXBpJywgJycpO1xyXG4gIFxyXG4gIC8vIElmIHJlbGF0aXZlIFVSTCBzdGFydGluZyB3aXRoIC8sIHByZXBlbmQgQVBJIGJhc2UgVVJMICh3aXRob3V0IC9hcGkpXHJcbiAgaWYgKHVybC5zdGFydHNXaXRoKCcvJykpIHtcclxuICAgIHJldHVybiBiYXNlVXJsICsgdXJsO1xyXG4gIH1cclxuICBcclxuICAvLyBJZiBpdCdzIGEgc3RvcmFnZSBwYXRoIHdpdGhvdXQgbGVhZGluZyBzbGFzaCwgcHJlcGVuZCAvc3RvcmFnZS9cclxuICBpZiAoIXVybC5pbmNsdWRlcygnOi8vJykgJiYgIXVybC5zdGFydHNXaXRoKCcvJykpIHtcclxuICAgIHJldHVybiBgJHtiYXNlVXJsfS9zdG9yYWdlLyR7dXJsfWA7XHJcbiAgfVxyXG4gIFxyXG4gIHJldHVybiB1cmw7XHJcbn07XHJcblxyXG4vKipcclxuICogR2V0cyB0aGUgdXNlcidzIGluaXRpYWxzIGZyb20gdGhlaXIgbmFtZVxyXG4gKiBAcGFyYW0ge3N0cmluZ30gbmFtZSAtIFRoZSB1c2VyJ3MgZnVsbCBuYW1lXHJcbiAqIEBwYXJhbSB7bnVtYmVyfSBtYXhMZW5ndGggLSBNYXhpbXVtIG51bWJlciBvZiBpbml0aWFscyB0byByZXR1cm5cclxuICogQHJldHVybnMge3N0cmluZ30gLSBUaGUgaW5pdGlhbHNcclxuICovXHJcbmV4cG9ydCBjb25zdCBnZXRJbml0aWFscyA9IChuYW1lLCBtYXhMZW5ndGggPSAyKSA9PiB7XHJcbiAgaWYgKCFuYW1lKSByZXR1cm4gJ1UnO1xyXG4gIFxyXG4gIHJldHVybiBuYW1lXHJcbiAgICAuc3BsaXQoJyAnKVxyXG4gICAgLm1hcChuID0+IG5bMF0pXHJcbiAgICAuam9pbignJylcclxuICAgIC50b1VwcGVyQ2FzZSgpXHJcbiAgICAuc2xpY2UoMCwgbWF4TGVuZ3RoKTtcclxufTtcclxuXHJcbiJdLCJtYXBwaW5ncyI6Ijs7Ozs7O0FBQUE7QUFDQTtBQUNBOztBQUVBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDTyxNQUFNQSxpQkFBaUIsR0FBSUMsR0FBRyxJQUFLO0VBQ3hDLElBQUksQ0FBQ0EsR0FBRyxFQUFFLE9BQU8sSUFBSTs7RUFFckI7RUFDQSxJQUFJQSxHQUFHLENBQUNDLFVBQVUsQ0FBQyxTQUFTLENBQUMsSUFBSUQsR0FBRyxDQUFDQyxVQUFVLENBQUMsVUFBVSxDQUFDLElBQUlELEdBQUcsQ0FBQ0MsVUFBVSxDQUFDLE9BQU8sQ0FBQyxFQUFFO0lBQ3RGLE9BQU9ELEdBQUc7RUFDWjs7RUFFQTtFQUNBLE1BQU1FLE9BQU8sR0FBR0MsT0FBTyxDQUFDQyxHQUFHLENBQUNDLGlCQUFpQixJQUFJLDJCQUEyQjtFQUM1RSxNQUFNQyxPQUFPLEdBQUdKLE9BQU8sQ0FBQ0ssT0FBTyxDQUFDLE1BQU0sRUFBRSxFQUFFLENBQUM7O0VBRTNDO0VBQ0EsSUFBSVAsR0FBRyxDQUFDQyxVQUFVLENBQUMsR0FBRyxDQUFDLEVBQUU7SUFDdkIsT0FBT0ssT0FBTyxHQUFHTixHQUFHO0VBQ3RCOztFQUVBO0VBQ0EsSUFBSSxDQUFDQSxHQUFHLENBQUNRLFFBQVEsQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDUixHQUFHLENBQUNDLFVBQVUsQ0FBQyxHQUFHLENBQUMsRUFBRTtJQUNoRCxPQUFPLEdBQUdLLE9BQU8sWUFBWU4sR0FBRyxFQUFFO0VBQ3BDO0VBRUEsT0FBT0EsR0FBRztBQUNaLENBQUM7O0FBRUQ7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBTEFTLE9BQUEsQ0FBQVYsaUJBQUEsR0FBQUEsaUJBQUE7QUFNTyxNQUFNVyxXQUFXLEdBQUdBLENBQUNDLElBQUksRUFBRUMsU0FBUyxHQUFHLENBQUMsS0FBSztFQUNsRCxJQUFJLENBQUNELElBQUksRUFBRSxPQUFPLEdBQUc7RUFFckIsT0FBT0EsSUFBSSxDQUNSRSxLQUFLLENBQUMsR0FBRyxDQUFDLENBQ1ZDLEdBQUcsQ0FBQ0MsQ0FBQyxJQUFJQSxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FDZEMsSUFBSSxDQUFDLEVBQUUsQ0FBQyxDQUNSQyxXQUFXLENBQUMsQ0FBQyxDQUNiQyxLQUFLLENBQUMsQ0FBQyxFQUFFTixTQUFTLENBQUM7QUFDeEIsQ0FBQztBQUFDSCxPQUFBLENBQUFDLFdBQUEsR0FBQUEsV0FBQSIsImlnbm9yZUxpc3QiOltdfQ==

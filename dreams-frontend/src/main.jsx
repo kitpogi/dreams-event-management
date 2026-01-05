@@ -1,8 +1,16 @@
-import React from 'react'
+import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
+// CRITICAL: Pre-import React to ensure it's available before lazy components load
+// This prevents "Cannot read properties of null (reading 'useState')" errors
+import React from 'react'
+// Ensure React is available globally before any imports
+if (typeof window !== 'undefined') {
+  window.React = React;
+}
 import App from './App.jsx'
 import { ErrorBoundary } from './components/ui'
 import './index.css'
+
 
 // Register service worker for caching
 if ('serviceWorker' in navigator) {
@@ -19,10 +27,10 @@ if ('serviceWorker' in navigator) {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <StrictMode>
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
-  </React.StrictMode>,
+  </StrictMode>,
 )
 

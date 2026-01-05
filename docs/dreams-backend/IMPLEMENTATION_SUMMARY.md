@@ -6,7 +6,7 @@
 
 - Updated `composer.json` to Laravel 11
 - Configured Sanctum for SPA authentication
-- Set up CORS for `http://localhost:5173`
+- Set up CORS for `http://localhost:3000`
 
 ### 2. Database Configuration
 
@@ -138,13 +138,13 @@ POST /api/recommend
 
 ### CORS (`config/cors.php`)
 
-- Allowed origin: `http://localhost:5173`
+- Allowed origin: `http://localhost:3000`
 - Credentials: enabled
 - Methods: all
 
 ### Sanctum (`config/sanctum.php`)
 
-- Stateful domains: `localhost:5173`, `localhost:3000`
+- Stateful domains: `localhost:3000`
 - CSRF protection configured
 - Cookie-based authentication for SPA
 

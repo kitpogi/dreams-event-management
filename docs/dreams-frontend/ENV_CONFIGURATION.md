@@ -31,8 +31,8 @@ VITE_FACEBOOK_APP_ID=your-facebook-app-id
 ### Development Server Configuration (Optional)
 
 ```env
-# Development Server Port (optional, defaults to 5173)
-VITE_DEV_SERVER_PORT=5173
+# Development Server Port (optional, defaults to 3000)
+VITE_DEV_SERVER_PORT=3000
 
 # API Proxy Target (optional, used by Vite dev server proxy)
 # This should be the base URL without /api
@@ -62,8 +62,8 @@ VITE_API_PROXY_TARGET=http://localhost:8000
    - Enable Google+ API
    - Go to "Credentials" → "Create Credentials" → "OAuth client ID"
    - Choose "Web application"
-   - Add authorized JavaScript origins: `http://localhost:5173` (for dev) and your production domain
-   - Add authorized redirect URIs: `http://localhost:5173` (for dev) and your production domain
+   - Add authorized JavaScript origins: `http://localhost:3000` (for dev) and your production domain
+   - Add authorized redirect URIs: `http://localhost:3000` (for dev) and your production domain
    - Copy the Client ID and add it to `.env` as `VITE_GOOGLE_CLIENT_ID`
 
    **Facebook OAuth Setup:**
@@ -72,7 +72,7 @@ VITE_API_PROXY_TARGET=http://localhost:8000
    - Create a new app
    - Add "Facebook Login" product
    - Go to Settings → Basic
-   - Add your site URL: `http://localhost:5173` (for dev) and your production domain
+   - Add your site URL: `http://localhost:3000` (for dev) and your production domain
    - Copy the App ID and add it to `.env` as `VITE_FACEBOOK_APP_ID`
 
 4. For production builds:
@@ -87,7 +87,7 @@ VITE_API_PROXY_TARGET=http://localhost:8000
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api
-VITE_DEV_SERVER_PORT=5173
+VITE_DEV_SERVER_PORT=3000
 VITE_API_PROXY_TARGET=http://localhost:8000
 VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 VITE_FACEBOOK_APP_ID=your-facebook-app-id

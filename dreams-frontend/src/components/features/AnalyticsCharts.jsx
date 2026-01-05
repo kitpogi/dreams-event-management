@@ -1,21 +1,72 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/Card';
-import { Calendar, TrendingUp, Package, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Calendar, TrendingUp, Package, DollarSign, Filter } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 const AnalyticsCharts = ({ bookings = [] }) => {
-  // Calculate statistics from bookings
+  const [dateRange, setDateRange] = useState('all'); // 'all', '7days', '30days', '3months', '6months', '1year'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'approved', 'confirmed', 'cancelled', 'completed'
+
+  // Filter bookings based on selected filters
+  const filteredBookings = useMemo(() => {
+    let filtered = [...bookings];
+
+    // Apply date range filter
+    if (dateRange !== 'all') {
+      const now = new Date();
+      let startDate;
+      switch (dateRange) {
+        case '7days':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30days':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '3months':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '6months':
+          startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+          break;
+        case '1year':
+          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = null;
+      }
+      if (startDate) {
+        filtered = filtered.filter(b => {
+          const bookingDate = b.created_at ? new Date(b.created_at) : null;
+          return bookingDate && bookingDate >= startDate;
+        });
+      }
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(b => {
+        const status = (b.booking_status || b.status || '').toLowerCase();
+        return status === statusFilter.toLowerCase();
+      });
+    }
+
+    return filtered;
+  }, [bookings, dateRange, statusFilter]);
+
+  // Calculate statistics from filtered bookings
   const stats = useMemo(() => {
     const now = new Date();
     const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Filter bookings by date
-    const recentBookings = bookings.filter(b => {
+    const recentBookings = filteredBookings.filter(b => {
       const bookingDate = b.created_at ? new Date(b.created_at) : null;
       return bookingDate && bookingDate >= last30Days;
     });
 
-    const last7DaysBookings = bookings.filter(b => {
+    const last7DaysBookings = filteredBookings.filter(b => {
       const bookingDate = b.created_at ? new Date(b.created_at) : null;
       return bookingDate && bookingDate >= last7Days;
     });
@@ -28,7 +79,7 @@ const AnalyticsCharts = ({ bookings = [] }) => {
     }, {});
 
     // Group by month for trend
-    const monthlyData = bookings.reduce((acc, booking) => {
+    const monthlyData = filteredBookings.reduce((acc, booking) => {
       if (!booking.created_at) return acc;
       const date = new Date(booking.created_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -45,7 +96,7 @@ const AnalyticsCharts = ({ bookings = [] }) => {
     }, {});
 
     // Calculate total revenue
-    const totalRevenue = bookings.reduce((sum, booking) => {
+    const totalRevenue = filteredBookings.reduce((sum, booking) => {
       const price = booking?.eventPackage?.package_price || 
                    booking?.event_package?.package_price || 
                    booking?.package?.price || 
@@ -54,7 +105,7 @@ const AnalyticsCharts = ({ bookings = [] }) => {
     }, 0);
 
     return {
-      total: bookings.length,
+      total: filteredBookings.length,
       recent: recentBookings.length,
       last7Days: last7DaysBookings.length,
       statusCounts,
@@ -63,7 +114,7 @@ const AnalyticsCharts = ({ bookings = [] }) => {
         .slice(-6), // Last 6 months
       totalRevenue,
     };
-  }, [bookings]);
+  }, [filteredBookings]);
 
   const maxCount = Math.max(...stats.monthlyData.map(([, data]) => data.count), 1);
   const maxRevenue = Math.max(...stats.monthlyData.map(([, data]) => data.revenue), 1);
@@ -76,6 +127,65 @@ const AnalyticsCharts = ({ bookings = [] }) => {
 
   return (
     <div className="space-y-6">
+      {/* Filter Controls */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            <CardTitle>Filter Analytics</CardTitle>
+          </div>
+          <CardDescription>Filter bookings by date range and status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Date Range</label>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="w-full min-h-[44px] touch-manipulation">
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="7days">Last 7 Days</SelectItem>
+                  <SelectItem value="30days">Last 30 Days</SelectItem>
+                  <SelectItem value="3months">Last 3 Months</SelectItem>
+                  <SelectItem value="6months">Last 6 Months</SelectItem>
+                  <SelectItem value="1year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full min-h-[44px] touch-manipulation">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDateRange('all');
+                  setStatusFilter('all');
+                }}
+                className="w-full sm:w-auto min-h-[44px] touch-manipulation"
+              >
+                Reset Filters
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>

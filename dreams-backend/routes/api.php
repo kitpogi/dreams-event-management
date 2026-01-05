@@ -117,6 +117,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Dynamic booking routes (must come after specific routes)
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::patch('/bookings/{id}', [BookingController::class, 'update']);
+    Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
 
     // Client testimonial submission
     Route::post('/testimonials/submit', [TestimonialController::class, 'clientSubmit']);
