@@ -26,10 +26,17 @@ class BookingDetail extends Model
         'booking_status',
         'special_requests',
         'internal_notes',
+        'total_amount',
+        'deposit_amount',
+        'payment_required',
+        'payment_status',
     ];
 
     protected $casts = [
         'event_date' => 'date',
+        'total_amount' => 'decimal:2',
+        'deposit_amount' => 'decimal:2',
+        'payment_required' => 'boolean',
     ];
 
     public function client()
@@ -55,6 +62,17 @@ class BookingDetail extends Model
     public function coordinator()
     {
         return $this->belongsTo(User::class, 'coordinator_id', 'id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'booking_id', 'booking_id');
+    }
+
+    public function paidPayments()
+    {
+        return $this->hasMany(Payment::class, 'booking_id', 'booking_id')
+            ->where('status', 'paid');
     }
 }
 

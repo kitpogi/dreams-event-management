@@ -26,6 +26,9 @@ export const ClientDashboard = lazy(() => import('../pages/Dashboard/client/Clie
 export const SubmitTestimonial = lazy(() => import('../pages/Dashboard/client/SubmitTestimonial'));
 export const ProfileSettings = lazy(() => import('../pages/Dashboard/client/ProfileSettings'));
 
+// Payment pages - lazy loaded
+export const PaymentConfirmation = lazy(() => import('../pages/Payment/PaymentConfirmation'));
+
 // Admin dashboard pages - lazy loaded
 export const AdminDashboard = lazy(() => import('../pages/Dashboard/admin/AdminDashboard'));
 export const ManagePackages = lazy(() => import('../pages/Dashboard/admin/ManagePackages'));

@@ -76,8 +76,32 @@ const NotificationCenter = () => {
           // Fetch contact inquiries for admins
           try {
             const inquiriesResponse = await api.get('/contact-inquiries');
-            const inquiries = inquiriesResponse.data.data || inquiriesResponse.data || [];
-            const inquiryNotifications = generateInquiryNotifications(inquiries);
+            const data = inquiriesResponse.data.data || {};
+            
+            // Handle new API structure with separated inquiries
+            // For notifications, we only care about new inquiries
+            let newInquiries = [];
+            if (data.new_inquiries && Array.isArray(data.new_inquiries)) {
+              // Use new_inquiries from the new API structure
+              newInquiries = data.new_inquiries;
+            } else if (data.all_inquiries && Array.isArray(data.all_inquiries)) {
+              // Fallback: filter new inquiries from all_inquiries
+              newInquiries = data.all_inquiries.filter((inq) => 
+                (inq.status || '').toLowerCase() === 'new' && !inq.is_old
+              );
+            } else if (Array.isArray(data)) {
+              // Fallback for old API structure
+              newInquiries = data.filter((inq) => 
+                (inq.status || '').toLowerCase() === 'new'
+              );
+            } else if (Array.isArray(inquiriesResponse.data)) {
+              // Another fallback
+              newInquiries = inquiriesResponse.data.filter((inq) => 
+                (inq.status || '').toLowerCase() === 'new'
+              );
+            }
+            
+            const inquiryNotifications = generateInquiryNotifications(newInquiries);
             allNotifications.push(...inquiryNotifications);
           } catch (error) {
             // Silently handle 401 errors (user might have logged out)
@@ -198,9 +222,12 @@ const NotificationCenter = () => {
     return notifications;
   };
 
-  const generateInquiryNotifications = (inquiries) => {
+  const generateInquiryNotifications = (newInquiries) => {
     const notifications = [];
-    const newInquiries = inquiries.filter((inq) => (inq.status || '').toLowerCase() === 'new');
+    // Ensure newInquiries is an array
+    if (!Array.isArray(newInquiries)) {
+      return notifications;
+    }
 
     if (newInquiries.length > 0) {
       notifications.push({

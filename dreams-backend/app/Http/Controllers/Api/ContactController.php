@@ -63,8 +63,18 @@ class ContactController extends Controller
             if ($inquiry->email) {
                 try {
                     Mail::to($inquiry->email)->send(new ContactInquiryConfirmationMail($inquiry));
+                    Log::info('Contact inquiry confirmation email sent successfully', [
+                        'inquiry_id' => $inquiry->id,
+                        'email' => $inquiry->email
+                    ]);
                 } catch (\Exception $e) {
-                    Log::error('Failed to send contact inquiry confirmation email: ' . $e->getMessage());
+                    Log::error('Failed to send contact inquiry confirmation email', [
+                        'inquiry_id' => $inquiry->id,
+                        'email' => $inquiry->email,
+                        'error' => $e->getMessage(),
+                        'error_code' => $e->getCode(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
 
@@ -73,8 +83,18 @@ class ContactController extends Controller
             if ($adminEmail) {
                 try {
                     Mail::to($adminEmail)->send(new ContactInquiryConfirmationMail($inquiry));
+                    Log::info('Admin notification email sent successfully', [
+                        'inquiry_id' => $inquiry->id,
+                        'admin_email' => $adminEmail
+                    ]);
                 } catch (\Exception $e) {
-                    Log::error('Failed to notify admin of contact inquiry: ' . $e->getMessage());
+                    Log::error('Failed to notify admin of contact inquiry', [
+                        'inquiry_id' => $inquiry->id,
+                        'admin_email' => $adminEmail,
+                        'error' => $e->getMessage(),
+                        'error_code' => $e->getCode(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
             }
 
@@ -98,11 +118,25 @@ class ContactController extends Controller
     public function index()
     {
         try {
-            $inquiries = ContactInquiry::orderBy('created_at', 'desc')->get();
+            // New inquiries: not marked as old, sorted by created_at desc (newest first)
+            $newInquiries = ContactInquiry::where('is_old', false)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Old inquiries: marked as old, sorted by updated_at desc (recently updated first)
+            $oldInquiries = ContactInquiry::where('is_old', true)
+                ->orderBy('updated_at', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $inquiries
+                'data' => [
+                    'new_inquiries' => $newInquiries,
+                    'old_inquiries' => $oldInquiries,
+                    // Keep backward compatibility
+                    'all_inquiries' => ContactInquiry::orderBy('created_at', 'desc')->get()
+                ]
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -132,7 +166,15 @@ class ContactController extends Controller
 
         try {
             $inquiry = ContactInquiry::findOrFail($id);
-            $inquiry->status = $request->status;
+            $oldStatus = $inquiry->status;
+            $newStatus = $request->status;
+            
+            // If status is being changed, mark as old
+            if ($oldStatus !== $newStatus) {
+                $inquiry->is_old = true;
+            }
+            
+            $inquiry->status = $newStatus;
             $inquiry->save();
 
             return response()->json([

@@ -1,5 +1,12 @@
 # Quick Reference Guide - New Structure
 
+## 📚 Documentation
+
+- **[Vercel Deployment Guide](./VERCEL_DEPLOYMENT_GUIDE.md)** - Complete guide for deploying to Vercel
+- [System Analysis](./SYSTEM_ANALYSIS.md) - System architecture and design
+- [Payment Flow](./PAYMENT_FLOW.md) - Payment integration details
+- [Quick Fixes Guide](./QUICK_FIXES_GUIDE.md) - Common issues and solutions
+
 ## 🚀 Quick Import Examples
 
 ### Components

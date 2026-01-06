@@ -64,6 +64,61 @@ MAIL_FROM_NAME="Dreams Events"
 
 Email sending is wrapped in try-catch blocks to prevent booking operations from failing if email sending fails. Errors are logged to the Laravel log file (`storage/logs/laravel.log`).
 
+### Common Email Delivery Errors
+
+#### "The recipient's mailbox is full"
+
+**Possible Causes:**
+
+1. The recipient's Gmail inbox is actually full (15GB limit for free accounts)
+2. Gmail rate limiting (500 emails/day for free accounts, 2000/day for Google Workspace)
+3. Invalid or expired Gmail App Password
+4. Gmail blocking suspicious activity
+
+**Solutions:**
+
+1. **Check recipient's mailbox**: Ask the recipient to clear their Gmail inbox
+2. **Verify Gmail App Password**:
+   - Go to https://myaccount.google.com/apppasswords
+   - Generate a new App Password if needed
+   - Update `MAIL_PASSWORD` in `.env` file
+3. **Check Gmail sending limits**:
+   - Free Gmail: 500 emails/day
+   - Google Workspace: 2000 emails/day
+   - If exceeded, wait 24 hours or upgrade account
+4. **Check Laravel logs**:
+   ```bash
+   tail -f storage/logs/laravel.log
+   ```
+   Look for detailed error messages with error codes
+
+#### Other Common Errors
+
+- **"Connection timeout"**: Check internet connection and Gmail SMTP settings
+- **"Authentication failed"**: Verify Gmail App Password is correct
+- **"Invalid recipient"**: Check email address format is valid
+
+### Gmail Setup Checklist
+
+> **📖 Detailed Setup Guide:** See [Gmail Setup Guide](./GMAIL_SETUP_GUIDE.md) for step-by-step instructions.
+
+- [ ] 2-Step Verification enabled on Google account
+  - Verify at: https://myaccount.google.com/security
+- [ ] App Password generated (not regular password)
+  - Generate at: https://myaccount.google.com/apppasswords
+  - Select "Mail" → "Other (Custom name)" → Enter "Dreams Events Backend"
+- [ ] App Password copied correctly (no spaces)
+  - Should be exactly 16 characters
+  - Remove all spaces when adding to `.env`
+- [ ] `MAIL_USERNAME` matches Gmail account
+  - Check in `dreams-backend/.env` file
+- [ ] `MAIL_PASSWORD` is the App Password (16 characters, no spaces)
+  - Should match the App Password from Google account
+- [ ] `MAIL_FROM_ADDRESS` matches `MAIL_USERNAME`
+  - Both should be your Gmail address
+- [ ] Gmail account is not locked or suspended
+  - Test by logging into https://mail.google.com
+
 ## Email Content
 
 ### Booking Confirmation Email

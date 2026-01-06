@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/axios';
-import { PackageCard, PackageSearchAutocomplete, QuickViewModal, PackageComparison } from '../../components/features';
+import { PackageCard, PackageSearchAutocomplete, QuickViewModal, PackageComparison, PullToRefresh } from '../../components/features';
 import { Card, Button, Input, Badge, Label } from '../../components/ui';
 import { useToast } from '../../hooks/use-toast';
 import { Grid3x3, List, Scale } from 'lucide-react';
@@ -177,6 +177,13 @@ const Packages = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    // Refresh current page data
+    await fetchPackages(page);
+    // Also refresh price range
+    await fetchPriceRange();
+  };
+
   const handleFilterChange = (e) => {
     setFilters({
       ...filters,
@@ -343,6 +350,7 @@ const Packages = () => {
   };
 
   return (
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
     <div className="container mx-auto px-4 max-w-7xl">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -703,6 +711,7 @@ const Packages = () => {
         onRemove={handleRemoveFromComparison}
       />
     </div>
+    </PullToRefresh>
   );
 };
 

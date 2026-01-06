@@ -33,16 +33,29 @@ export default defineConfig({
     port: parseInt(process.env.VITE_DEV_SERVER_PORT || '3000', 10),
     host: 'localhost',
     strictPort: false,
+    hmr: false, // WebSocket/HMR disabled
     watch: {
       usePolling: process.env.VITE_USE_POLLING === 'true',
-      interval: 1000
+      interval: 1000,
+      // Ignore patterns to prevent unnecessary restarts
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/dist/**',
+        '**/.vite/**',
+        '**/coverage/**',
+        '**/.storybook/**',
+        '**/*.test.{js,jsx,ts,tsx}',
+        '**/*.spec.{js,jsx,ts,tsx}'
+      ]
     },
     ...(process.env.VITE_API_PROXY_TARGET || process.env.VITE_API_BASE_URL ? {
       proxy: {
         '/api': {
           target: process.env.VITE_API_PROXY_TARGET || process.env.VITE_API_BASE_URL.replace('/api', ''),
           changeOrigin: true,
-          secure: false
+          secure: false,
+          ws: false, // WebSocket disabled
         }
       }
     } : {})
@@ -106,7 +119,9 @@ export default defineConfig({
     exclude: [],
     // Force re-optimization to ensure React is properly bundled
     // This ensures React is available before lazy-loaded components try to use it
-    force: false
+    force: false,
+    // Hold the server until dependencies are scanned
+    holdUntilCrawlEnd: true
   },
   // Ensure commonjs interop for React
   ssr: {

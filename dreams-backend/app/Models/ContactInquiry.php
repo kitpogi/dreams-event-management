@@ -22,6 +22,7 @@ class ContactInquiry extends Model
         'estimated_guests',
         'message',
         'status',
+        'is_old',
     ];
 
     protected $casts = [
@@ -29,6 +30,7 @@ class ContactInquiry extends Model
         'budget' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'is_old' => 'boolean',
     ];
 
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\TestimonialController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\ImageAnalysisController;
+use App\Http\Controllers\Api\PaymentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -48,6 +49,9 @@ Route::middleware('throttle:public')->group(function () {
 
 // Public recommendation route with rate limiting
 Route::middleware('throttle:sensitive')->post('/recommend', [RecommendationController::class, 'recommend']);
+
+// Payment webhook (public, but protected by signature verification)
+Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 
 // Cron/Webhook routes (protected with secret token)
 Route::get('/cron/send-reminders', function() {
@@ -118,6 +122,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::patch('/bookings/{id}', [BookingController::class, 'update']);
     Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
+
+    // Payment routes
+    Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
+    Route::post('/payments/attach-method', [PaymentController::class, 'attachPaymentMethod']);
+    Route::get('/payments/{id}/status', [PaymentController::class, 'getPaymentStatus']);
+    Route::get('/bookings/{bookingId}/payments', [PaymentController::class, 'getBookingPayments']);
+    Route::post('/bookings/{bookingId}/payment-link', [PaymentController::class, 'createPaymentLink']);
 
     // Client testimonial submission
     Route::post('/testimonials/submit', [TestimonialController::class, 'clientSubmit']);

@@ -49,6 +49,16 @@ function App() {
               </MainLayout>
             } 
           />
+          <Route 
+            path="/payment/confirm/:paymentId" 
+            element={
+              <MainLayout>
+                <ProtectedRoute>
+                  <LazyRoute component={LazyRoutes.PaymentConfirmation} />
+                </ProtectedRoute>
+              </MainLayout>
+            } 
+          />
           <Route path="/recommendations" element={<MainLayout><LazyRoute component={LazyRoutes.Recommendations} /></MainLayout>} />
           <Route path="/set-an-event" element={<MainLayout><LazyRoute component={LazyRoutes.SetAnEvent} /></MainLayout>} />
           <Route path="/contact-us" element={<MainLayout><LazyRoute component={LazyRoutes.ContactUs} /></MainLayout>} />

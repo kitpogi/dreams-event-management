@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Package, Trash2, ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
-import { PackageCard } from '../../components/features';
+import { PackageCard, PullToRefresh } from '../../components/features';
 import { Button } from '../../components/ui';
 import { useFavorites } from '../../components/ui/FavoriteButton';
 import { useToast } from '../../hooks/use-toast';
@@ -77,7 +77,12 @@ const Favorites = () => {
 
   const packageFavorites = getFavoritesByType('package');
 
+  const handleRefresh = async () => {
+    await loadFavoritePackages();
+  };
+
   return (
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
     <div className="container mx-auto px-4 max-w-7xl py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -158,6 +163,7 @@ const Favorites = () => {
         </>
       )}
     </div>
+    </PullToRefresh>
   );
 };
 

@@ -8,4 +8,5 @@ export * from './portfolioService';
 export * from './testimonialService';
 export * from './contactService';
 export * from './recommendationService';
+export * from './paymentService';
 

@@ -17,7 +17,7 @@ import {
 } from '../../../components/ui';
 import { TestimonialFormModal } from '../../../components/modals';
 import BookingCancellationModal from '../../../components/modals/BookingCancellationModal';
-import { AnalyticsCharts, AnimatedBackground } from '../../../components/features';
+import { AnalyticsCharts, AnimatedBackground, PullToRefresh } from '../../../components/features';
 import { Calendar, Clock, Package, Users, Search, Settings, Bell, TrendingUp, Plus, BarChart3, Sparkles, X } from 'lucide-react';
 
 const ClientDashboard = () => {
@@ -114,6 +114,10 @@ const ClientDashboard = () => {
 
   const handleCancelSuccess = () => {
     fetchBookings(page);
+  };
+
+  const handleRefresh = async () => {
+    await fetchBookings(page);
   };
 
   const canCancelBooking = (booking) => {
@@ -276,6 +280,7 @@ const ClientDashboard = () => {
   }
 
   return (
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
     <div className="relative min-h-screen">
       {/* Subtle Animated Background */}
       <AnimatedBackground 
@@ -747,6 +752,7 @@ const ClientDashboard = () => {
       />
       </div>
     </div>
+    </PullToRefresh>
   );
 };
 
