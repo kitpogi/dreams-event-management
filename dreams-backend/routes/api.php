@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\ImageAnalysisController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\BookingAttachmentController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\TeamMemberController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Broadcast;
@@ -46,6 +48,9 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/venues', [VenueController::class, 'index']);
     Route::get('/portfolio-items', [PortfolioController::class, 'index']);
     Route::get('/testimonials', [TestimonialController::class, 'index']);
+    Route::get('/services', [ServiceController::class, 'index']);
+    Route::get('/team-members', [TeamMemberController::class, 'index']);
+    Route::get('/public-stats', [BookingController::class, 'getPublicStats']);
 
     // Public review viewing
     Route::get('/reviews', [ReviewController::class, 'index']);
@@ -255,6 +260,20 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::put('/testimonials/{testimonial}', [TestimonialController::class, 'update']);
         Route::patch('/testimonials/{testimonial}', [TestimonialController::class, 'update']);
         Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'destroy']);
+
+        // Service management (admin)
+        Route::get('/admin/services', [ServiceController::class, 'adminIndex']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::put('/services/{service}', [ServiceController::class, 'update']);
+        Route::patch('/services/{service}', [ServiceController::class, 'update']);
+        Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+
+        // Team Members management (admin)
+        Route::get('/admin/team-members', [TeamMemberController::class, 'adminIndex']);
+        Route::post('/team-members', [TeamMemberController::class, 'store']);
+        Route::put('/team-members/{teamMember}', [TeamMemberController::class, 'update']);
+        Route::patch('/team-members/{teamMember}', [TeamMemberController::class, 'update']);
+        Route::delete('/team-members/{teamMember}', [TeamMemberController::class, 'destroy']);
 
         // Audit logs (admin only)
         Route::get('/audit-logs', [AuditLogController::class, 'index']);

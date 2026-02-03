@@ -1,51 +1,35 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Users, Calendar, Star, ArrowRight, Sparkles, Eye, Scale } from 'lucide-react';
 import { Button, OptimizedImage, FavoriteButton } from '../ui';
+import { formatAssetUrl } from '../../lib/utils';
 
 const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 'grid' }) => {
-  // Helper function to ensure absolute URL
-  const ensureAbsoluteUrl = (url) => {
-    if (!url) return null;
-    // If already absolute, return as is
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    // If relative URL starting with /, prepend API base URL (without /api)
-    if (url.startsWith('/')) {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-      const baseUrl = apiBase.replace('/api', '');
-      return baseUrl + url;
-    }
-    // Otherwise return as is (might be a data URL or other format)
-    return url;
-  };
-
   // Get image URL - handle various data structures
   const imageUrl = (() => {
     // Try images array first
     if (pkg.images && Array.isArray(pkg.images) && pkg.images.length > 0) {
       const firstImage = pkg.images[0];
       if (typeof firstImage === 'string') {
-        return ensureAbsoluteUrl(firstImage);
+        return formatAssetUrl(firstImage);
       }
       if (firstImage && firstImage.image_url) {
-        return ensureAbsoluteUrl(firstImage.image_url);
+        return formatAssetUrl(firstImage.image_url);
       }
     }
     // Fallback to package_image
     if (pkg.package_image) {
-      return ensureAbsoluteUrl(pkg.package_image);
+      return formatAssetUrl(pkg.package_image);
     }
     // Try other possible fields
     if (pkg.image_url) {
-      return ensureAbsoluteUrl(pkg.image_url);
+      return formatAssetUrl(pkg.image_url);
     }
     if (pkg.image) {
-      return ensureAbsoluteUrl(pkg.image);
+      return formatAssetUrl(pkg.image);
     }
     return null;
   })();
-  
+
   // Debug log to see what we're getting (only if no image found)
   if (!imageUrl) {
     console.warn('No image URL found for package:', pkg.package_name || pkg.name, 'Package data:', pkg);
@@ -70,22 +54,21 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
 
   return (
     <div className={`group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 hover:border-[#5A45F2]/50 dark:hover:border-[#5A45F2]/60 transition-all duration-300 overflow-hidden h-full flex ${isListView ? 'flex-row' : 'flex-col'}`}>
-      {/* Image Section */}      
-      <Link 
-        to={`/packages/${pkg.package_id || pkg.id}`} 
-        className={`relative overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex-shrink-0 ${
-          isListView ? 'w-72 h-64 min-h-[256px]' : 'w-full h-64'
-        }`}
+      {/* Image Section */}
+      <Link
+        to={`/packages/${pkg.package_id || pkg.id}`}
+        className={`relative overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex-shrink-0 ${isListView ? 'w-72 h-64 min-h-[256px]' : 'w-full h-64'
+          }`}
       >
         <OptimizedImage
           src={imageUrl}
           alt={pkg.package_name || pkg.name}
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        
+
         {/* Gradient Overlay on Hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
+
         {/* Top Actions */}
         <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
           <FavoriteButton
@@ -129,13 +112,12 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-3.5 h-3.5 ${
-                        i < Math.floor(rating)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : i < rating
+                      className={`w-3.5 h-3.5 ${i < Math.floor(rating)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : i < rating
                           ? 'fill-yellow-200 text-yellow-200'
                           : 'fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600'
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
@@ -154,32 +136,29 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
 
         {/* Package Name */}
         <Link to={`/packages/${pkg.package_id || pkg.id}`} className="group/title">
-          <h3 className={`text-lg font-bold line-clamp-2 group-hover/title:text-[#5A45F2] dark:group-hover/title:text-[#7c3aed] transition-colors duration-200 ${
-            isListView 
-              ? 'text-gray-900 dark:text-white font-extrabold drop-shadow-sm' 
-              : 'text-gray-900 dark:text-white'
-          }`}>
+          <h3 className={`text-lg font-bold line-clamp-2 group-hover/title:text-[#5A45F2] dark:group-hover/title:text-[#7c3aed] transition-colors duration-200 ${isListView
+            ? 'text-gray-900 dark:text-white font-extrabold drop-shadow-sm'
+            : 'text-gray-900 dark:text-white'
+            }`}>
             {pkg.package_name || pkg.name}
           </h3>
         </Link>
 
         {/* Description */}
         {(pkg.description || pkg.package_description) && (
-          <p className={`text-sm line-clamp-2 leading-relaxed ${
-            isListView 
-              ? 'text-gray-800 dark:text-gray-200 font-medium' 
-              : 'text-gray-600 dark:text-gray-400'
-          }`}>
+          <p className={`text-sm line-clamp-2 leading-relaxed ${isListView
+            ? 'text-gray-800 dark:text-gray-200 font-medium'
+            : 'text-gray-600 dark:text-gray-400'
+            }`}>
             {pkg.description || pkg.package_description}
           </p>
         )}
 
         {/* Venue Location */}
-        <div className={`flex items-center gap-2 ${
-          isListView 
-            ? 'text-gray-800 dark:text-gray-200' 
-            : 'text-gray-600 dark:text-gray-400'
-        }`}>
+        <div className={`flex items-center gap-2 ${isListView
+          ? 'text-gray-800 dark:text-gray-200'
+          : 'text-gray-600 dark:text-gray-400'
+          }`}>
           <MapPin className={`w-4 h-4 flex-shrink-0 text-[#5A45F2] ${isListView ? 'drop-shadow-sm' : ''}`} />
           <span className={`text-sm line-clamp-1 ${isListView ? 'font-semibold' : ''}`}>
             {venueName}
@@ -192,11 +171,10 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
             <div className="p-1.5 rounded-lg bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20">
               <Users className="w-4 h-4 text-[#5A45F2]" />
             </div>
-            <span className={`text-sm font-medium ${
-              isListView 
-                ? 'text-gray-900 dark:text-gray-100 font-semibold' 
-                : 'text-gray-700 dark:text-gray-300'
-            }`}>
+            <span className={`text-sm font-medium ${isListView
+              ? 'text-gray-900 dark:text-gray-100 font-semibold'
+              : 'text-gray-700 dark:text-gray-300'
+              }`}>
               {capacityValue} guests
             </span>
           </div>
@@ -204,11 +182,10 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
             <div className="p-1.5 rounded-lg bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20">
               <Calendar className="w-4 h-4 text-[#5A45F2]" />
             </div>
-            <span className={`text-sm font-medium ${
-              isListView 
-                ? 'text-gray-900 dark:text-gray-100 font-semibold' 
-                : 'text-gray-700 dark:text-gray-300'
-            }`}>
+            <span className={`text-sm font-medium ${isListView
+              ? 'text-gray-900 dark:text-gray-100 font-semibold'
+              : 'text-gray-700 dark:text-gray-300'
+              }`}>
               Package
             </span>
           </div>
@@ -249,7 +226,7 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
               </Button>
             )}
           </div>
-          
+
           {/* Primary Actions Row */}
           <div className="flex gap-2">
             <Link to={`/packages/${pkg.package_id || pkg.id}`} className="flex-1">

@@ -11,6 +11,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Events\NewBookingCreated;
 use App\Events\BookingStatusChanged;
+use App\Models\Review;
 use App\Http\Resources\BookingResource;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Response;
@@ -1470,6 +1471,31 @@ class BookingController extends Controller
         $endMinutes = $startMinutes + (int) ($durationHours * 60);
 
         return $this->minutesToTime($endMinutes);
+    }
+
+    /**
+     * Get public statistics for the home page
+     */
+    public function getPublicStats()
+    {
+        $eventsPlanned = BookingDetail::whereIn('booking_status', ['Completed', 'Confirmed', 'Approved', 'Paid'])->count();
+
+        $happyClients = BookingDetail::whereIn('booking_status', ['Completed', 'Confirmed', 'Approved', 'Paid'])
+            ->distinct('client_id')
+            ->count('client_id');
+
+        $avgRating = Review::avg('rating') ?? 0;
+
+        // Years experience is static for the company
+        $yearsExperience = 15;
+
+        return response()->json([
+            'happy_clients' => $happyClients,
+            'events_planned' => $eventsPlanned,
+            'average_rating' => round($avgRating, 1),
+            'years_experience' => $yearsExperience,
+            'success' => true
+        ]);
     }
 }
 

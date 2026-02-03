@@ -24,7 +24,7 @@ class LoggingServiceProvider extends ServiceProvider
         QueryMonitor::enable();
 
         // Set slower threshold for production
-        if ($this->app->isProduction()) {
+        if ($this->app->environment('production')) {
             QueryMonitor::setThreshold(1000); // 1 second in production
         }
     }

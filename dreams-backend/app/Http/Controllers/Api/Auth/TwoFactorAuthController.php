@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\Auth\TwoFactorAuthService;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Services\Logging\StructuredLogger;
 
 class TwoFactorAuthController extends Controller
@@ -115,7 +117,7 @@ class TwoFactorAuthController extends Controller
         $user = Auth::user();
 
         // Verify password
-        if (!\Illuminate\Support\Facades\Hash::check($validated['password'], $user->password)) {
+        if (!Hash::check($validated['password'], $user->password)) {
             StructuredLogger::warning('2FA Disable Failed - Invalid Password', [
                 'type' => '2fa_disable_failed',
                 'user_id' => $user->id,
@@ -178,7 +180,7 @@ class TwoFactorAuthController extends Controller
         }
 
         // Verify password
-        if (!\Illuminate\Support\Facades\Hash::check($validated['password'], $user->password)) {
+        if (!Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid password',

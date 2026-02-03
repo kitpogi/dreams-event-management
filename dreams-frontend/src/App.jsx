@@ -292,12 +292,36 @@ function App() {
                 }
               />
               <Route
+                path="/admin/services"
+                element={
+                  <AdminLayout>
+                    <ErrorBoundary showContact>
+                      <ProtectedRoute requireAdmin>
+                        <LazyRoute component={LazyRoutes.ManageServices} />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  </AdminLayout>
+                }
+              />
+              <Route
                 path="/admin/testimonials"
                 element={
                   <AdminLayout>
                     <ErrorBoundary showContact>
                       <ProtectedRoute requireAdmin>
                         <LazyRoute component={LazyRoutes.ManageTestimonials} />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  </AdminLayout>
+                }
+              />
+              <Route
+                path="/admin/team"
+                element={
+                  <AdminLayout>
+                    <ErrorBoundary showContact>
+                      <ProtectedRoute requireAdmin>
+                        <LazyRoute component={LazyRoutes.ManageTeam} />
                       </ProtectedRoute>
                     </ErrorBoundary>
                   </AdminLayout>

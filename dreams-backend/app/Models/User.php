@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasTwoFactorAuth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -17,13 +18,17 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $profile_picture
  * @property int $failed_login_attempts
  * @property \Illuminate\Support\Carbon|null $locked_until
+ * @property bool $two_factor_enabled
+ * @property string|null $two_factor_method
+ * @property string|null $two_factor_secret
+ * @property array|null $twoFactorCodes
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  */
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasTwoFactorAuth;
 
     protected $fillable = [
         'name',
@@ -34,6 +39,10 @@ class User extends Authenticatable
         'profile_picture',
         'failed_login_attempts',
         'locked_until',
+        'two_factor_enabled',
+        'two_factor_method',
+        'two_factor_secret',
+        'twoFactorCodes',
     ];
 
     protected $hidden = [
@@ -45,6 +54,8 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'locked_until' => 'datetime',
+        'two_factor_enabled' => 'boolean',
+        'twoFactorCodes' => 'array',
     ];
 
     public function isAdmin(): bool

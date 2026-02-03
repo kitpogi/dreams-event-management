@@ -3,6 +3,10 @@ import { toast } from 'react-toastify';
 import api from '../../api/axios';
 import { Button, FormModal } from '../ui';
 import { STORAGE_KEY } from '../../constants/eventFormConstants';
+import { cn } from '../../lib/utils';
+
+// Debug to verify cn is imported
+console.log('Debug: ContactFormModal - cn function is', typeof cn === 'function' ? 'defined' : 'undefined');
 
 const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
   const [formData, setFormData] = useState({
@@ -21,10 +25,35 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [availableServices, setAvailableServices] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [fetchingServices, setFetchingServices] = useState(false);
+  const [isCustomPackage, setIsCustomPackage] = useState(false);
+
+  // Fetch services from API
+  useEffect(() => {
+    const fetchServices = async () => {
+      if (!isOpen) return;
+      setFetchingServices(true);
+      try {
+        const response = await api.get('/services');
+        setAvailableServices(response.data.data || []);
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      } finally {
+        setFetchingServices(false);
+      }
+    };
+    fetchServices();
+  }, [isOpen]);
 
   // Populate form with initialData when modal opens (only once, not after submission)
   useEffect(() => {
     if (isOpen && initialData && Object.keys(initialData).length > 0 && !hasSubmitted) {
+      if (initialData.from === 'set-an-event' || initialData.custom_package) {
+        setIsCustomPackage(true);
+      }
+
       // Build message from available data
       let message = '';
       if (initialData.motifs) {
@@ -36,9 +65,8 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
       if (initialData.message) {
         message += initialData.message;
       }
-      if (message || initialData.from === 'set-an-event') {
-        message += '\n\nI would like to request a custom package tailored to my needs.';
-      }
+
+      // We'll handle the "custom package" line dynamically based on selection
 
       setFormData({
         first_name: initialData.first_name || '',
@@ -71,6 +99,14 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
       [name]: value,
     });
     setErrors((prev) => ({ ...prev, [name]: null }));
+  };
+
+  const toggleService = (serviceId) => {
+    setSelectedServices(prev =>
+      prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
   };
 
   const validate = () => {
@@ -106,7 +142,21 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
     setSubmitSuccess(false);
 
     try {
-      await api.post('/contact', {
+      // Construct final message with selected services
+      let finalMessage = formData.message;
+      if (isCustomPackage) {
+        const selectedTitles = availableServices
+          .filter(s => selectedServices.includes(s.id))
+          .map(s => s.title);
+
+        if (selectedTitles.length > 0) {
+          finalMessage += `\n\n--- Custom Package Request ---\nSelected Services:\n- ${selectedTitles.join('\n- ')}`;
+        } else {
+          finalMessage += '\n\nI would like to request a custom package tailored to my needs.';
+        }
+      }
+
+      const payload = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         name: `${formData.first_name} ${formData.last_name}`,
@@ -115,14 +165,17 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
         event_type: formData.event_type,
         date_of_event: formData.date_of_event,
         preferred_venue: formData.preferred_venue,
-        budget: formData.budget ? parseFloat(formData.budget) : null,
+        budget: formData.budget ? String(formData.budget) : null,
         estimated_guests: formData.estimated_guests ? parseInt(formData.estimated_guests) : null,
-        message: formData.message,
-      });
+        message: finalMessage,
+      };
+
+      console.log('Submission Payload:', payload);
+      await api.post('/contact', payload);
 
       setSubmitSuccess(true);
       setHasSubmitted(true);
-      
+
       // Clear form data after successful submission
       setFormData({
         first_name: '',
@@ -136,10 +189,10 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
         estimated_guests: '',
         message: '',
       });
+      setSelectedServices([]);
       setErrors({});
 
       // Clear SetAnEvent form data from sessionStorage after successful contact submission
-      // This prevents the form from persisting after the user has submitted their inquiry
       try {
         sessionStorage.removeItem(STORAGE_KEY);
       } catch (error) {
@@ -156,6 +209,7 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
       console.error('Error submitting inquiry:', error);
       const apiErrors = error.response?.data?.errors;
       if (apiErrors) {
+        console.log('Validation Errors:', apiErrors);
         const mapped = Object.fromEntries(
           Object.entries(apiErrors).map(([key, val]) => [key, Array.isArray(val) ? val.join(', ') : String(val)])
         );
@@ -168,103 +222,104 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
   };
 
   return (
-    <FormModal 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <FormModal
+      isOpen={isOpen}
+      onClose={onClose}
       title="Contact Us"
       size="lg"
     >
-      <div className="space-y-6">
+      <div className="space-y-8">
         {submitSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-800 font-medium">
-              Thank you for your inquiry! We have received your message and will contact you soon.
-            </p>
+          <div className="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
+              <p className="text-green-800 dark:text-green-200 font-medium">
+                Thank you for your inquiry! We have received your message and will contact you soon.
+              </p>
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Information */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name *
-                </label>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Section: Personal Info */}
+          <section className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined text-amber-600">person</span>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Personal Information</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">First Name *</label>
                 <input
                   type="text"
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}
                   required
-                  placeholder="First Name"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="John"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 />
-              {errors.first_name && <p className="mt-1 text-sm text-red-600">{errors.first_name}</p>}
+                {errors.first_name && <p className="text-xs text-red-500 font-medium mt-1">{errors.first_name}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Last Name *</label>
                 <input
                   type="text"
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
                   required
-                  placeholder="Last Name"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="Doe"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 />
-              {errors.last_name && <p className="mt-1 text-sm text-red-600">{errors.last_name}</p>}
+                {errors.last_name && <p className="text-xs text-red-500 font-medium mt-1">{errors.last_name}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Email Address *</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  placeholder="Email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="john@example.com"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 />
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                {errors.email && <p className="text-xs text-red-500 font-medium mt-1">{errors.email}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mobile Number *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Mobile Number *</label>
                 <input
                   type="tel"
                   name="mobile_number"
                   value={formData.mobile_number}
                   onChange={handleChange}
                   required
-                  placeholder="Mobile Number"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="0917-123-4567"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 />
-              {errors.mobile_number && <p className="mt-1 text-sm text-red-600">{errors.mobile_number}</p>}
+                {errors.mobile_number && <p className="text-xs text-red-500 font-medium mt-1">{errors.mobile_number}</p>}
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Event Details */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Event Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Type *
-                </label>
+          {/* Section: Event Info */}
+          <section className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined text-amber-600">event</span>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Event Details</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Event Type *</label>
                 <select
                   name="event_type"
                   value={formData.event_type}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 >
                   <option value="">Choose Event Type</option>
                   <option value="wedding">Wedding</option>
@@ -275,12 +330,10 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
                   <option value="anniversary">Anniversary</option>
                   <option value="other">Other</option>
                 </select>
-                {errors.event_type && <p className="mt-1 text-sm text-red-600">{errors.event_type}</p>}
+                {errors.event_type && <p className="text-xs text-red-500 font-medium mt-1">{errors.event_type}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date of Event *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Date of Event *</label>
                 <input
                   type="date"
                   name="date_of_event"
@@ -288,94 +341,161 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
                   onChange={handleChange}
                   required
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 />
-                {errors.date_of_event && <p className="mt-1 text-sm text-red-600">{errors.date_of_event}</p>}
+                {errors.date_of_event && <p className="text-xs text-red-500 font-medium mt-1">{errors.date_of_event}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Preferred Reception/Celebration Venue *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Preferred Venue *</label>
                 <input
                   type="text"
                   name="preferred_venue"
                   value={formData.preferred_venue}
                   onChange={handleChange}
                   required
-                  placeholder="Preferred Venue"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="Venue Name / Location"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
                 />
-                {errors.preferred_venue && <p className="mt-1 text-sm text-red-600">{errors.preferred_venue}</p>}
+                {errors.preferred_venue && <p className="text-xs text-red-500 font-medium mt-1">{errors.preferred_venue}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Budget *
-                </label>
-                <input
-                  type="number"
-                  name="budget"
-                  value={formData.budget}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="Budget (₱)"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                />
-                {errors.budget && <p className="mt-1 text-sm text-red-600">{errors.budget}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estimated Number of Guests *
-                </label>
-                <input
-                  type="number"
-                  name="estimated_guests"
-                  value={formData.estimated_guests}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  placeholder="Number of guests"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                />
-                {errors.estimated_guests && <p className="mt-1 text-sm text-red-600">{errors.estimated_guests}</p>}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Budget (₱) *</label>
+                  <input
+                    type="number"
+                    name="budget"
+                    value={formData.budget}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    placeholder="50000"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
+                  />
+                  {errors.budget && <p className="text-xs text-red-500 font-medium mt-1">{errors.budget}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Guests *</label>
+                  <input
+                    type="number"
+                    name="estimated_guests"
+                    value={formData.estimated_guests}
+                    onChange={handleChange}
+                    required
+                    min="1"
+                    placeholder="100"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white"
+                  />
+                  {errors.estimated_guests && <p className="text-xs text-red-500 font-medium mt-1">{errors.estimated_guests}</p>}
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Message */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Additional Information / Message *
-            </label>
+          {/* Custom Package Section */}
+          <section className="bg-amber-50/30 dark:bg-amber-900/10 p-6 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-600">inventory_2</span>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Custom Package Request</h3>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={isCustomPackage}
+                  onChange={(e) => setIsCustomPackage(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-600"></div>
+                <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Customize</span>
+              </label>
+            </div>
+
+            {isCustomPackage && (
+              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Select the services you'd like to include in your custom package:</p>
+                {fetchingServices ? (
+                  <div className="py-4 flex justify-center">
+                    <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {availableServices.length > 0 ? (
+                      availableServices.map((service) => (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => toggleService(service.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center gap-2 group",
+                            selectedServices.includes(service.id)
+                              ? "bg-amber-600 border-amber-600 text-white shadow-md shadow-amber-600/20"
+                              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-amber-300 dark:hover:border-amber-800"
+                          )}
+                        >
+                          <span className={cn(
+                            "material-symbols-outlined text-2xl transition-colors",
+                            selectedServices.includes(service.id) ? "text-white" : "text-amber-600"
+                          )}>
+                            {service.icon || 'settings'}
+                          </span>
+                          <span className="text-xs font-bold leading-tight">{service.title}</span>
+                          {selectedServices.includes(service.id) && (
+                            <div className="absolute top-1 right-1">
+                              <span className="material-symbols-outlined text-sm">check_circle</span>
+                            </div>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="col-span-full text-center text-sm text-gray-500 py-4">No services available to select.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Section: Message */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Additional Information / Special Message *</label>
             <textarea
               name="message"
               value={formData.message}
               onChange={handleChange}
               required
-              rows="5"
-              placeholder="Tell us more about your event, special requirements, or any questions you have..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              rows="4"
+              placeholder="Tell us more about your dream event..."
+              className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white resize-none"
             />
-            {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message}</p>}
+            {errors.message && <p className="text-xs text-red-500 font-medium mt-1">{errors.message}</p>}
           </div>
 
           {/* Submit Button */}
-          <div className="pt-4 flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1"
+              className="flex-1 h-12 rounded-xl font-bold border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+              className="flex-1 h-12 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/20 transition-all hover:-translate-y-0.5"
             >
-              {loading ? 'Submitting...' : 'Submit Inquiry'}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Sending...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span>Submit Inquiry</span>
+                  <span className="material-symbols-outlined text-lg">send</span>
+                </div>
+              )}
             </Button>
           </div>
         </form>

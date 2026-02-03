@@ -13,7 +13,7 @@ const getApiBaseUrl = () => {
     return process.env.VITE_API_BASE_URL;
   }
   // In Vite, use import.meta.env
-   
+
   return import.meta.env?.VITE_API_BASE_URL;
 };
 
@@ -24,26 +24,32 @@ const getApiBaseUrl = () => {
  */
 export const ensureAbsoluteUrl = (url) => {
   if (!url) return null;
-  
+
   // If already absolute, return as is
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) {
     return url;
   }
-  
+
   // Get API base URL with fallback
   const apiBase = getApiBaseUrl();
   const baseUrl = apiBase.replace('/api', '');
-  
+
+  // If it's a relative path from public folder (starts with /assets)
+  // These should be served from the frontend origin
+  if (url.startsWith('/assets') || url.startsWith('assets')) {
+    return url.startsWith('/') ? url : `/${url}`;
+  }
+
   // If relative URL starting with /, prepend API base URL (without /api)
   if (url.startsWith('/')) {
     return baseUrl + url;
   }
-  
+
   // If it's a storage path without leading slash, prepend /storage/
   if (!url.includes('://') && !url.startsWith('/')) {
     return `${baseUrl}/storage/${url}`;
   }
-  
+
   return url;
 };
 
@@ -55,7 +61,7 @@ export const ensureAbsoluteUrl = (url) => {
  */
 export const getInitials = (name, maxLength = 2) => {
   if (!name) return 'U';
-  
+
   return name
     .split(' ')
     .map(n => n[0])

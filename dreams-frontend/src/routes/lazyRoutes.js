@@ -45,7 +45,9 @@ export const ManageClients = lazy(() => import('../pages/Dashboard/admin/ManageC
 export const ManageContactInquiries = lazy(() => import('../pages/Dashboard/admin/ManageContactInquiries'));
 export const ManageVenues = lazy(() => import('../pages/Dashboard/admin/ManageVenues'));
 export const ManagePortfolio = lazy(() => import('../pages/Dashboard/admin/ManagePortfolio'));
+export const ManageServices = lazy(() => import('../pages/Dashboard/admin/ManageServices'));
 export const ManageTestimonials = lazy(() => import('../pages/Dashboard/admin/ManageTestimonials'));
+export const ManageTeam = lazy(() => import('../pages/Dashboard/admin/ManageTeam'));
 export const AnalyticsDashboard = lazy(() => import('../pages/Dashboard/admin/AnalyticsDashboard'));
 export const AdminBookingsCalendar = lazy(() => import('../pages/Dashboard/admin/AdminBookingsCalendar'));
 export const AuditLogs = lazy(() => import('../pages/Dashboard/admin/AuditLogs'));

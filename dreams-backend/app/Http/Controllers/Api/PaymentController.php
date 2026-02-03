@@ -11,6 +11,7 @@ use App\Http\Requests\Payment\CreatePaymentIntentRequest;
 use App\Http\Requests\Payment\AttachPaymentMethodRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class PaymentController extends Controller
 {
@@ -47,8 +48,9 @@ class PaymentController extends Controller
         $result = $this->paymentService->createPaymentIntent($booking, $amount, 'PHP', $paymentMethods);
 
         if (!$result['success']) {
-            return $this->serverErrorResponse(
+            return $this->errorResponse(
                 'Failed to create payment intent',
+                500,
                 ['error' => $result['error'] ?? 'Unknown error']
             );
         }
@@ -78,28 +80,33 @@ class PaymentController extends Controller
     {
         $validated = $request->validated();
 
+        // Find payment record first to get its local ID for the return_url
+        $payment = Payment::where('payment_intent_id', $validated['payment_intent_id'])->first();
+        if (!$payment) {
+            return $this->notFoundResponse('Payment record not found for this intent');
+        }
+
         $result = $this->paymentService->attachPaymentMethod(
             $validated['payment_intent_id'],
-            $validated['payment_method_id']
+            $validated['payment_method_id'],
+            $payment->id
         );
 
         if (!$result['success']) {
-            return $this->serverErrorResponse(
+            return $this->errorResponse(
                 'Failed to attach payment method',
+                500,
                 ['error' => $result['error'] ?? 'Unknown error']
             );
         }
 
-        // Update payment record
-        $payment = Payment::where('payment_intent_id', $validated['payment_intent_id'])->first();
-        if ($payment) {
-            $payment->payment_method_id = $request->payment_method_id;
-            $payment->status = $result['status'] === 'succeeded' ? 'paid' : 'processing';
-            if ($result['status'] === 'succeeded') {
-                $payment->paid_at = now();
-            }
-            $payment->save();
+        // Update payment record with result
+        $payment->payment_method_id = $validated['payment_method_id'];
+        $payment->status = $result['status'] === 'succeeded' ? 'paid' : 'processing';
+        if ($result['status'] === 'succeeded') {
+            $payment->paid_at = now();
         }
+        $payment->save();
 
         return response()->json([
             'success' => true,
@@ -212,7 +219,7 @@ class PaymentController extends Controller
                 'min:0.01',
                 'max:99999999.99',
                 function ($attribute, $value, $fail) {
-                    if (preg_match('/\.\d{3,}/', (string)$value)) {
+                    if (preg_match('/\.\d{3,}/', (string) $value)) {
                         $fail('The amount must have at most 2 decimal places.');
                     }
                     if ($value <= 0) {

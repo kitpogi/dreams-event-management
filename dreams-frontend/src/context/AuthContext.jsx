@@ -45,6 +45,13 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
 
+      // After a successful request (which might have involved a token refresh),
+      // sync the local state token with what's in localStorage
+      const currentToken = localStorage.getItem('token');
+      if (currentToken && currentToken !== token) {
+        setToken(currentToken);
+      }
+
       return { success: true, user: userData };
     } catch (error) {
       // Token invalid, clear storage
@@ -86,6 +93,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       localStorage.setItem('token', newToken);
+      if (responseData.refresh_token) {
+        localStorage.setItem('refresh_token', responseData.refresh_token);
+      }
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
@@ -140,6 +150,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       localStorage.setItem('token', newToken);
+      if (responseData.refresh_token) {
+        localStorage.setItem('refresh_token', responseData.refresh_token);
+      }
       localStorage.setItem('user', JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
@@ -186,6 +199,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Clear state first
       localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
       setToken(null);
       setUser(null);

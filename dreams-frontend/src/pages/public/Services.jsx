@@ -1,9 +1,34 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllServices } from '../../data/services';
+import api from '../../api/axios';
+import { formatAssetUrl } from '../../lib/utils';
 
 const Services = () => {
-  const services = getAllServices();
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await api.get('/services');
+        setServices(response.data.data || []);
+      } catch (error) {
+        console.error('Error fetching services:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full bg-[#f7f6f8] dark:bg-gray-900 min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a413ec]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-[#f7f6f8] dark:bg-gray-900 min-h-screen transition-colors duration-300">
@@ -22,6 +47,14 @@ const Services = () => {
                 key={service.id}
                 className="flex flex-col gap-4 rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-white dark:bg-gray-800 p-6 text-center shadow-sm transition-all duration-300 hover:shadow-lg"
               >
+                <div className="relative aspect-video overflow-hidden rounded-lg mb-2">
+                  <img
+                    src={formatAssetUrl(service.images?.[0])}
+                    alt={service.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#a413ec]/10 dark:bg-[#a413ec]/20">
                   <span className="material-symbols-outlined text-[#a413ec] dark:text-[#a413ec] text-3xl">
                     {service.icon}
@@ -38,7 +71,7 @@ const Services = () => {
                 </div>
 
                 <div className="mt-auto flex justify-center">
-                  <Link to={service.link}>
+                  <Link to={service.link || '/packages'}>
                     <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-[#a413ec] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#a413ec]/90 transition-colors">
                       <span className="truncate">Learn More</span>
                     </button>
@@ -54,4 +87,3 @@ const Services = () => {
 };
 
 export default Services;
-

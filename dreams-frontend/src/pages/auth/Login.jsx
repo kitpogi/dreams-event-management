@@ -114,7 +114,11 @@ const Login = () => {
 
       if (responseData.access_token || responseData.token) {
         const token = responseData.access_token || responseData.token;
+        const refreshToken = responseData.refresh_token;
         localStorage.setItem('token', token);
+        if (refreshToken) {
+          localStorage.setItem('refresh_token', refreshToken);
+        }
         localStorage.setItem('user', JSON.stringify(responseData.user));
         setToken(token);
         setUser(responseData.user);
@@ -171,7 +175,11 @@ const Login = () => {
 
             if (responseData.access_token || responseData.token) {
               const token = responseData.access_token || responseData.token;
+              const refreshToken = responseData.refresh_token;
               localStorage.setItem('token', token);
+              if (refreshToken) {
+                localStorage.setItem('refresh_token', refreshToken);
+              }
               localStorage.setItem('user', JSON.stringify(responseData.user));
               setToken(token);
               setUser(responseData.user);
@@ -239,7 +247,11 @@ const Login = () => {
 
       if (responseData.access_token || responseData.token) {
         const token = responseData.access_token || responseData.token;
+        const refreshToken = responseData.refresh_token;
         localStorage.setItem('token', token);
+        if (refreshToken) {
+          localStorage.setItem('refresh_token', refreshToken);
+        }
         localStorage.setItem('user', JSON.stringify(responseData.user));
         setToken(token);
         setUser(responseData.user);

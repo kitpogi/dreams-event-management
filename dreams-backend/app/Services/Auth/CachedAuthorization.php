@@ -77,7 +77,7 @@ class CachedAuthorization
     /**
      * Clear all caches for user
      */
-    public static function clearUserCache(int $userId = null): void
+    public static function clearUserCache(?int $userId = null): void
     {
         $userId = $userId ?? Auth::id();
         

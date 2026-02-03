@@ -31,19 +31,19 @@ class PaymentService
                 'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
                 'Content-Type' => 'application/json',
             ])->post($this->baseUrl . '/payment_intents', [
-                'data' => [
-                    'attributes' => [
-                        'amount' => (int)($amount * 100), // Convert to centavos
-                        'currency' => $currency,
-                        'payment_method_allowed' => $paymentMethods,
-                        'metadata' => [
-                            'booking_id' => $booking->booking_id,
-                            'client_id' => $booking->client_id,
-                            'package_id' => $booking->package_id,
+                        'data' => [
+                            'attributes' => [
+                                'amount' => (int) ($amount * 100), // Convert to centavos
+                                'currency' => $currency,
+                                'payment_method_allowed' => $paymentMethods,
+                                'metadata' => [
+                                    'booking_id' => (string) $booking->booking_id,
+                                    'client_id' => (string) $booking->client_id,
+                                    'package_id' => (string) $booking->package_id,
+                                ],
+                            ],
                         ],
-                    ],
-                ],
-            ]);
+                    ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -58,7 +58,9 @@ class PaymentService
                 ];
             }
 
-            throw new Exception('Failed to create payment intent: ' . $response->body());
+            $errorBody = $response->body();
+            Log::error('PayMongo Payment Intent Creation Failed: ' . $errorBody);
+            throw new Exception('Failed to create payment intent: ' . $errorBody);
         } catch (Exception $e) {
             Log::error('Payment intent creation failed: ' . $e->getMessage());
             return [
@@ -71,20 +73,20 @@ class PaymentService
     /**
      * Attach payment method to payment intent.
      */
-    public function attachPaymentMethod(string $paymentIntentId, string $paymentMethodId): array
+    public function attachPaymentMethod(string $paymentIntentId, string $paymentMethodId, int $paymentId): array
     {
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
                 'Content-Type' => 'application/json',
             ])->post($this->baseUrl . '/payment_intents/' . $paymentIntentId . '/attach', [
-                'data' => [
-                    'attributes' => [
-                        'payment_method' => $paymentMethodId,
-                        'return_url' => config('app.frontend_url') . '/bookings/payment/confirm',
-                    ],
-                ],
-            ]);
+                        'data' => [
+                            'attributes' => [
+                                'payment_method' => $paymentMethodId,
+                                'return_url' => config('app.frontend_url') . '/payment/confirm/' . $paymentId,
+                            ],
+                        ],
+                    ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -138,10 +140,40 @@ class PaymentService
     /**
      * Verify webhook signature.
      */
+    /**
+     * Verify webhook signature.
+     */
     public function verifyWebhookSignature(string $payload, string $signature, string $secret): bool
     {
-        $computedSignature = hash_hmac('sha256', $payload, $secret);
-        return hash_equals($computedSignature, $signature);
+        if (empty($signature) || empty($secret)) {
+            return false;
+        }
+
+        // PayMongo signatures are in the format: t=<timestamp>,v1=<signature>
+        // We need to parse this or at least try to match the v1 portion
+        $parts = explode(',', $signature);
+        $v1 = null;
+        $timestamp = null;
+
+        foreach ($parts as $part) {
+            if (str_starts_with(trim($part), 't=')) {
+                $timestamp = substr(trim($part), 2);
+            } elseif (str_starts_with(trim($part), 'v1=')) {
+                $v1 = substr(trim($part), 3);
+            }
+        }
+
+        if (!$v1 || !$timestamp) {
+            // Fallback for simple signatures if any
+            $computedSignature = hash_hmac('sha256', $payload, $secret);
+            return hash_equals($computedSignature, $signature);
+        }
+
+        // Standard PayMongo verification: hash(timestamp . "." . payload)
+        $signedPayload = $timestamp . '.' . $payload;
+        $computedSignature = hash_hmac('sha256', $signedPayload, $secret);
+
+        return hash_equals($computedSignature, $v1);
     }
 
     /**
@@ -213,11 +245,11 @@ class PaymentService
     protected function extractPaymentMethod(array $attributes): ?string
     {
         $paymentMethod = $attributes['payment_method'] ?? null;
-        
+
         if (is_array($paymentMethod)) {
             $type = $paymentMethod['type'] ?? null;
             if ($type) {
-                return match($type) {
+                return match ($type) {
                     'card' => 'card',
                     'gcash' => 'gcash',
                     'paymaya' => 'maya',
@@ -241,6 +273,7 @@ class PaymentService
             ->sum('amount');
 
         $totalAmount = $booking->total_amount ?? 0;
+        $depositAmount = $booking->deposit_amount ?? ($totalAmount * 0.30);
 
         if ($totalPaid >= $totalAmount) {
             $booking->payment_status = 'paid';
@@ -250,30 +283,36 @@ class PaymentService
             $booking->payment_status = 'unpaid';
         }
 
+        // Automatically Approve booking if deposit is met and it's still Pending
+        if ($booking->booking_status === 'Pending' && $totalPaid >= $depositAmount) {
+            $booking->booking_status = 'Approved';
+            Log::info("Booking #{$booking->booking_id} automatically approved due to payment.");
+        }
+
         $booking->save();
     }
 
     /**
      * Create a payment link for invoice.
      */
-    public function createPaymentLink(BookingDetail $booking, float $amount, string $description = null): array
+    public function createPaymentLink(BookingDetail $booking, float $amount, ?string $description = null): array
     {
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
                 'Content-Type' => 'application/json',
             ])->post($this->baseUrl . '/links', [
-                'data' => [
-                    'attributes' => [
-                        'amount' => (int)($amount * 100),
-                        'currency' => 'PHP',
-                        'description' => $description ?? 'Payment for Booking #' . $booking->booking_id,
-                        'metadata' => [
-                            'booking_id' => $booking->booking_id,
+                        'data' => [
+                            'attributes' => [
+                                'amount' => (int) ($amount * 100),
+                                'currency' => 'PHP',
+                                'description' => $description ?? 'Payment for Booking #' . $booking->booking_id,
+                                'metadata' => [
+                                    'booking_id' => $booking->booking_id,
+                                ],
+                            ],
                         ],
-                    ],
-                ],
-            ]);
+                    ]);
 
             if ($response->successful()) {
                 $data = $response->json();

@@ -9,6 +9,7 @@ import {
   Users,
   Mail,
   FileText,
+  Layout,
 } from 'lucide-react';
 
 /**
@@ -39,9 +40,11 @@ export const menuGroups = [
     icon: Package,
     items: [
       { path: '/admin/packages', label: 'Packages', icon: Package },
+      { path: '/admin/services', label: 'Services', icon: Layout },
       { path: '/admin/venues', label: 'Venues', icon: Building2 },
       { path: '/admin/portfolio', label: 'Portfolio', icon: Image },
       { path: '/admin/testimonials', label: 'Testimonials', icon: MessageSquare },
+      { path: '/admin/team', label: 'Our Team', icon: Users },
     ],
   },
   {

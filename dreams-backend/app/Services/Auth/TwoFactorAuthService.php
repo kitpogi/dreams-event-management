@@ -3,29 +3,23 @@
 namespace App\Services\Auth;
 
 use Illuminate\Support\Facades\Cache;
-use PragmaRX\Google2FA\Google2FA;
 
 /**
  * Service for managing Two-Factor Authentication
  */
 class TwoFactorAuthService
 {
-    private Google2FA $google2FA;
     const OTP_CACHE_PREFIX = '2fa:otp:';
     const OTP_VALIDITY_MINUTES = 5;
     const BACKUP_CODES_COUNT = 10;
-
-    public function __construct()
-    {
-        $this->google2FA = new Google2FA();
-    }
+    const SECRET_LENGTH = 32;
 
     /**
      * Generate a secret key for user
      */
     public function generateSecretKey(): string
     {
-        return $this->google2FA->generateSecretKey();
+        return base64_encode(random_bytes(static::SECRET_LENGTH));
     }
 
     /**
@@ -33,7 +27,17 @@ class TwoFactorAuthService
      */
     public function getQRCodeUrl(string $userEmail, string $secretKey, string $companyName = 'Dreams Event Planner'): string
     {
-        return $this->google2FA->getQRCodeUrl($companyName, $userEmail, $secretKey);
+        // Generate provisioning URI for QR code generation
+        // Format: otpauth://totp/issuer:user@domain?secret=XXX&issuer=issuer
+        $secret = $secretKey;
+        $label = urlencode("{$companyName}:{$userEmail}");
+        
+        return sprintf(
+            'otpauth://totp/%s?secret=%s&issuer=%s',
+            $label,
+            $secret,
+            urlencode($companyName)
+        );
     }
 
     /**
@@ -41,7 +45,27 @@ class TwoFactorAuthService
      */
     public function verifyOTP(string $secretKey, string $otp): bool
     {
-        return $this->google2FA->verifyKey($secretKey, $otp);
+        // TOTP time-based OTP verification
+        // Check current window and +/- 1 minute windows for clock drift
+        $currentTime = time();
+        
+        // Time step is 30 seconds
+        $timeStep = 30;
+        
+        // Check current and adjacent time windows
+        for ($i = -1; $i <= 1; $i++) {
+            $time = floor($currentTime / $timeStep) + $i;
+            $hash = hash_hmac('sha1', pack('N*', 0, $time), base64_decode($secretKey), true);
+            $offset = ord($hash[19]) & 0xf;
+            $code = (unpack('N', substr($hash, $offset, 4))[1] & 0x7fffffff) % 1000000;
+            $generatedOTP = str_pad($code, 6, '0', STR_PAD_LEFT);
+            
+            if (hash_equals($generatedOTP, $otp)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
