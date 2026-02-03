@@ -56,7 +56,7 @@ trait AuthenticatesUsers
     /**
      * Get authorization header with token
      */
-    protected function getAuthHeader(User $user = null): array
+    protected function getAuthHeader(?User $user = null): array
     {
         $user = $user ?? $this->authenticateUser();
         $token = $user->createToken('test-token')->plainTextToken;

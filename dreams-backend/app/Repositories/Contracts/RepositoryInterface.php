@@ -2,7 +2,6 @@
 
 namespace App\Repositories\Contracts;
 
-use Illuminate\Pagination\Paginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,7 +15,7 @@ interface RepositoryInterface
     /**
      * Get paginated records
      */
-    public function paginate(int $perPage = 15): Paginator;
+    public function paginate(int $perPage = 15);
 
     /**
      * Find record by ID

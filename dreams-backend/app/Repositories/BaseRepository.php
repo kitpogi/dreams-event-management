@@ -5,7 +5,6 @@ namespace App\Repositories;
 use App\Repositories\Contracts\RepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Pagination\Paginator;
 
 abstract class BaseRepository implements RepositoryInterface
 {
@@ -36,7 +35,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Get paginated records
      */
-    public function paginate(int $perPage = 15): Paginator
+    public function paginate(int $perPage = 15)
     {
         return $this->model
             ->with($this->relations)

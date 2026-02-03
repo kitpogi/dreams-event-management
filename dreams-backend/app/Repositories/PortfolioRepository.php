@@ -2,11 +2,11 @@
 
 namespace App\Repositories;
 
-use App\Models\Portfolio;
+use App\Models\PortfolioItem;
 
 class PortfolioRepository extends BaseRepository
 {
-    public function __construct(Portfolio $model)
+    public function __construct(PortfolioItem $model)
     {
         parent::__construct($model);
         $this->orderBy = 'created_at';
