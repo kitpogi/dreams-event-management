@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
-import AdminSidebar from '../../../components/layout/AdminSidebar';
-import AdminNavbar from '../../../components/layout/AdminNavbar';
 import { LoadingSpinner, Card, Button } from '../../../components/ui';
-import { useSidebar } from '../../../context/SidebarContext';
 import { useAuth } from '../../../context/AuthContext';
 import {
   LineChart,
@@ -21,14 +18,13 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Calendar, TrendingUp, Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { Calendar, TrendingUp, Download, FileText, FileSpreadsheet, BarChart3, Sparkles, Users, Mail } from 'lucide-react';
 import { UserActivityChart } from '../../../components/features';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 const AnalyticsDashboard = () => {
   const { isAdmin, isCoordinator } = useAuth();
-  const { isCollapsed } = useSidebar();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
@@ -77,21 +73,21 @@ const AnalyticsDashboard = () => {
 
   const StatCard = ({ title, value, icon, color = 'indigo', subtitle }) => {
     const colorClasses = {
-      indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400',
-      green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-      blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-      purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+      indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400',
+      green: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+      blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+      purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
     };
 
     return (
-      <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <Card className="group p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 rounded-2xl">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{value}</p>
-            {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
+          <div className="flex-1">
+            <p className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">{title}</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-1 tracking-tight">{value}</p>
+            {subtitle && <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-2">{subtitle}</p>}
           </div>
-          <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+          <div className={`p-4 rounded-2xl ${colorClasses[color]} shadow-md group-hover:scale-110 transition-transform duration-300`}>
             {icon}
           </div>
         </div>
@@ -101,40 +97,20 @@ const AnalyticsDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex">
-        <AdminSidebar />
-        <AdminNavbar />
-        <main
-          className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-all duration-300 pt-16"
-          style={{
-            marginLeft: isCollapsed ? '5rem' : '16rem',
-            width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
-          }}
-        >
-          <div className="flex items-center justify-center py-12">
-            <LoadingSpinner size="lg" />
-          </div>
-        </main>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="flex items-center justify-center py-20">
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     );
   }
 
   if (!analytics) {
     return (
-      <div className="flex">
-        <AdminSidebar />
-        <AdminNavbar />
-        <main
-          className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-all duration-300 pt-16"
-          style={{
-            marginLeft: isCollapsed ? '5rem' : '16rem',
-            width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
-          }}
-        >
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">No analytics data available</p>
-          </div>
-        </main>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="text-center py-20">
+          <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">No analytics data available</p>
+        </div>
       </div>
     );
   }
@@ -157,80 +133,90 @@ const AnalyticsDashboard = () => {
   })) || [];
 
   return (
-    <div className="flex">
-      <AdminSidebar />
-      <AdminNavbar />
-      <main
-        className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-all duration-300 pt-16"
-        style={{
-          marginLeft: isCollapsed ? '5rem' : '16rem',
-          width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
-        }}
-      >
-        <div className="p-4 sm:p-6 lg:p-10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
+      {/* Enhanced Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-300/20 dark:bg-purple-900/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-300/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-200/10 dark:bg-indigo-900/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      <div className="relative z-10 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-7xl mx-auto">
+        {/* Enhanced Header Section */}
+        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+              <div className="relative flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform duration-300">
+                <BarChart3 className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            <div className="flex flex-col justify-center">
+              <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                 Analytics Dashboard
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">Business insights and performance metrics</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => generateReport('pdf')}
-                className="flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                PDF Report
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => generateReport('xlsx')}
-                className="flex items-center gap-2"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                Excel Report
-              </Button>
+              <p className="text-gray-700 dark:text-gray-300 text-base font-semibold">Business insights and performance metrics</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generateReport('pdf')}
+              className="flex items-center gap-2 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              <FileText className="h-4 w-4" />
+              PDF Report
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generateReport('xlsx')}
+              className="flex items-center gap-2 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel Report
+            </Button>
+          </div>
+        </div>
 
-          {/* Date Range Filter */}
-          <Card className="mb-6 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
+          {/* Enhanced Date Range Filter */}
+          <Card className="mb-8 p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+            <div className="flex flex-col sm:flex-row gap-6 items-end">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-bold text-gray-900 dark:text-gray-200 mb-2">
                   Start Date
                 </label>
                 <input
                   type="date"
                   value={dateRange.start_date}
                   onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium transition-all duration-300"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-bold text-gray-900 dark:text-gray-200 mb-2">
                   End Date
                 </label>
                 <input
                   type="date"
                   value={dateRange.end_date}
                   onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium transition-all duration-300"
                 />
               </div>
-              <Button onClick={fetchAnalytics} className="flex items-center gap-2">
+              <Button 
+                onClick={fetchAnalytics} 
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 h-[48px] px-6"
+              >
                 <Calendar className="h-4 w-4" />
                 Refresh
               </Button>
             </div>
           </Card>
 
-          {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Enhanced Overview Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             <StatCard
               title="Total Bookings"
               value={analytics.overview?.total_bookings || 0}
@@ -251,78 +237,65 @@ const AnalyticsDashboard = () => {
               title="Total Clients"
               value={analytics.overview?.total_clients || 0}
               color="blue"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              }
+              icon={<Users className="w-6 h-6" />}
             />
             <StatCard
               title="Contact Inquiries"
               value={analytics.overview?.total_inquiries || 0}
               color="purple"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-              }
+              icon={<Mail className="w-6 h-6" />}
             />
           </div>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Enhanced Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
             {/* Revenue Trend Line Chart */}
-            <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Monthly Revenue Trend</h2>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card className="p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Monthly Revenue Trend</h2>
+              <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={revenueChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" className="dark:stroke-gray-700" />
                   <XAxis
                     dataKey="month"
-                    stroke="#6b7280"
+                    stroke="#374151"
                     className="dark:stroke-gray-400"
-                    tick={{ fill: '#6b7280' }}
+                    tick={{ fill: '#374151', fontSize: 12, fontWeight: 600, className: 'dark:fill-gray-300' }}
                   />
                   <YAxis
-                    stroke="#6b7280"
+                    stroke="#374151"
                     className="dark:stroke-gray-400"
-                    tick={{ fill: '#6b7280' }}
+                    tick={{ fill: '#374151', fontSize: 12, fontWeight: 600, className: 'dark:fill-gray-300' }}
                     tickFormatter={(value) => `₱${(value / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                      fontSize: '14px',
+                      fontWeight: 600,
                     }}
-                    formatter={(value) => `₱${value.toLocaleString()}`}
+                    formatter={(value) => [`₱${value.toLocaleString()}`, 'Revenue']}
+                    labelStyle={{ color: '#111827', fontWeight: 700 }}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontWeight: 600, fontSize: '14px' }} />
                   <Line
                     type="monotone"
                     dataKey="revenue"
                     stroke="#6366f1"
-                    strokeWidth={2}
+                    strokeWidth={3}
                     name="Revenue"
-                    dot={{ fill: '#6366f1', r: 4 }}
+                    dot={{ fill: '#6366f1', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 7 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </Card>
 
             {/* Bookings by Status Pie Chart */}
-            <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Bookings by Status</h2>
+            <Card className="p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Bookings by Status</h2>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -348,55 +321,63 @@ const AnalyticsDashboard = () => {
 
           {/* Popular Packages Bar Chart */}
           {packageChartData.length > 0 && (
-            <Card className="p-6 mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Top 5 Popular Packages</h2>
-              <ResponsiveContainer width="100%" height={300}>
+            <Card className="p-6 sm:p-8 mb-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Top 5 Popular Packages</h2>
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={packageChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" className="dark:stroke-gray-700" />
                   <XAxis
                     dataKey="name"
-                    stroke="#6b7280"
+                    stroke="#374151"
                     className="dark:stroke-gray-400"
-                    tick={{ fill: '#6b7280' }}
+                    tick={{ fill: '#374151', fontSize: 11, fontWeight: 600, className: 'dark:fill-gray-300' }}
                     angle={-45}
                     textAnchor="end"
                     height={100}
                   />
-                  <YAxis stroke="#6b7280" className="dark:stroke-gray-400" tick={{ fill: '#6b7280' }} />
+                  <YAxis 
+                    stroke="#374151" 
+                    className="dark:stroke-gray-400" 
+                    tick={{ fill: '#374151', fontSize: 12, fontWeight: 600, className: 'dark:fill-gray-300' }}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                      fontSize: '14px',
+                      fontWeight: 600,
                     }}
+                    labelStyle={{ color: '#111827', fontWeight: 700 }}
                   />
-                  <Legend />
-                  <Bar dataKey="bookings" fill="#6366f1" name="Bookings" />
-                  <Bar dataKey="revenue" fill="#10b981" name="Revenue (₱)" />
+                  <Legend wrapperStyle={{ fontWeight: 600, fontSize: '14px' }} />
+                  <Bar dataKey="bookings" fill="#6366f1" name="Bookings" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#10b981" name="Revenue (₱)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
           )}
 
           {/* User Activity Chart */}
-          <div className="mb-8">
+          <div className="mb-10">
             <UserActivityChart />
           </div>
 
-          {/* Popular Packages Table */}
-          <Card className="p-6 mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Popular Packages</h2>
+          {/* Enhanced Popular Packages Table */}
+          <Card className="p-6 sm:p-8 mb-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Popular Packages</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Package
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Bookings
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Revenue
                     </th>
                   </tr>
@@ -405,13 +386,13 @@ const AnalyticsDashboard = () => {
                   {analytics.popular_packages?.map((pkg, index) => (
                     <tr
                       key={pkg.package_id || index}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
                         {pkg.package_name}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{pkg.booking_count}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-6 py-4 text-sm font-bold text-gray-700 dark:text-gray-300">{pkg.booking_count}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-gray-700 dark:text-gray-300">
                         ₱{pkg.total_revenue.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -424,23 +405,23 @@ const AnalyticsDashboard = () => {
             </div>
           </Card>
 
-          {/* Recent Bookings */}
-          <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Recent Bookings</h2>
+          {/* Enhanced Recent Bookings */}
+          <Card className="p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Recent Bookings</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Client
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Package
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Event Date
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-300">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-900 uppercase dark:text-gray-200 tracking-wider">
                       Status
                     </th>
                   </tr>
@@ -449,25 +430,25 @@ const AnalyticsDashboard = () => {
                   {analytics.recent_bookings?.map((booking) => (
                     <tr
                       key={booking.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
                         {booking.client_name}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300">
                         {booking.package_name}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300">
                         {new Date(booking.event_date).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-full ${
                             booking.status === 'Approved' || booking.status === 'Completed'
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700'
                               : booking.status === 'Pending'
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700'
                           }`}
                         >
                           {booking.status}
@@ -480,7 +461,6 @@ const AnalyticsDashboard = () => {
             </div>
           </Card>
         </div>
-      </main>
     </div>
   );
 };

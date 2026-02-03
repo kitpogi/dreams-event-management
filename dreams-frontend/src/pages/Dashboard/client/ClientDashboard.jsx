@@ -1,28 +1,28 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
-import { 
-  Card, 
-  Button, 
-  LoadingSpinner, 
-  SkeletonStatCard, 
-  SkeletonList,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-  DataTable,
-  Timeline
+import {
+  Card,
+  Button,
+  LoadingSpinner,
+  SkeletonStatCard,
+  SkeletonList
 } from '../../../components/ui';
 import { TestimonialFormModal } from '../../../components/modals';
 import BookingCancellationModal from '../../../components/modals/BookingCancellationModal';
-import { AnalyticsCharts, AnimatedBackground, PullToRefresh } from '../../../components/features';
-import { Calendar, Clock, Package, Users, Search, Settings, Bell, TrendingUp, Plus, BarChart3, Sparkles, X } from 'lucide-react';
+import { AnimatedBackground, PullToRefresh } from '../../../components/features';
+import PaymentForm from '../../../components/features/PaymentForm';
+import { getBookingPayments } from '../../../api/services/paymentService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, Badge } from '../../../components/ui';
+import { useToast } from '../../../hooks/use-toast';
+import { Calendar, Package, Settings, TrendingUp, Plus, Sparkles, CreditCard, DollarSign, MessageSquare, Clock, Search } from 'lucide-react';
+import EventCountdown from '../../../components/features/EventCountdown';
+import BookingActionsDropdown from '../../../components/features/BookingActionsDropdown';
 
 const ClientDashboard = () => {
   const { user, isAdmin } = useAuth();
-  
+
   // Get time-based greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -38,35 +38,33 @@ const ClientDashboard = () => {
     return firstName;
   };
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTestimonialModal, setShowTestimonialModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
+  const [bookingPayments, setBookingPayments] = useState({});
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [perPage] = useState(10);
   const [meta, setMeta] = useState({ total: 0, last_page: 1, status_counts: {} });
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'list');
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+  // Determine initial tab from URL params
+  const getInitialTab = () => {
+    const tab = searchParams.get('tab');
+    const view = searchParams.get('view');
 
-  // Handle tab change - update both state and URL
-  const handleTabChange = (newTab) => {
-    setActiveTab(newTab);
-    setSearchParams({ tab: newTab }, { replace: true });
+    // Handle view=bookings (defaults to list view)
+    if (view === 'bookings') return 'list';
+
+    // Handle tab=payments (show list view filtered by payments)
+    if (tab === 'payments') return 'list';
+
+    // Default to tab param or 'list'
+    return tab || 'list';
   };
 
-  // Sync activeTab with URL parameter when it changes (e.g., browser back/forward or direct navigation)
-  useEffect(() => {
-    const tabFromUrl = searchParams.get('tab') || 'list';
-    if (tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
 
   // Redirect admins to admin dashboard
   useEffect(() => {
@@ -120,12 +118,119 @@ const ClientDashboard = () => {
     await fetchBookings(page);
   };
 
+  // Payment functions
+  const fetchBookingPayments = async (bookingId) => {
+    if (bookingPayments[bookingId]) return bookingPayments[bookingId];
+    try {
+      const response = await getBookingPayments(bookingId);
+      const payments = response.data || response || [];
+      setBookingPayments(prev => ({ ...prev, [bookingId]: payments }));
+      return payments;
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      return [];
+    }
+  };
+
+  const getPaymentInfo = (booking) => {
+    const payments = bookingPayments[booking.booking_id || booking.id] || [];
+    const totalPaid = payments
+      .filter((p) => p.status === 'paid')
+      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+    // Try multiple possible paths for package price (same logic as getPackagePrice)
+    // Laravel may serialize relationships as snake_case (event_package) or camelCase (eventPackage)
+    const packagePrice = booking?.eventPackage?.package_price ||
+      booking?.event_package?.package_price ||
+      booking?.eventPackage?.price ||
+      booking?.event_package?.price ||
+      booking?.package?.package_price ||
+      booking?.package?.price ||
+      booking?.package_price ||
+      booking?.price ||
+      null;
+
+    // Use total_amount first, then package price, then 0
+    const totalAmount = parseFloat(booking?.total_amount || packagePrice || 0);
+    const remainingBalance = Math.max(0, totalAmount - totalPaid);
+    const paymentStatus = booking?.payment_status || 'unpaid';
+
+    return { totalPaid, totalAmount, remainingBalance, paymentStatus };
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    const statusConfig = {
+      unpaid: { label: 'Unpaid', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+      partial: { label: 'Partial', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+      paid: { label: 'Paid', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+      refunded: { label: 'Refunded', className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' },
+    };
+    const config = statusConfig[status] || statusConfig.unpaid;
+    return (
+      <Badge className={config.className}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const handlePayNow = async (booking) => {
+    const bookingId = booking.booking_id || booking.id;
+    await fetchBookingPayments(bookingId);
+    setSelectedBookingForPayment(booking);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    setShowPaymentModal(false);
+    setSelectedBookingForPayment(null);
+    toast({
+      title: 'Payment Successful!',
+      description: 'Your payment has been processed successfully.',
+    });
+    // Refresh bookings and clear payment cache
+    setBookingPayments({});
+    await fetchBookings(page);
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false);
+    setSelectedBookingForPayment(null);
+  };
+
+  const canShowPayButton = (booking) => {
+    const { paymentStatus, remainingBalance, totalAmount } = getPaymentInfo(booking);
+    const isCancelled = (booking?.booking_status || booking?.status || '').toLowerCase() === 'cancelled';
+    const isCompleted = (booking?.booking_status || booking?.status || '').toLowerCase() === 'completed';
+    const bookingStatus = (booking?.booking_status || booking?.status || '').toLowerCase();
+    const paymentRequired = booking?.payment_required !== false; // Default to true if not set
+
+    // Don't show if cancelled or completed
+    if (isCancelled || isCompleted) return false;
+
+    // Don't show if payment not required
+    if (!paymentRequired) return false;
+
+    // Don't show if fully paid
+    if (paymentStatus === 'paid') return false;
+
+    // Show button based on booking status:
+    // - Pending: Allow deposit or full payment (show if total amount > 0)
+    // - Approved/Confirmed: Show if there's remaining balance
+    if (bookingStatus === 'pending') {
+      // Allow payment for pending bookings (deposit or full)
+      return totalAmount > 0;
+    } else {
+      // For approved/confirmed bookings, show if there's remaining balance
+      return remainingBalance > 0;
+    }
+  };
+
   const canCancelBooking = (booking) => {
     const status = (booking.booking_status || booking.status || '').toLowerCase();
     if (status === 'cancelled' || status === 'completed') {
       return false;
     }
-    
+
     // Check if event date is within 7 days
     if (booking.event_date) {
       const eventDate = new Date(booking.event_date);
@@ -135,7 +240,7 @@ const ClientDashboard = () => {
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -154,37 +259,35 @@ const ClientDashboard = () => {
     const statusKey = normalizedStatus in statusStyles ? normalizedStatus : 'default';
 
     return (
-      <span
-        className={`px-3 py-1 text-xs font-semibold rounded-full border transition-colors duration-300 ${
-          statusStyles[statusKey] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
-        }`}
+      <Badge
+        className={`${statusStyles[statusKey] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'}`}
       >
         {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
-      </span>
+      </Badge>
     );
   };
 
   // Helper function to get package price from booking
   const getPackagePrice = (booking) => {
     if (!booking) return null;
-    
+
     // Try multiple possible paths for package price
     // Laravel may serialize relationships as snake_case (event_package) or camelCase (eventPackage)
-    const price = booking?.eventPackage?.package_price || 
-                  booking?.event_package?.package_price || 
-                  booking?.eventPackage?.price ||
-                  booking?.event_package?.price ||
-                  booking?.package?.package_price || 
-                  booking?.package?.price ||
-                  booking?.package_price ||
-                  booking?.price ||
-                  null;
-    
+    const price = booking?.eventPackage?.package_price ||
+      booking?.event_package?.package_price ||
+      booking?.eventPackage?.price ||
+      booking?.event_package?.price ||
+      booking?.package?.package_price ||
+      booking?.package?.price ||
+      booking?.package_price ||
+      booking?.price ||
+      null;
+
     // Return null if price is 0, undefined, null, empty string, or NaN
     if (price === null || price === undefined || price === '' || price === 0 || isNaN(parseFloat(price))) {
       return null;
     }
-    
+
     // Convert to number to ensure it's a valid numeric value
     const numericPrice = parseFloat(price);
     return isNaN(numericPrice) ? null : numericPrice;
@@ -192,11 +295,11 @@ const ClientDashboard = () => {
 
   // Helper function to get package name from booking
   const getPackageName = (booking) => {
-    return booking?.eventPackage?.package_name || 
-           booking?.event_package?.package_name || 
-           booking?.package?.name || 
-           booking?.package?.package_name || 
-           'N/A';
+    return booking?.eventPackage?.package_name ||
+      booking?.event_package?.package_name ||
+      booking?.package?.name ||
+      booking?.package?.package_name ||
+      'N/A';
   };
 
   const statusCounts = meta.status_counts || {};
@@ -207,11 +310,12 @@ const ClientDashboard = () => {
     confirmed: confirmedCount !== 0
       ? confirmedCount
       : bookings.filter((b) => {
-          const status = (b.booking_status || b.status || '').toLowerCase();
-          return status === 'confirmed' || status === 'approved';
-        }).length,
+        const status = (b.booking_status || b.status || '').toLowerCase();
+        return status === 'confirmed' || status === 'approved';
+      }).length,
     cancelled: statusCounts.cancelled ?? bookings.filter((b) => (b.booking_status || b.status || '').toLowerCase() === 'cancelled').length,
   };
+
 
   const upcomingBookings = bookings
     .filter((b) => {
@@ -221,26 +325,31 @@ const ClientDashboard = () => {
     .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
     .slice(0, 5);
 
+  const nextUpcomingEvent = upcomingBookings.length > 0 ? upcomingBookings[0] : null;
+
+
   const StatCard = ({ title, value, icon, color = 'indigo' }) => {
     const colorClasses = {
-      indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-      green: 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-      yellow: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
-      red: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+      indigo: 'bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 dark:from-indigo-900/40 dark:to-indigo-900/20 dark:text-indigo-400',
+      green: 'bg-gradient-to-br from-green-50 to-green-100 text-green-600 dark:from-green-900/40 dark:to-green-900/20 dark:text-green-400',
+      yellow: 'bg-gradient-to-br from-yellow-50 to-yellow-100 text-yellow-600 dark:from-yellow-900/40 dark:to-yellow-900/20 dark:text-yellow-400',
+      red: 'bg-gradient-to-br from-red-50 to-red-100 text-red-600 dark:from-red-900/40 dark:to-red-900/20 dark:text-red-400',
     };
 
     // Ensure value is always a valid number
     const displayValue = (typeof value === 'number' && !isNaN(value)) ? value : 0;
 
     return (
-      <Card className="hover:shadow-lg transition-all duration-300 dark:bg-gray-800 dark:border-gray-700">
+      <Card className="hover:shadow-xl hover:-translate-y-1 transition-all duration-300 dark:bg-gray-800 dark:border-gray-700 border-0 shadow-md">
         <div className="flex items-center justify-between p-6">
-          <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 transition-colors duration-300">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">{displayValue}</p>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 transition-colors duration-300">{title}</p>
+            <p className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300">{displayValue}</p>
           </div>
-          <div className={`p-3 rounded-full transition-colors duration-300 ${colorClasses[color]}`}>
-            {icon}
+          <div className={`p-4 rounded-xl transition-all duration-300 ${colorClasses[color]} shadow-sm`}>
+            <div className="w-8 h-8">
+              {icon}
+            </div>
           </div>
         </div>
       </Card>
@@ -249,17 +358,11 @@ const ClientDashboard = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="px-4 py-8 lg:px-6">
         {/* Welcome Section Skeleton */}
         <div className="mb-8">
-          <div className="h-10 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
-          <div className="h-5 w-96 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-
-        {/* Quick Actions Skeleton */}
-        <div className="mb-8 flex flex-wrap gap-4">
-          <div className="h-10 w-40 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-10 w-48 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+          <div className="h-5 w-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
         </div>
 
         {/* Stats Cards Skeleton */}
@@ -272,7 +375,7 @@ const ClientDashboard = () => {
 
         {/* Bookings List Skeleton */}
         <div className="mb-8">
-          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
           <SkeletonList items={5} />
         </div>
       </div>
@@ -281,616 +384,458 @@ const ClientDashboard = () => {
 
   return (
     <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
-    <div className="relative min-h-screen">
-      {/* Subtle Animated Background */}
-      <AnimatedBackground 
-        type="dots"
-        colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
-        speed={0.2}
-        className="opacity-5 dark:opacity-10"
-      />
-      <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
-        {/* Welcome Section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
-              {getGreeting().text}, {getUserFirstName()}! {getGreeting().emoji}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 text-lg transition-colors duration-300 ml-16">
-          Ready to manage your event bookings and discover amazing packages?
-        </p>
-      </div>
-
-      {/* Quick Actions Panel */}
-      <Card className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Quick Actions</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Access frequently used features</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link to="/packages">
-            <Button variant="outline" className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
-              <Search className="w-4 h-4" />
-              <span className="text-sm">Browse Packages</span>
-          </Button>
-        </Link>
-        <Link to="/recommendations">
-            <Button variant="outline" className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-sm">Get Recommendations</span>
-            </Button>
-          </Link>
-          <Link to="/dashboard?tab=calendar">
-            <Button variant="outline" className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
-              <Calendar className="w-4 h-4" />
-              <span className="text-sm">View Calendar</span>
-            </Button>
-          </Link>
-          <Link to="/profile/settings">
-            <Button variant="outline" className="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
-              <Settings className="w-4 h-4" />
-              <span className="text-sm">Settings</span>
-          </Button>
-        </Link>
-      </div>
-      </Card>
-
-      {/* Statistics Cards */}
-      <Card className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Booking Statistics</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Overview of your event bookings</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Total Bookings"
-            value={stats.total}
-            color="indigo"
-            icon={
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            title="Pending"
-            value={stats.pending}
-            color="yellow"
-            icon={
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            title="Confirmed"
-            value={stats.confirmed}
-            color="green"
-            icon={
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            title="Cancelled"
-            value={stats.cancelled}
-            color="red"
-            icon={
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-        </div>
-      </Card>
-
-      {/* Upcoming Bookings */}
-      {upcomingBookings.length > 0 && (
-        <Card className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Upcoming Events</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Your upcoming event bookings</p>
-            </div>
-            <Link to="/packages">
-              <Button className="text-sm bg-blue-600 hover:bg-blue-700 text-white border-0">
-                Book New Event
-              </Button>
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {upcomingBookings.map((booking) => (
-              <div
-                key={booking.booking_id || booking.id}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-white/50 dark:hover:bg-gray-800/50 transition-colors bg-white/50 dark:bg-gray-800/30"
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {getPackageName(booking)}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(booking.booking_status || booking.status)}
-                        {canCancelBooking(booking) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCancelClick(booking)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Cancel
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-gray-300">
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white">Date:</span>{' '}
-                        {booking.event_date 
-                          ? new Date(booking.event_date).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })
-                          : 'N/A'}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white">Venue:</span>{' '}
-                        {booking.event_venue || 'TBD'}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white">Guests:</span>{' '}
-                        {booking.guest_count || booking.number_of_guests || 'N/A'}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white">Price:</span>{' '}
-                        {getPackagePrice(booking)
-                          ? `₱${parseFloat(getPackagePrice(booking)).toLocaleString('en-US', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}`
-                          : 'N/A'}
-                      </div>
-                    </div>
-                    {booking.special_requests && (
-                      <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-                        <span className="font-medium text-gray-900 dark:text-white">Special Requests:</span>{' '}
-                        <span className="italic">{booking.special_requests}</span>
-                      </div>
-                    )}
-                  </div>
+      <div className="relative min-h-screen">
+        {/* Subtle Animated Background */}
+        <AnimatedBackground
+          type="dots"
+          colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
+          speed={0.2}
+          className="opacity-5 dark:opacity-10"
+        />
+        <div className="px-4 py-6 lg:px-8 lg:py-8 relative z-10 max-w-7xl mx-auto">
+          {/* Welcome Section - Compact */}
+          <div className="mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300 mb-1">
+                    {getGreeting().text}, {getUserFirstName()}! {getGreeting().emoji}
+                  </h1>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Submit Testimonial Section */}
-      {bookings.filter(b => 
-        b.booking_status === 'Completed' || 
-        b.booking_status === 'Approved' ||
-        b.status === 'completed' ||
-        b.status === 'approved'
-      ).length > 0 && (
-        <Card className="mb-8 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 transition-colors duration-300">Share Your Experience</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">Help others by sharing your experience!</p>
+              {nextUpcomingEvent && (
+                <div className="lg:w-80 lg:flex-shrink-0">
+                  <EventCountdown eventDate={nextUpcomingEvent.event_date} />
+                </div>
+              )}
             </div>
           </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-300">
-            Submit a testimonial about your event and help others make informed decisions.
-          </p>
-          <Button 
-            onClick={() => setShowTestimonialModal(true)}
-            className="bg-amber-600 hover:bg-amber-700 text-white transition-colors duration-300"
-          >
-            Submit Testimonial
-          </Button>
-        </Card>
-      )}
 
-      {/* All Bookings with Tabs */}
-      <Card className="p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">All Bookings</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">View and manage all your event bookings</p>
+          {/* Quick Actions Panel - Compact */}
+          <Card className="mb-8 p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Quick Actions</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <Link to="/dashboard/packages">
+                <Button variant="outline" className="w-full h-auto py-2.5 px-3 flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 text-gray-700 dark:text-gray-200 transition-all duration-200 text-xs font-medium">
+                  <Search className="w-4 h-4 text-purple-600" />
+                  <span>Browse Packages</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard/recommendations">
+                <Button variant="outline" className="w-full h-auto py-2.5 px-3 flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 text-gray-700 dark:text-gray-200 transition-all duration-200 text-xs font-medium">
+                  <TrendingUp className="w-4 h-4 text-indigo-600" />
+                  <span>For You</span>
+                </Button>
+              </Link>
+              <Link to="/dashboard/bookings?tab=calendar">
+                <Button variant="outline" className="w-full h-auto py-2.5 px-3 flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 text-gray-700 dark:text-gray-200 transition-all duration-200 text-xs font-medium">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <span>Calendar</span>
+                </Button>
+              </Link>
+              <Link to="/profile/settings">
+                <Button variant="outline" className="w-full h-auto py-2.5 px-3 flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 text-gray-700 dark:text-gray-200 transition-all duration-200 text-xs font-medium">
+                  <Settings className="w-4 h-4 text-gray-600" />
+                  <span>Settings</span>
+                </Button>
+              </Link>
+            </div>
+          </Card>
+
+          {/* Statistics Cards */}
+          <div className="mb-10">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Booking Statistics</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Overview of your event bookings</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Total Bookings"
+                value={stats.total}
+                color="indigo"
+                icon={
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                }
+              />
+              <StatCard
+                title="Pending"
+                value={stats.pending}
+                color="yellow"
+                icon={
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+              />
+              <StatCard
+                title="Confirmed"
+                value={stats.confirmed}
+                color="green"
+                icon={
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+              />
+              <StatCard
+                title="Cancelled"
+                value={stats.cancelled}
+                color="red"
+                icon={
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+              />
+            </div>
           </div>
+
+          {/* Upcoming Bookings */}
+          {upcomingBookings.length > 0 && (
+            <Card className="mb-10 p-8 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300 shadow-md">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Upcoming Events</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Your upcoming event bookings</p>
+                </div>
+                <div className="flex gap-3">
+                  <Link to="/dashboard/packages">
+                    <Button className="text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-2.5">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Book New Event
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard/bookings">
+                    <Button variant="outline" className="text-sm border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-2.5">
+                      View All Bookings
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="space-y-5">
+                {upcomingBookings.map((booking) => (
+                  <div
+                    key={booking.booking_id || booking.id}
+                    className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:bg-white dark:hover:bg-gray-800/50 transition-all duration-200 bg-white dark:bg-gray-800/30 shadow-sm hover:shadow-md"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                                {getPackageName(booking)}
+                              </h3>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                                #{booking.booking_id || booking.id}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap mb-3">
+                              {getStatusBadge(booking.booking_status || booking.status)}
+                              {getPaymentStatusBadge(getPaymentInfo(booking).paymentStatus)}
+                            </div>
+                            {/* Payment Breakdown */}
+                            {(() => {
+                              const { totalPaid, totalAmount, remainingBalance } = getPaymentInfo(booking);
+                              if (totalAmount > 0) {
+                                return (
+                                  <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                      <div className="flex items-center gap-2">
+                                        <DollarSign className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                        <span className="text-gray-600 dark:text-gray-400">Total:</span>
+                                        <span className="font-semibold text-gray-900 dark:text-white">
+                                          ₱{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                      </div>
+                                      {totalPaid > 0 && (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-green-600 dark:text-green-400">Paid:</span>
+                                          <span className="font-semibold text-green-700 dark:text-green-300">
+                                            ₱{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {remainingBalance > 0 && (
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-orange-600 dark:text-orange-400">Remaining:</span>
+                                          <span className="font-semibold text-orange-700 dark:text-orange-300">
+                                            ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                            {/* Coordinator Info */}
+                            {booking.coordinator && (
+                              <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span className="font-medium text-gray-900 dark:text-white">Coordinator:</span>{' '}
+                                {booking.coordinator.name || booking.coordinator?.name || 'Assigned'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4 flex items-center gap-3">
+                            {canShowPayButton(booking) && (
+                              <Button
+                                variant="default"
+                                size="default"
+                                onClick={() => handlePayNow(booking)}
+                                className="bg-gradient-to-r from-[#a413ec] to-[#8a0fd4] hover:from-[#8a0fd4] hover:to-[#7a0fc4] text-white shadow-md hover:shadow-lg transition-all duration-200 px-5 py-2.5 font-semibold"
+                              >
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Pay Now
+                              </Button>
+                            )}
+                            <BookingActionsDropdown
+                              booking={booking}
+                              onPayNow={handlePayNow}
+                              onCancel={handleCancelClick}
+                              canShowPayButton={canShowPayButton}
+                              canCancelBooking={canCancelBooking}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 text-sm">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Event Date</span>
+                            <span className="text-base font-medium text-gray-900 dark:text-white">
+                              {booking.event_date
+                                ? new Date(booking.event_date).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })
+                                : 'N/A'}
+                            </span>
+                            {booking.event_time && (
+                              <span className="text-sm text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {booking.event_time}
+                              </span>
+                            )}
+                            {booking.event_date && (() => {
+                              const eventDate = new Date(booking.event_date);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              eventDate.setHours(0, 0, 0, 0);
+                              const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                              if (daysUntil >= 0 && daysUntil <= 30) {
+                                return (
+                                  <span className={`text-xs mt-1 font-medium ${daysUntil <= 7 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                    {daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days away`}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Venue</span>
+                            <span className="text-base font-medium text-gray-900 dark:text-white">
+                              {booking.event_venue || 'TBD'}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Guests</span>
+                            <span className="text-base font-medium text-gray-900 dark:text-white">
+                              {booking.guest_count || booking.number_of_guests || 'N/A'}
+                            </span>
+                            {(booking.event_type || booking.theme) && (
+                              <div className="mt-1 space-y-0.5">
+                                {booking.event_type && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 block">
+                                    Type: {booking.event_type}
+                                  </span>
+                                )}
+                                {booking.theme && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 block">
+                                    Theme: {booking.theme}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Price</span>
+                            <span className="text-base font-bold text-gray-900 dark:text-white">
+                              {getPackagePrice(booking)
+                                ? `₱${parseFloat(getPackagePrice(booking)).toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
+                                : 'N/A'}
+                            </span>
+                            {booking.deposit_amount && parseFloat(booking.deposit_amount) > 0 && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Deposit: ₱{parseFloat(booking.deposit_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                            {booking.created_at && (
+                              <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                Booked: {new Date(booking.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {booking.special_requests && (
+                          <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                            <span className="font-medium text-gray-900 dark:text-white">Special Requests:</span>{' '}
+                            <span className="italic">{booking.special_requests}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Submit Testimonial Section */}
+          {bookings.filter(b =>
+            b.booking_status === 'Completed' ||
+            b.booking_status === 'Approved' ||
+            b.status === 'completed' ||
+            b.status === 'approved'
+          ).length > 0 && (
+              <Card className="mb-10 p-8 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 dark:from-amber-900/20 dark:via-yellow-900/20 dark:to-amber-900/20 border-amber-200 dark:border-amber-800 transition-colors duration-300 shadow-md">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-300">Share Your Experience</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">Help others by sharing your experience!</p>
+                  </div>
+                </div>
+                <p className="text-base text-gray-700 dark:text-gray-300 mb-6 transition-colors duration-300">
+                  Submit a testimonial about your event and help others make informed decisions.
+                </p>
+                <Button
+                  onClick={() => setShowTestimonialModal(true)}
+                  className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white transition-all duration-200 shadow-md hover:shadow-lg px-6 py-2.5 font-semibold"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Submit Testimonial
+                </Button>
+              </Card>
+            )}
+
+          {/* Link to Full Bookings Page */}
+          <Card className="p-6 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300 shadow-md">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Manage All Bookings</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">View detailed booking information, calendar, timeline, and analytics</p>
+              </div>
+              <Link to="/dashboard/bookings">
+                <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200 px-6 py-2.5">
+                  <Package className="w-4 h-4 mr-2" />
+                  View All Bookings
+                </Button>
+              </Link>
+            </div>
+          </Card>
+
+          {/* Testimonial Modal */}
+          <TestimonialFormModal
+            isOpen={showTestimonialModal}
+            onClose={() => setShowTestimonialModal(false)}
+            onSuccess={() => {
+              // Optionally refresh bookings or show success message
+            }}
+          />
+
+          {/* Payment Modal */}
+          <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Make Payment</DialogTitle>
+              </DialogHeader>
+              <div className="mt-4">
+                {selectedBookingForPayment && (() => {
+                  const { remainingBalance, totalAmount } = getPaymentInfo(selectedBookingForPayment);
+                  const bookingId = selectedBookingForPayment.booking_id || selectedBookingForPayment.id;
+                  return (
+                    <PaymentForm
+                      bookingId={bookingId}
+                      amount={remainingBalance || totalAmount}
+                      booking={selectedBookingForPayment}
+                      onSuccess={handlePaymentSuccess}
+                      onCancel={handlePaymentCancel}
+                    />
+                  );
+                })()}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <BookingCancellationModal
+            isOpen={showCancelModal}
+            onClose={() => {
+              setShowCancelModal(false);
+              setSelectedBooking(null);
+            }}
+            booking={selectedBooking}
+            onSuccess={handleCancelSuccess}
+          />
         </div>
-
-        {bookings.length === 0 ? (
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No bookings yet
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Start by exploring our event packages and make your first booking!
-            </p>
-            <Link to="/packages">
-              <Button className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">Browse Packages</Button>
-            </Link>
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="list" className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                List View
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Calendar
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Timeline
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Analytics
-              </TabsTrigger>
-            </TabsList>
-
-            {/* List View Tab */}
-            <TabsContent value="list" className="mt-0">
-              <DataTable
-                data={bookings.sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))}
-                columns={[
-                  {
-                    accessor: 'package_name',
-                    header: 'Package',
-                    sortable: true,
-                    render: (row) => (
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {getPackageName(row)}
-                        </div>
-                    ),
-                  },
-                  {
-                    accessor: 'event_date',
-                    header: 'Event Date',
-                    sortable: true,
-                    render: (row) => (
-                        <div className="text-sm text-gray-900 dark:text-gray-200">
-                        {row.event_date 
-                          ? new Date(row.event_date).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                            : 'N/A'}
-                        </div>
-                    ),
-                  },
-                  {
-                    accessor: 'event_venue',
-                    header: 'Venue',
-                    sortable: true,
-                    render: (row) => (
-                      <div className="text-sm text-gray-900 dark:text-gray-200">
-                        {row.event_venue || 'TBD'}
-                      </div>
-                    ),
-                  },
-                  {
-                    accessor: 'guest_count',
-                    header: 'Guests',
-                    sortable: true,
-                    render: (row) => (
-                        <div className="text-sm text-gray-900 dark:text-gray-200">
-                        {row.guest_count || row.number_of_guests || 'N/A'}
-                        </div>
-                    ),
-                  },
-                  {
-                    accessor: 'status',
-                    header: 'Status',
-                    sortable: true,
-                    render: (row) => getStatusBadge(row.booking_status || row.status),
-                  },
-                  {
-                    accessor: 'price',
-                    header: 'Total Price',
-                    sortable: true,
-                    render: (row) => (
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {getPackagePrice(row)
-                          ? `₱${parseFloat(getPackagePrice(row)).toLocaleString('en-US', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}`
-                          : 'N/A'}
-                      </div>
-                    ),
-                  },
-                  {
-                    accessor: 'actions',
-                    header: 'Actions',
-                    sortable: false,
-                    render: (row) => (
-                      <div className="flex items-center gap-2">
-                        {canCancelBooking(row) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCancelClick(row)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800"
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Cancel
-                          </Button>
-                        )}
-                        {(row.booking_status || row.status || '').toLowerCase() === 'cancelled' && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">Cancelled</span>
-                        )}
-                        {(row.booking_status || row.status || '').toLowerCase() === 'completed' && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">Completed</span>
-                        )}
-                      </div>
-                    ),
-                  },
-                ]}
-                searchable
-                searchPlaceholder="Search bookings..."
-                pagination
-                pageSize={perPage}
-              />
-            </TabsContent>
-
-            {/* Calendar View Tab */}
-            <TabsContent value="calendar" className="mt-0">
-              <BookingCalendarView 
-                bookings={bookings} 
-                month={calendarMonth}
-                onMonthChange={setCalendarMonth}
-              />
-            </TabsContent>
-
-            {/* Timeline View Tab */}
-            <TabsContent value="timeline" className="mt-0">
-              <BookingTimelineView bookings={bookings} />
-            </TabsContent>
-
-            {/* Analytics Tab */}
-            <TabsContent value="analytics" className="mt-0">
-              <AnalyticsCharts bookings={bookings} />
-            </TabsContent>
-          </Tabs>
-        )}
-      </Card>
-
-      {/* Testimonial Modal */}
-      <TestimonialFormModal
-        isOpen={showTestimonialModal}
-        onClose={() => setShowTestimonialModal(false)}
-        onSuccess={() => {
-          // Optionally refresh bookings or show success message
-        }}
-      />
-
-      <BookingCancellationModal
-        isOpen={showCancelModal}
-        onClose={() => {
-          setShowCancelModal(false);
-          setSelectedBooking(null);
-        }}
-        booking={selectedBooking}
-        onSuccess={handleCancelSuccess}
-      />
       </div>
-    </div>
     </PullToRefresh>
   );
 };
 
-// Calendar View Component
-const BookingCalendarView = ({ bookings, month, onMonthChange }) => {
-  const eventsByDate = useMemo(() => {
-    return bookings.reduce((acc, booking) => {
-      if (!booking.event_date) return acc;
-      const dateStr = new Date(booking.event_date).toISOString().split('T')[0];
-      if (!acc[dateStr]) acc[dateStr] = [];
-      acc[dateStr].push(booking);
-      return acc;
-    }, {});
-  }, [bookings]);
-
-  const sortedDates = useMemo(() => Object.keys(eventsByDate).sort(), [eventsByDate]);
-
-  const formatDisplayDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const getStatusBadge = (status) => {
-    const normalizedStatus = (status || '').toLowerCase();
-    const statusStyles = {
-      confirmed: 'bg-green-100 text-green-800 border-green-200',
-      approved: 'bg-green-100 text-green-800 border-green-200',
-      pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      cancelled: 'bg-red-100 text-red-800 border-red-200',
-      completed: 'bg-blue-100 text-blue-800 border-blue-200',
-    };
-    const statusKey = normalizedStatus in statusStyles ? normalizedStatus : 'default';
-    return (
-      <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${statusStyles[statusKey] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-        {(status || 'Unknown').charAt(0).toUpperCase() + (status || 'Unknown').slice(1)}
-      </span>
-    );
-  };
-
-  const getPackageName = (booking) => {
-    return booking?.eventPackage?.package_name || 
-           booking?.event_package?.package_name || 
-           booking?.package?.name || 
-           booking?.package?.package_name || 
-           'N/A';
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => onMonthChange(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white transition-colors duration-300"
-        />
-      </div>
-
-      {sortedDates.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-          <p className="transition-colors duration-300">No bookings in this month.</p>
-        </div>
-      ) : (
-        sortedDates.map((date) => (
-          <Card key={date} className="p-4 dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300">{formatDisplayDate(date)}</h3>
-              <span className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">{eventsByDate[date].length} booking(s)</span>
-            </div>
-            <div className="space-y-3">
-              {eventsByDate[date].map((booking) => (
-                <div
-                  key={booking.booking_id || booking.id}
-                  className="p-3 border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-2 transition-colors duration-300"
-                >
-                  <div className="flex-1">
-                    <p className="text-base font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-                      {getPackageName(booking)}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                      {booking.event_venue || 'Venue TBD'} • {booking.guest_count || booking.number_of_guests || 'N/A'} guests
-                    </p>
-                    {booking.event_time && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                        <Clock className="w-3 h-3 inline mr-1" />
-                        {booking.event_time}
-                      </p>
-                    )}
-                  </div>
-                  {getStatusBadge(booking.booking_status || booking.status)}
-                </div>
-              ))}
-            </div>
-          </Card>
-        ))
-      )}
-    </div>
-  );
-};
-
-// Timeline View Component
-const BookingTimelineView = ({ bookings }) => {
-  const timelineItems = useMemo(() => {
-    return bookings
-      .sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))
-      .map((booking) => {
-        const getPackageName = (b) => {
-          return b?.eventPackage?.package_name || 
-                 b?.event_package?.package_name || 
-                 b?.package?.name || 
-                 b?.package?.package_name || 
-                 'N/A';
-        };
-
-        return {
-          id: booking.booking_id || booking.id,
-          title: getPackageName(booking),
-          subtitle: `Booking #${booking.booking_id || booking.id}`,
-          description: booking.special_requests || `Event scheduled for ${booking.event_date ? new Date(booking.event_date).toLocaleDateString() : 'TBD'}`,
-          date: booking.created_at || booking.updated_at,
-          status: booking.booking_status || booking.status,
-          venue: booking.event_venue,
-          guests: booking.guest_count || booking.number_of_guests,
-        };
-      });
-  }, [bookings]);
-
-  if (timelineItems.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-        <p className="transition-colors duration-300">No booking history available.</p>
-      </div>
-    );
-  }
-
-  return <Timeline items={timelineItems} orientation="vertical" />;
-};
 
 export default ClientDashboard;

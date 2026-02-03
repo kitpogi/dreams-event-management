@@ -10,20 +10,26 @@ use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\EventPreferenceController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TestimonialController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\ImageAnalysisController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\BookingAttachmentController;
+use App\Http\Controllers\Api\InvoiceController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Log;
 
 // Public routes with rate limiting
 Route::middleware('throttle:auth')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::post('/auth/google', [AuthController::class, 'googleLogin']);
     Route::post('/auth/facebook', [AuthController::class, 'facebookLogin']);
+    Route::post('/auth/facebook/callback', [AuthController::class, 'facebookCallback']);
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail']);
@@ -40,7 +46,7 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/venues', [VenueController::class, 'index']);
     Route::get('/portfolio-items', [PortfolioController::class, 'index']);
     Route::get('/testimonials', [TestimonialController::class, 'index']);
-    
+
     // Public review viewing
     Route::get('/reviews', [ReviewController::class, 'index']);
     Route::get('/reviews/{id}', [ReviewController::class, 'show']);
@@ -54,22 +60,22 @@ Route::middleware('throttle:sensitive')->post('/recommend', [RecommendationContr
 Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 
 // Cron/Webhook routes (protected with secret token)
-Route::get('/cron/send-reminders', function() {
+Route::get('/cron/send-reminders', function () {
     // Check for secret token
     $secret = request()->query('token');
     $expectedSecret = env('CRON_SECRET_TOKEN', 'change-this-secret-token-in-production');
-    
+
     if (!$secret || $secret !== $expectedSecret) {
         return response()->json([
             'success' => false,
             'message' => 'Unauthorized. Invalid or missing token.'
         ], 401);
     }
-    
+
     try {
         Artisan::call('bookings:send-reminders');
         $output = Artisan::output();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Reminders processed successfully',
@@ -77,7 +83,7 @@ Route::get('/cron/send-reminders', function() {
         ]);
     } catch (\Exception $e) {
         Log::error('Failed to send booking reminders: ' . $e->getMessage());
-        
+
         return response()->json([
             'success' => false,
             'message' => 'Error processing reminders: ' . $e->getMessage()
@@ -85,11 +91,51 @@ Route::get('/cron/send-reminders', function() {
     }
 });
 
+// Cron route to mark completed bookings (run daily after event dates)
+Route::get('/cron/mark-completed', function () {
+    // Check for secret token
+    $secret = request()->query('token');
+    $expectedSecret = env('CRON_SECRET_TOKEN', 'change-this-secret-token-in-production');
+
+    if (!$secret || $secret !== $expectedSecret) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized. Invalid or missing token.'
+        ], 401);
+    }
+
+    try {
+        // Get days parameter (optional, default 0)
+        $days = (int) request()->query('days', 0);
+
+        Artisan::call('bookings:mark-completed', ['--days' => $days]);
+        $output = Artisan::output();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Completed bookings processed successfully',
+            'output' => trim($output)
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Failed to mark completed bookings: ' . $e->getMessage());
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error processing completed bookings: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Broadcasting authentication for WebSocket connections
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
+
 // Protected routes with rate limiting
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Auth routes
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::post('/auth/revoke', [AuthController::class, 'revoke']);
+    Route::post('/auth/revoke-all', [AuthController::class, 'revokeAll']);
     Route::patch('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::post('/auth/upload-avatar', [AuthController::class, 'uploadAvatar']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
@@ -97,31 +143,39 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Booking routes - specific routes must come before dynamic routes
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings', [BookingController::class, 'index']);
-    
+
     // Coordinator routes (for coordinators to see their assigned bookings)
     Route::get('/bookings/my-assignments', [BookingController::class, 'getCoordinatorBookings']);
-    
+
     // Availability checking routes
     Route::get('/bookings/check-availability', [BookingController::class, 'checkAvailability']);
     Route::get('/bookings/available-dates', [BookingController::class, 'getAvailableDates']);
-    
+
     // Admin booking routes (must come before dynamic /bookings/{id} route)
     Route::middleware(['admin', 'throttle:admin'])->group(function () {
         Route::get('/bookings/calendar', [BookingController::class, 'calendar']);
         Route::get('/bookings/export', [BookingController::class, 'export']);
         Route::get('/bookings/past', [BookingController::class, 'getPastEvents']);
+        Route::get('/bookings/availability-details', [BookingController::class, 'checkAvailabilityDetails']);
         Route::get('/analytics', [BookingController::class, 'analytics']);
         Route::patch('/bookings/status/{id}', [BookingController::class, 'adminUpdateStatus']);
         Route::post('/bookings/{id}/assign-coordinator', [BookingController::class, 'assignCoordinator']);
         Route::delete('/bookings/{id}/unassign-coordinator', [BookingController::class, 'unassignCoordinator']);
         Route::get('/coordinators', [BookingController::class, 'getCoordinators']);
         Route::patch('/bookings/{id}/notes', [BookingController::class, 'updateNotes']);
+        Route::post('/bookings/bulk-status', [BookingController::class, 'bulkUpdateStatus']);
     });
-    
+
+    // Booking attachment routes (mood boards/inspiration photos)
+    Route::get('/bookings/{bookingId}/attachments', [BookingAttachmentController::class, 'index']);
+    Route::post('/bookings/{bookingId}/attachments', [BookingAttachmentController::class, 'upload']);
+    Route::delete('/bookings/{bookingId}/attachments/{fileIndex}', [BookingAttachmentController::class, 'delete']);
+
     // Dynamic booking routes (must come after specific routes)
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::patch('/bookings/{id}', [BookingController::class, 'update']);
     Route::post('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
+
 
     // Payment routes
     Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
@@ -129,6 +183,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/payments/{id}/status', [PaymentController::class, 'getPaymentStatus']);
     Route::get('/bookings/{bookingId}/payments', [PaymentController::class, 'getBookingPayments']);
     Route::post('/bookings/{bookingId}/payment-link', [PaymentController::class, 'createPaymentLink']);
+
+    // Invoice routes
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::get('/invoices/{id}/download', [InvoiceController::class, 'download']);
+    Route::post('/bookings/{bookingId}/invoices', [InvoiceController::class, 'generate']);
+
+    // Task management routes
+    Route::get('/bookings/{bookingId}/tasks', [TaskController::class, 'index']);
+    Route::post('/bookings/{bookingId}/tasks', [TaskController::class, 'store']);
+    Route::patch('/tasks/{id}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
 
     // Client testimonial submission
     Route::post('/testimonials/submit', [TestimonialController::class, 'clientSubmit']);
@@ -158,7 +224,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::put('/packages/{id}', [PackageController::class, 'update']);
         Route::patch('/packages/{id}', [PackageController::class, 'update']);
         Route::delete('/packages/{id}', [PackageController::class, 'destroy']);
-        
+
         // AI Image Analysis for package creation
         Route::post('/analyze-package-image', [ImageAnalysisController::class, 'analyzePackageImage']);
 
@@ -169,6 +235,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/contact-inquiries', [ContactController::class, 'index']);
         Route::get('/contact-inquiries/export', [ContactController::class, 'export']);
         Route::patch('/contact-inquiries/{id}/status', [ContactController::class, 'updateStatus']);
+        Route::post('/contact-inquiries/{id}/reply', [ContactController::class, 'reply']);
+        Route::delete('/contact-inquiries/bulk', [ContactController::class, 'bulkDelete']);
 
         // Venue management
         Route::post('/venues', [VenueController::class, 'store']);

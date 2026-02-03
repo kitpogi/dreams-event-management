@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,8 @@ const Register = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register, isAuthenticated, isAdmin, loading } = useAuth();
+  const [socialLoading, setSocialLoading] = useState(false);
+  const { register, isAuthenticated, isAdmin, loading, setUser, setToken } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -28,6 +30,173 @@ const Register = () => {
       }
     }
   }, [isAuthenticated, isAdmin, loading, navigate]);
+
+  // Initialize Google Sign-In
+  useEffect(() => {
+    const initGoogleSignIn = () => {
+      if (window.google && window.google.accounts) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+          callback: handleGoogleCallback,
+        });
+      }
+    };
+
+    if (window.google) {
+      initGoogleSignIn();
+    } else {
+      const checkGoogle = setInterval(() => {
+        if (window.google && window.google.accounts) {
+          initGoogleSignIn();
+          clearInterval(checkGoogle);
+        }
+      }, 100);
+      return () => clearInterval(checkGoogle);
+    }
+  }, []);
+
+  // Facebook SDK initialization removed - using OAuth redirect flow instead
+
+  const handleGoogleCallback = async (response) => {
+    try {
+      setSocialLoading(true);
+      setError('');
+
+      const result = await api.post('/auth/google', {
+        id_token: response.credential,
+      });
+
+      if (result.data.token) {
+        localStorage.setItem('token', result.data.token);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        setToken(result.data.token);
+        setUser(result.data.user);
+        toast.success('Successfully signed up with Google!');
+        
+        const userData = result.data.user;
+        if (userData.role === 'admin' || userData.role === 'coordinator') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    } catch (error) {
+      console.error('Google sign-up error:', error);
+      setError(error.response?.data?.message || 'Failed to sign up with Google');
+      toast.error(error.response?.data?.message || 'Failed to sign up with Google');
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
+  const handleGoogleClick = () => {
+    if (!window.google || !window.google.accounts) {
+      setError('Google Sign-In is loading. Please wait a moment and try again.');
+      return;
+    }
+
+    setSocialLoading(true);
+    setError('');
+
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+      scope: 'email profile',
+      callback: async (response) => {
+        if (response.access_token) {
+          try {
+            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: { Authorization: `Bearer ${response.access_token}` }
+            });
+            const userInfo = await userInfoResponse.json();
+            
+            const result = await api.post('/auth/google', {
+              id_token: response.access_token,
+              email: userInfo.email,
+              name: userInfo.name,
+            });
+
+            if (result.data.token) {
+              localStorage.setItem('token', result.data.token);
+              localStorage.setItem('user', JSON.stringify(result.data.user));
+              setToken(result.data.token);
+              setUser(result.data.user);
+              toast.success('Successfully signed up with Google!');
+              
+              const userData = result.data.user;
+              if (userData.role === 'admin' || userData.role === 'coordinator') {
+                navigate('/admin/dashboard', { replace: true });
+              } else {
+                navigate('/dashboard', { replace: true });
+              }
+            }
+          } catch (error) {
+            console.error('Google sign-up error:', error);
+            setError(error.response?.data?.message || 'Failed to sign up with Google');
+            toast.error(error.response?.data?.message || 'Failed to sign up with Google');
+          } finally {
+            setSocialLoading(false);
+          }
+        } else {
+          setSocialLoading(false);
+        }
+      }
+    });
+
+    client.requestAccessToken();
+  };
+
+  const handleFacebookLogin = () => {
+    const appId = import.meta.env.VITE_FACEBOOK_APP_ID;
+    
+    // Check if App ID is configured
+    if (!appId || appId === 'undefined' || appId === 'YOUR_FACEBOOK_APP_ID') {
+      setError('Facebook App ID is not configured. Please check your .env file.');
+      toast.error('Facebook login is not configured.');
+      return;
+    }
+
+    setSocialLoading(true);
+    setError('');
+
+    // Use OAuth redirect flow instead of popup (works on HTTP)
+    const redirectUri = encodeURIComponent(window.location.origin + '/auth/facebook/callback');
+    const scope = 'email,public_profile';
+    
+    // Store the return URL for after login
+    sessionStorage.setItem('fb_auth_redirect', '/dashboard');
+    
+    // Redirect to Facebook OAuth
+    window.location.href = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
+  };
+
+  const handleFacebookAuth = async (accessToken) => {
+    try {
+      const result = await api.post('/auth/facebook', {
+        access_token: accessToken,
+      });
+
+      if (result.data.token) {
+        localStorage.setItem('token', result.data.token);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        setToken(result.data.token);
+        setUser(result.data.user);
+        toast.success('Successfully signed up with Facebook!');
+        
+        const userData = result.data.user;
+        if (userData.role === 'admin' || userData.role === 'coordinator') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    } catch (error) {
+      console.error('Facebook sign-up error:', error);
+      setError(error.response?.data?.message || 'Failed to sign up with Facebook');
+      toast.error(error.response?.data?.message || 'Failed to sign up with Facebook');
+    } finally {
+      setSocialLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -271,25 +440,45 @@ const Register = () => {
               </form>
 
               {/* Social Logins */}
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2 sm:gap-4 mb-6">
                 <hr className="flex-grow border-gray-200 dark:border-gray-700/50"/>
-                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium">Or continue with</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium whitespace-nowrap">Or continue with</p>
                 <hr className="flex-grow border-gray-200 dark:border-gray-700/50"/>
               </div>
 
-              <div className="flex gap-3">
-                <button className="flex items-center justify-center flex-1 h-12 px-4 bg-white dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21.9999 12.2273C21.9999 11.4545 21.9317 10.7273 21.7953 10H12.2272V14.1818H17.7681C17.5453 15.6045 16.7272 16.8182 15.4544 17.6364V20.2727H19.2317C20.9999 18.6818 21.9999 15.8182 21.9999 12.2273Z" fill="#4285F4"></path>
-                    <path d="M12.2272 22C15.0908 22 17.4544 21.0455 19.2317 19.2727L15.4544 17.6364C14.5453 18.2273 13.4544 18.5909 12.2272 18.5909C9.86354 18.5909 7.86354 17.0455 7.18172 14.8636H3.27264V17.5909C5.04536 20.2273 8.36354 22 12.2272 22Z" fill="#34A853"></path>
-                    <path d="M7.18182 14.8636C6.95909 14.2273 6.81818 13.5455 6.81818 12.8182C6.81818 12.0909 6.95909 11.4091 7.18182 10.7727V8.04545H3.27273C2.45455 9.63636 2 11.1818 2 12.8182C2 14.4545 2.45455 16 3.27273 17.5909L7.18182 14.8636Z" fill="#FBBC05"></path>
-                    <path d="M12.2272 7.04545C13.5908 7.04545 14.7272 7.5 15.4544 8.18182L19.3181 4.31818C17.4544 2.59091 15.0908 1.63636 12.2272 1.63636C8.36354 1.63636 5.04536 3.77273 3.27264 6.40909L7.18172 9.13636C7.86354 6.95455 9.86354 7.04545 12.2272 7.04545Z" fill="#EA4335"></path>
-                  </svg>
+              <div className="flex flex-col xs:flex-row gap-3">
+                <button 
+                  type="button"
+                  onClick={handleGoogleClick}
+                  disabled={socialLoading}
+                  className="flex items-center justify-center flex-1 h-11 sm:h-12 px-3 sm:px-4 gap-2 sm:gap-3 bg-white dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {socialLoading ? (
+                    <div className="w-5 h-5 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21.9999 12.2273C21.9999 11.4545 21.9317 10.7273 21.7953 10H12.2272V14.1818H17.7681C17.5453 15.6045 16.7272 16.8182 15.4544 17.6364V20.2727H19.2317C20.9999 18.6818 21.9999 15.8182 21.9999 12.2273Z" fill="#4285F4"></path>
+                      <path d="M12.2272 22C15.0908 22 17.4544 21.0455 19.2317 19.2727L15.4544 17.6364C14.5453 18.2273 13.4544 18.5909 12.2272 18.5909C9.86354 18.5909 7.86354 17.0455 7.18172 14.8636H3.27264V17.5909C5.04536 20.2273 8.36354 22 12.2272 22Z" fill="#34A853"></path>
+                      <path d="M7.18182 14.8636C6.95909 14.2273 6.81818 13.5455 6.81818 12.8182C6.81818 12.0909 6.95909 11.4091 7.18182 10.7727V8.04545H3.27273C2.45455 9.63636 2 11.1818 2 12.8182C2 14.4545 2.45455 16 3.27273 17.5909L7.18182 14.8636Z" fill="#FBBC05"></path>
+                      <path d="M12.2272 7.04545C13.5908 7.04545 14.7272 7.5 15.4544 8.18182L19.3181 4.31818C17.4544 2.59091 15.0908 1.63636 12.2272 1.63636C8.36354 1.63636 5.04536 3.77273 3.27264 6.40909L7.18172 9.13636C7.86354 6.95455 9.86354 7.04545 12.2272 7.04545Z" fill="#EA4335"></path>
+                    </svg>
+                  )}
+                  <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200">Google</span>
                 </button>
-                <button className="flex items-center justify-center flex-1 h-12 px-4 bg-white dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98]">
-                  <svg className="w-5 h-5 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"></path>
-                  </svg>
+                <button 
+                  type="button"
+                  onClick={handleFacebookLogin}
+                  disabled={socialLoading}
+                  className="flex items-center justify-center flex-1 h-11 sm:h-12 px-3 sm:px-4 gap-2 sm:gap-3 bg-white dark:bg-gray-800/90 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {socialLoading ? (
+                    <div className="w-5 h-5 border-2 border-gray-300 border-t-[#1877F2] rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-5 h-5 flex-shrink-0 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"></path>
+                    </svg>
+                  )}
+                  <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200">Facebook</span>
                 </button>
               </div>
 

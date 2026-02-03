@@ -20,4 +20,7 @@ export { default as SkipLinks } from './SkipLinks';
 export { default as KeyboardShortcuts } from './KeyboardShortcuts';
 export { default as ScreenReaderAnnouncements } from './ScreenReaderAnnouncements';
 export { useScreenReaderAnnouncement } from './ScreenReaderAnnouncements';
+export { default as EventCountdown } from './EventCountdown';
+export { default as BookingFilters } from './BookingFilters';
+export { default as BookingActionsDropdown } from './BookingActionsDropdown';
 

@@ -21,22 +21,31 @@ class BookingDetail extends Model
         'coordinator_id',
         'event_date',
         'event_time',
+        'event_duration',
+        'event_end_time',
         'event_venue',
         'guest_count',
         'booking_status',
         'special_requests',
         'internal_notes',
+        'event_type',
+        'theme',
+        'budget_range',
+        'alternate_contact',
         'total_amount',
         'deposit_amount',
         'payment_required',
         'payment_status',
+        'mood_board',
     ];
 
     protected $casts = [
         'event_date' => 'date',
+        'event_duration' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
         'payment_required' => 'boolean',
+        'mood_board' => 'array',
     ];
 
     public function client()
@@ -73,6 +82,28 @@ class BookingDetail extends Model
     {
         return $this->hasMany(Payment::class, 'booking_id', 'booking_id')
             ->where('status', 'paid');
+    }
+
+    /**
+     * Get total amount paid for this booking.
+     */
+    public function getTotalPaidAttribute()
+    {
+        return $this->payments()
+            ->where('status', 'paid')
+            ->sum('amount');
+    }
+
+    /**
+     * Get remaining balance for this booking.
+     */
+    public function getRemainingBalanceAttribute()
+    {
+        $totalAmount = $this->total_amount ?? 0;
+        $totalPaid = (float) $this->payments()
+            ->where('status', 'paid')
+            ->sum('amount');
+        return max(0, $totalAmount - $totalPaid);
     }
 }
 

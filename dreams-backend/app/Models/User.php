@@ -18,6 +18,8 @@ class User extends Authenticatable
         'phone',
         'role',
         'profile_picture',
+        'failed_login_attempts',
+        'locked_until',
     ];
 
     protected $hidden = [
@@ -28,6 +30,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'locked_until' => 'datetime',
     ];
 
     public function isAdmin(): bool
@@ -44,6 +47,67 @@ class User extends Authenticatable
     public function assignedBookings()
     {
         return $this->hasMany(BookingDetail::class, 'coordinator_id', 'id');
+    }
+
+    /**
+     * Check if the account is locked
+     *
+     * @return bool
+     */
+    public function isLocked(): bool
+    {
+        return $this->locked_until && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Lock the account
+     *
+     * @param int $minutes
+     * @return void
+     */
+    public function lockAccount(int $minutes = 30): void
+    {
+        $this->update([
+            'locked_until' => now()->addMinutes($minutes),
+        ]);
+    }
+
+    /**
+     * Unlock the account
+     *
+     * @return void
+     */
+    public function unlockAccount(): void
+    {
+        $this->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+        ]);
+    }
+
+    /**
+     * Increment failed login attempts
+     *
+     * @return void
+     */
+    public function incrementFailedLoginAttempts(): void
+    {
+        $this->increment('failed_login_attempts');
+        
+        // Lock account after 5 failed attempts
+        if ($this->failed_login_attempts >= 5) {
+            $this->lockAccount(30);
+        }
+    }
+
+    /**
+     * Reset failed login attempts
+     *
+     * @return void
+     */
+    public function resetFailedLoginAttempts(): void
+    {
+        $this->update(['failed_login_attempts' => 0]);
     }
 }
 

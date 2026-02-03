@@ -38,13 +38,22 @@ const UserActivityChart = ({ activityData = null }) => {
       // For now, we'll use mock data structure
       const response = await api.get('/analytics/user-activity', {
         params: { date_range: dateRange },
-      }).catch(() => {
-        // Fallback to mock data if endpoint doesn't exist
+      }).catch((error) => {
+        // Silently fallback to mock data if endpoint doesn't exist (404)
+        if (error.response?.status === 404) {
+          // Endpoint doesn't exist yet, use mock data
+          return { data: { data: generateMockActivityData() } };
+        }
+        // For other errors, still return mock data but log the error
+        console.warn('User activity endpoint not available, using mock data');
         return { data: { data: generateMockActivityData() } };
       });
       setData(response.data.data);
     } catch (error) {
-      console.error('Error fetching user activity:', error);
+      // Only log non-404 errors
+      if (error.response?.status !== 404) {
+        console.error('Error fetching user activity:', error);
+      }
       // Use mock data as fallback
       setData(generateMockActivityData());
     } finally {

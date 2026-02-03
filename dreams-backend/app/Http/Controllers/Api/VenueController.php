@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venue;
+use App\Http\Requests\Venue\StoreVenueRequest;
+use App\Http\Requests\Venue\UpdateVenueRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -22,55 +24,30 @@ class VenueController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreVenueRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'capacity' => 'required|integer|min:1',
-            'description' => 'nullable|string',
-        ]);
-
-        $venue = Venue::create($validated);
+        $venue = Venue::create($request->validated());
 
         // Clear venues cache
         Cache::forget('venues_all');
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Venue created successfully',
-            'data' => $venue
-        ], 201);
+        return $this->successResponse($venue, 'Venue created successfully', 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateVenueRequest $request, $id)
     {
         $venue = Venue::find($id);
 
         if (!$venue) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Venue not found'
-            ], 404);
+            return $this->notFoundResponse('Venue not found');
         }
 
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'location' => 'sometimes|string|max:255',
-            'capacity' => 'sometimes|integer|min:1',
-            'description' => 'nullable|string',
-        ]);
-
-        $venue->update($validated);
+        $venue->update($request->validated());
 
         // Clear venues cache
         Cache::forget('venues_all');
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Venue updated successfully',
-            'data' => $venue
-        ]);
+        return $this->successResponse($venue, 'Venue updated successfully');
     }
 
     public function destroy($id)

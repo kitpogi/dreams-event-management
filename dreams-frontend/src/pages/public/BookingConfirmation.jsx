@@ -1,25 +1,56 @@
 import React from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Calendar, Users, Package, MapPin, Clock, FileText, ArrowLeft, Download, Share2 } from 'lucide-react';
+import { CheckCircle2, Calendar, Users, Package, MapPin, Clock, FileText, ArrowLeft, Download, Share2, CreditCard, DollarSign, History, Image as ImageIcon, X, Upload } from 'lucide-react';
 import api from '../../api/axios';
-import { Button, Skeleton } from '../../components/ui';
+import { Button, Skeleton, Dialog, DialogContent, DialogHeader, DialogTitle, Badge } from '../../components/ui';
 import { BookingStatusTracker } from '../../components/features';
+import PaymentForm from '../../components/features/PaymentForm';
+import { getBookingPayments } from '../../api/services/paymentService';
 import { useToast } from '../../hooks/use-toast';
 import { format } from 'date-fns';
 
 const BookingConfirmation = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [moodBoard, setMoodBoard] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
       fetchBookingDetails();
+      fetchPayments();
+      fetchMoodBoard();
     }
   }, [bookingId]);
+
+  useEffect(() => {
+    if (booking?.mood_board) {
+      setMoodBoard(booking.mood_board);
+    }
+  }, [booking]);
+
+  // Auto-open payment modal if requested via navigation state
+  useEffect(() => {
+    if (booking && location.state?.showPayment && !showPaymentModal) {
+      // Only open if payment is actually needed
+      const totalAmount = parseFloat(booking.total_amount || booking.package?.package_price || 0);
+      // We assume initial fetch might not have payments yet, but usually for new booking it's 0 paid
+      if (totalAmount > 0) {
+        setShowPaymentModal(true);
+        // Clear the state so it doesn't reopen on refresh if we could (React Router state persists on refresh usually, but good practice)
+        // actually we can't easily clear location state without navigating again, which might be jarring.
+        // We'll just rely on the dependency check.
+      }
+    }
+  }, [booking, location.state]);
 
   const fetchBookingDetails = async () => {
     try {
@@ -34,6 +65,83 @@ const BookingConfirmation = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPayments = async () => {
+    if (!bookingId) return;
+    try {
+      setPaymentsLoading(true);
+      const response = await getBookingPayments(bookingId);
+      setPayments(response.data || response || []);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      // Don't show error toast for payments, just log it
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  const fetchMoodBoard = async () => {
+    if (!bookingId) return;
+    try {
+      const response = await api.get(`/bookings/${bookingId}/attachments`);
+      setMoodBoard(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching mood board:', error);
+    }
+  };
+
+  const handleFileUpload = async (files) => {
+    if (!bookingId || !files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file) => {
+        formData.append('files[]', file);
+      });
+
+      const response = await api.post(`/bookings/${bookingId}/attachments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast({
+        title: 'Success!',
+        description: `${response.data.data.uploaded.length} file(s) uploaded successfully.`,
+      });
+      fetchMoodBoard(); // Refresh to get all files
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: 'Upload Failed',
+        description: error.response?.data?.message || 'Failed to upload files. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileIndex) => {
+    if (!bookingId) return;
+
+    try {
+      await api.delete(`/bookings/${bookingId}/attachments/${fileIndex}`);
+      toast({
+        title: 'File Deleted',
+        description: 'File removed successfully.',
+      });
+      fetchMoodBoard(); // Refresh
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete file. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -73,6 +181,77 @@ const BookingConfirmation = () => {
         description: 'Booking confirmation link has been copied to your clipboard.',
       });
     }
+  };
+
+  // Calculate payment totals
+  const totalPaid = payments
+    .filter((p) => p.status === 'paid')
+    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+  const totalAmount = parseFloat(booking?.total_amount || booking?.package?.package_price || 0);
+  const remainingBalance = Math.max(0, totalAmount - totalPaid);
+  const paymentStatus = booking?.payment_status || 'unpaid';
+
+  // Check if payment button should be shown
+  const showPaymentButton =
+    booking?.payment_required !== false &&
+    paymentStatus !== 'paid' &&
+    remainingBalance > 0 &&
+    (booking?.booking_status || booking?.status || '').toLowerCase() !== 'cancelled';
+
+  const handlePaymentSuccess = async () => {
+    setShowPaymentModal(false);
+    toast({
+      title: 'Payment Successful!',
+      description: 'Your payment has been processed successfully.',
+    });
+    // Refresh booking and payment data
+    await fetchBookingDetails();
+    await fetchPayments();
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentModal(false);
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    const statusConfig = {
+      unpaid: { label: 'Unpaid', variant: 'destructive', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+      partial: { label: 'Partial', variant: 'warning', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+      paid: { label: 'Paid', variant: 'default', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+      refunded: { label: 'Refunded', variant: 'secondary', className: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' },
+    };
+
+    const config = statusConfig[status] || statusConfig.unpaid;
+    return (
+      <Badge className={config.className}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getPaymentMethodDisplay = (method) => {
+    const methods = {
+      card: 'Credit/Debit Card',
+      gcash: 'GCash',
+      maya: 'Maya',
+      qr_ph: 'QR Ph',
+      bank_transfer: 'Bank Transfer',
+      otc: 'Over-the-Counter',
+    };
+    return methods[method] || (method ? method.charAt(0).toUpperCase() + method.slice(1) : 'N/A');
+  };
+
+  const getPaymentStatusDisplay = (status) => {
+    const statuses = {
+      pending: 'Pending',
+      processing: 'Processing',
+      paid: 'Paid',
+      failed: 'Failed',
+      cancelled: 'Cancelled',
+      refunded: 'Refunded',
+    };
+    return statuses[status] || status || 'Unknown';
   };
 
   if (loading) {
@@ -149,7 +328,7 @@ const BookingConfirmation = () => {
         {/* Booking Details */}
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Booking Details</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Booking ID */}
             <div className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800">
@@ -252,6 +431,222 @@ const BookingConfirmation = () => {
             )}
           </div>
         </div>
+
+        {/* Mood Board / Inspiration Photos */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <ImageIcon className="w-6 h-6 text-[#a413ec]" />
+            Mood Board & Inspiration Photos
+          </h2>
+
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Upload photos, mood boards, or inspiration images to help us understand your vision for the event.
+          </p>
+
+          {/* File Upload Area */}
+          <div className="mb-6">
+            <label className="block mb-2">
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#a413ec] dark:hover:border-[#a413ec] transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                  disabled={uploading}
+                  className="hidden"
+                  id="mood-board-upload"
+                />
+                <label htmlFor="mood-board-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {uploading ? 'Uploading...' : 'Click to upload or drag and drop'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    PNG, JPG, GIF up to 5MB each (max 10 files)
+                  </p>
+                </label>
+              </div>
+            </label>
+          </div>
+
+          {/* Uploaded Images Grid */}
+          {moodBoard.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {moodBoard.map((file, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={file.url || file.path}
+                    alt={file.original_name || `Mood board ${index + 1}`}
+                    className="w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                  />
+                  <button
+                    onClick={() => handleDeleteFile(index)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title="Delete image"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  {file.original_name && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title={file.original_name}>
+                      {file.original_name}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {moodBoard.length === 0 && !uploading && (
+            <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+              <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No images uploaded yet</p>
+            </div>
+          )}
+        </div>
+
+        {/* Payment Section */}
+        {booking?.payment_required !== false && (
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <DollarSign className="w-6 h-6 text-[#a413ec]" />
+                Payment Information
+              </h2>
+              {getPaymentStatusBadge(paymentStatus)}
+            </div>
+
+            {/* Payment Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Amount</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatPrice(totalAmount)}
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Amount Paid</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {formatPrice(totalPaid)}
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Remaining Balance</p>
+                <p className={`text-2xl font-bold ${remainingBalance > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {formatPrice(remainingBalance)}
+                </p>
+              </div>
+            </div>
+
+            {/* Pay Now Button */}
+            {showPaymentButton && (
+              <div className="mb-6">
+                <Button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="w-full md:w-auto"
+                  size="lg"
+                >
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Pay Now
+                </Button>
+              </div>
+            )}
+
+            {/* Payment History */}
+            {payments.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <History className="w-5 h-5" />
+                  Payment History
+                </h3>
+                <div className="space-y-3">
+                  {payments.map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <p className="font-semibold text-gray-900 dark:text-white">
+                              {formatPrice(payment.amount)}
+                            </p>
+                            <Badge
+                              className={
+                                payment.status === 'paid'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : payment.status === 'failed'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    : payment.status === 'pending' || payment.status === 'processing'
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                              }
+                            >
+                              {getPaymentStatusDisplay(payment.status)}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <div>
+                              <span className="font-medium">Method:</span>{' '}
+                              {getPaymentMethodDisplay(payment.payment_method)}
+                            </div>
+                            {payment.paid_at && (
+                              <div>
+                                <span className="font-medium">Date:</span>{' '}
+                                {format(new Date(payment.paid_at), 'MMM dd, yyyy')}
+                              </div>
+                            )}
+                            {payment.transaction_id && (
+                              <div className="md:col-span-2">
+                                <span className="font-medium">Transaction ID:</span>{' '}
+                                <span className="font-mono text-xs">{payment.transaction_id}</span>
+                              </div>
+                            )}
+                          </div>
+                          {payment.failure_reason && (
+                            <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                              {payment.failure_reason}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {payments.length === 0 && !paymentsLoading && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No payment history available</p>
+              </div>
+            )}
+
+            {paymentsLoading && (
+              <div className="text-center py-8">
+                <Skeleton className="h-20 w-full mb-3" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payment Modal */}
+        <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Make Payment</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <PaymentForm
+                bookingId={booking?.booking_id || booking?.id || bookingId}
+                amount={remainingBalance || totalAmount}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Next Steps */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-3xl p-6">

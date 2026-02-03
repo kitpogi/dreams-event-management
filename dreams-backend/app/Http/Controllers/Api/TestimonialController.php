@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
+use App\Http\Requests\Testimonial\StoreTestimonialRequest;
+use App\Http\Requests\Testimonial\UpdateTestimonialRequest;
+use App\Http\Requests\Testimonial\ClientSubmitTestimonialRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -39,36 +42,36 @@ class TestimonialController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreTestimonialRequest $request)
     {
-        $data = $this->validateData($request);
-        $data['avatar_path'] = $this->resolveAvatarPath($request);
-        $data['client_initials'] = $this->resolveInitials($data);
+        $validated = $request->validated();
+        $validated['avatar_path'] = $this->resolveAvatarPath($request);
+        $validated['client_initials'] = $this->resolveInitials($validated);
 
-        $testimonial = Testimonial::create($data);
+        $testimonial = Testimonial::create($validated);
 
         // Clear testimonials cache
         Cache::flush(); // Clear all cache (or use tags if available)
 
-        return response()->json(['data' => $testimonial], 201);
+        return $this->successResponse($testimonial, 'Testimonial created successfully', 201);
     }
 
-    public function update(Request $request, Testimonial $testimonial)
+    public function update(UpdateTestimonialRequest $request, Testimonial $testimonial)
     {
-        $data = $this->validateData($request, false);
+        $validated = $request->validated();
 
         if ($request->hasFile('avatar') || $request->filled('avatar_url')) {
-            $data['avatar_path'] = $this->resolveAvatarPath($request, $testimonial);
+            $validated['avatar_path'] = $this->resolveAvatarPath($request, $testimonial);
         }
 
-        $data['client_initials'] = $this->resolveInitials(array_merge($testimonial->toArray(), $data));
+        $validated['client_initials'] = $this->resolveInitials(array_merge($testimonial->toArray(), $validated));
 
-        $testimonial->update($data);
+        $testimonial->update($validated);
 
         // Clear testimonials cache
         Cache::flush(); // Clear all cache
 
-        return response()->json(['data' => $testimonial]);
+        return $this->successResponse($testimonial, 'Testimonial updated successfully');
     }
 
     public function destroy(Testimonial $testimonial)
@@ -82,13 +85,13 @@ class TestimonialController extends Controller
         // Clear testimonials cache
         Cache::flush(); // Clear all cache
 
-        return response()->json(['message' => 'Testimonial deleted successfully']);
+        return $this->successResponse(null, 'Testimonial deleted successfully');
     }
 
     /**
      * Client submission of testimonial (requires authentication)
      */
-    public function clientSubmit(Request $request)
+    public function clientSubmit(ClientSubmitTestimonialRequest $request)
     {
         $user = $request->user();
         
@@ -96,48 +99,30 @@ class TestimonialController extends Controller
         $client = \App\Models\Client::where('client_email', $user->email)->first();
         
         if (!$client) {
-            return response()->json([
-                'message' => 'Client profile not found'
-            ], 404);
+            return $this->notFoundResponse('Client profile not found');
         }
 
-        $data = $this->validateData($request);
+        $validated = $request->validated();
         
         // Auto-fill client name from user/client data
-        if (empty($data['client_name'])) {
-            $data['client_name'] = $user->name ?? ($client->client_fname . ' ' . $client->client_lname);
+        if (empty($validated['client_name'])) {
+            $validated['client_name'] = $user->name ?? ($client->client_fname . ' ' . $client->client_lname);
         }
         
-        $data['avatar_path'] = $this->resolveAvatarPath($request);
-        $data['client_initials'] = $this->resolveInitials($data);
-        $data['is_featured'] = false; // New client submissions are not featured by default (admin can feature later)
+        $validated['avatar_path'] = $this->resolveAvatarPath($request);
+        $validated['client_initials'] = $this->resolveInitials($validated);
+        $validated['is_featured'] = false; // New client submissions are not featured by default (admin can feature later)
 
-        $testimonial = Testimonial::create($data);
+        $testimonial = Testimonial::create($validated);
 
         // Clear testimonials cache
         Cache::flush(); // Clear all cache
 
-        return response()->json([
-            'message' => 'Thank you for your testimonial! It will be reviewed before being published.',
-            'data' => $testimonial
-        ], 201);
-    }
-
-    protected function validateData(Request $request, bool $isCreate = true): array
-    {
-        $rules = [
-            'client_name' => [$isCreate ? 'required' : 'sometimes', 'string', 'max:255'],
-            'client_initials' => ['nullable', 'string', 'max:10'],
-            'event_type' => ['nullable', 'string', 'max:255'],
-            'event_date' => ['nullable', 'date'],
-            'rating' => [$isCreate ? 'required' : 'sometimes', 'integer', 'min:1', 'max:5'],
-            'message' => [$isCreate ? 'required' : 'sometimes', 'string'],
-            'is_featured' => ['sometimes', 'boolean'],
-            'avatar_url' => ['nullable', 'url'],
-            'avatar' => ['nullable', 'image', 'max:4096'],
-        ];
-
-        return $request->validate($rules);
+        return $this->successResponse(
+            $testimonial,
+            'Thank you for your testimonial! It will be reviewed before being published.',
+            201
+        );
     }
 
     protected function resolveAvatarPath(Request $request, ?Testimonial $existing = null): ?string

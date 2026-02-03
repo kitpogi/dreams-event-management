@@ -15,7 +15,7 @@ import StepIndicator from '../../components/events/StepIndicator';
 const SetAnEvent = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  
+
   // Load saved form data from sessionStorage on mount
   const loadSavedFormData = () => {
     try {
@@ -29,7 +29,7 @@ const SetAnEvent = () => {
     }
     return null;
   };
-  
+
   // Initialize state with saved data or defaults
   const savedData = loadSavedFormData();
   const [currentStep, setCurrentStep] = useState(savedData?.currentStep || 1);
@@ -56,20 +56,20 @@ const SetAnEvent = () => {
   const [submittingBooking, setSubmittingBooking] = useState(false);
   const [sortBy, setSortBy] = useState(savedData?.sortBy || 'match-score'); // 'match-score', 'price-low', 'price-high'
   const [priceFilter, setPriceFilter] = useState(savedData?.priceFilter || 'all'); // 'all', 'within-budget', 'over-budget'
-  
+
   // Get current theme based on event type (after formData is initialized)
   const theme = getEventTheme(formData.event_type);
   const ThemeIcon = theme.icon;
-  
+
   // Get available motifs based on event type
   const availableMotifs = useMemo(() => {
     return getMotifsForEventType(formData.event_type || 'other');
   }, [formData.event_type]);
-  
+
   // Clear invalid motifs when event type changes
   useEffect(() => {
     if (formData.event_type && formData.motifs.length > 0) {
-      const validMotifs = formData.motifs.filter(motif => 
+      const validMotifs = formData.motifs.filter(motif =>
         availableMotifs.includes(motif)
       );
       if (validMotifs.length !== formData.motifs.length) {
@@ -86,7 +86,7 @@ const SetAnEvent = () => {
       }
     }
   }, [formData.event_type, availableMotifs]);
-  
+
   // Save form data to sessionStorage whenever it changes
   useEffect(() => {
     try {
@@ -107,7 +107,7 @@ const SetAnEvent = () => {
       console.error('Error saving form data:', error);
     }
   }, [currentStep, formData, formErrors, touched, recommendations, filteredRecommendations, selectedPackage, specialRequests, sortBy, priceFilter]);
-  
+
   // Clear saved data after successful booking
   const clearSavedData = () => {
     try {
@@ -127,7 +127,7 @@ const SetAnEvent = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (type === 'checkbox') {
       if (name === 'motifs') {
         if (checked) {
@@ -150,22 +150,22 @@ const SetAnEvent = () => {
       }
     } else {
       let processedValue = value;
-      
+
       // Format phone number
       if (name === 'phone_number') {
         processedValue = formatPhoneNumber(value);
       }
-      
+
       // Format budget
       if (name === 'budget_range' && value) {
         processedValue = formatBudget(value);
       }
-      
+
       setFormData({
         ...formData,
         [name]: processedValue,
       });
-      
+
       // Validate on change if field has been touched
       if (touched[name]) {
         const error = validateField(name, processedValue, formData);
@@ -194,9 +194,23 @@ const SetAnEvent = () => {
     return Object.keys(errors).length === 0;
   };
 
+  /**
+   * Handles Step 1 form submission
+   * 
+   * Flow:
+   * 1. Validates form data
+   * 2. Submits to /recommend endpoint (creates contact inquiry automatically)
+   * 3. Receives package recommendations
+   * 4. Filters by event type if specified
+   * 5. Moves to Step 2 (Recommendations)
+   * 
+   * If no packages found:
+   * - Shows all available packages as fallback
+   * - User can still proceed or choose alternative options
+   */
   const handleStep1Submit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateFormStep1()) {
       toast.error('Please fix the errors in the form');
       // Scroll to first error
@@ -210,11 +224,12 @@ const SetAnEvent = () => {
       }
       return;
     }
-    
+
     setLoading(true);
 
     try {
       // Submit to recommendations endpoint with all the data
+      // Note: This automatically creates a contact inquiry in the backend
       const response = await api.post('/recommend', {
         type: formData.event_type || null,
         budget: formData.budget_range ? parseFloat(formData.budget_range.replace(/,/g, '')) : null,
@@ -233,20 +248,20 @@ const SetAnEvent = () => {
 
       // Store recommendations and move to Step 2
       const recs = response.data.data || [];
-      
+
       // Filter packages to only show those matching the selected event type
-      const filteredRecs = formData.event_type 
+      const filteredRecs = formData.event_type
         ? recs.filter(pkg => {
-            const packageCategory = (pkg.category || pkg.package_category || '').toLowerCase();
-            const eventType = formData.event_type.toLowerCase();
-            return packageCategory === eventType;
-          })
+          const packageCategory = (pkg.category || pkg.package_category || '').toLowerCase();
+          const eventType = formData.event_type.toLowerCase();
+          return packageCategory === eventType;
+        })
         : recs;
-      
+
       setRecommendations(filteredRecs);
       setFilteredRecommendations(filteredRecs);
       setCurrentStep(2);
-      
+
       if (filteredRecs.length === 0) {
         toast.warning('No packages found for your event type. Showing all available packages.');
         setRecommendations(recs);
@@ -269,7 +284,7 @@ const SetAnEvent = () => {
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       toast.info('Please login to complete your booking');
       // Save current state before navigating to login
@@ -281,7 +296,7 @@ const SetAnEvent = () => {
 
     try {
       const baseSpecialRequests = `Event Time: ${formData.event_time || 'Not specified'}\nVenue: ${formData.venue || 'Not specified'}\nMotifs: ${formData.motifs.join(', ')}`;
-      
+
       const payload = {
         package_id: selectedPackage.id || selectedPackage.package_id,
         event_date: formData.event_date,
@@ -293,18 +308,32 @@ const SetAnEvent = () => {
         payload.event_time = formData.event_time;
       }
 
-      await bookingService.create(payload);
-      
+      const response = await bookingService.create(payload);
+      const bookingData = response.data.data || response.data;
+      const bookingId = bookingData.booking_id || bookingData.id;
+
       // Clear saved form data after successful booking
       clearSavedData();
-      
-      toast.success('Booking created successfully! We will contact you soon.');
-      navigate('/dashboard');
+
+      toast.success('Booking created successfully! Redirecting to confirmation page...');
+
+      // Navigate to booking confirmation page with payment modal option
+      if (bookingId) {
+        navigate(`/booking-confirmation/${bookingId}`, {
+          state: {
+            showPayment: true,
+            from: 'set-an-event'
+          }
+        });
+      } else {
+        // Fallback to dashboard if booking ID is not available
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Error creating booking:', error);
-      const errorMessage = error.response?.data?.message || 
-        (error.response?.data?.errors ? 
-          Object.values(error.response.data.errors).flat().join(', ') : 
+      const errorMessage = error.response?.data?.message ||
+        (error.response?.data?.errors ?
+          Object.values(error.response.data.errors).flat().join(', ') :
           'Failed to create booking');
       toast.error(errorMessage);
     } finally {
@@ -374,8 +403,8 @@ const SetAnEvent = () => {
             </h1>
           </div>
           <p className="text-lg text-gray-600 dark:text-gray-300 transition-colors duration-300">
-            {formData.event_type 
-              ? `Let's create an unforgettable ${theme.name.toLowerCase()} celebration` 
+            {formData.event_type
+              ? `Let's create an unforgettable ${theme.name.toLowerCase()} celebration`
               : 'The small details make the difference'}
           </p>
         </div>
@@ -387,7 +416,7 @@ const SetAnEvent = () => {
         {currentStep === 1 && (
           <div className="rounded-xl border border-[#e2dbe6] dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm transition-all duration-300 hover:shadow-lg">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center transition-colors duration-300">Step 1: Tell us your vision</h2>
-            
+
             <form onSubmit={handleStep1Submit} className="space-y-8">
               {/* Personal Information */}
               <div className="space-y-4">
@@ -412,11 +441,10 @@ const SetAnEvent = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="John"
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.first_name && touched.first_name
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.first_name && touched.first_name
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.first_name && touched.first_name && (
@@ -441,11 +469,10 @@ const SetAnEvent = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="Doe"
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.last_name && touched.last_name
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.last_name && touched.last_name
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.last_name && touched.last_name && (
@@ -470,11 +497,10 @@ const SetAnEvent = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="john.doe@example.com"
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.email && touched.email
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.email && touched.email
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.email && touched.email && (
@@ -500,11 +526,10 @@ const SetAnEvent = () => {
                         required
                         placeholder="123-456-7890"
                         maxLength={14}
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.phone_number && touched.phone_number
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.phone_number && touched.phone_number
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.phone_number && touched.phone_number && (
@@ -544,11 +569,10 @@ const SetAnEvent = () => {
                         onBlur={handleBlur}
                         required
                         min={new Date().toISOString().split('T')[0]}
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.event_date && touched.event_date
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.event_date && touched.event_date
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.event_date && touched.event_date && (
@@ -572,11 +596,10 @@ const SetAnEvent = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         required
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.event_time && touched.event_time
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.event_time && touched.event_time
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.event_time && touched.event_time && (
@@ -601,11 +624,10 @@ const SetAnEvent = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="e.g., Grand Ballroom, Garden Venue"
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.venue && touched.venue
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.venue && touched.venue
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.venue && touched.venue && (
@@ -628,11 +650,10 @@ const SetAnEvent = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         required
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 appearance-none ${
-                          formErrors.event_type && touched.event_type
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 appearance-none ${formErrors.event_type && touched.event_type
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       >
                         <option value="">Choose Event Type</option>
                         <option value="wedding">Wedding</option>
@@ -671,27 +692,26 @@ const SetAnEvent = () => {
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {availableMotifs.map((motif) => (
-                      <label 
-                        key={motif} 
-                        className={`flex items-center space-x-2 cursor-pointer p-3 rounded-lg border-2 transition-all duration-200 ${
-                          formData.motifs.includes(motif)
+                        <label
+                          key={motif}
+                          className={`flex items-center space-x-2 cursor-pointer p-3 rounded-lg border-2 transition-all duration-200 ${formData.motifs.includes(motif)
                             ? `${theme.primaryBorder} ${theme.primaryLight}`
                             : `border-gray-200 dark:border-gray-700 ${theme.primaryBorder.replace('border-', 'hover:border-')}`
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          name="motifs"
-                          value={motif}
-                          checked={formData.motifs.includes(motif)}
-                          onChange={handleChange}
-                          className={`w-4 h-4 ${theme.primaryText} border-gray-300 dark:border-gray-600 rounded ${theme.primaryRing.replace('focus:', 'focus:')} dark:bg-gray-800`}
-                        />
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">{motif}</span>
-                        {formData.motifs.includes(motif) && (
-                          <CheckCircle2 className={`w-4 h-4 ${theme.primaryText} ml-auto transition-colors duration-300`} />
-                        )}
-                      </label>
+                            }`}
+                        >
+                          <input
+                            type="checkbox"
+                            name="motifs"
+                            value={motif}
+                            checked={formData.motifs.includes(motif)}
+                            onChange={handleChange}
+                            className={`w-4 h-4 ${theme.primaryText} border-gray-300 dark:border-gray-600 rounded ${theme.primaryRing.replace('focus:', 'focus:')} dark:bg-gray-800`}
+                          />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">{motif}</span>
+                          {formData.motifs.includes(motif) && (
+                            <CheckCircle2 className={`w-4 h-4 ${theme.primaryText} ml-auto transition-colors duration-300`} />
+                          )}
+                        </label>
                       ))}
                     </div>
                   )}
@@ -704,11 +724,10 @@ const SetAnEvent = () => {
                         </div>
                       )}
                     </div>
-                    <p className={`text-xs font-medium transition-colors duration-300 ${
-                      formData.motifs.length === 3 
-                        ? theme.primaryText
-                        : 'text-gray-500 dark:text-gray-400'
-                    }`}>
+                    <p className={`text-xs font-medium transition-colors duration-300 ${formData.motifs.length === 3
+                      ? theme.primaryText
+                      : 'text-gray-500 dark:text-gray-400'
+                      }`}>
                       Selected: {formData.motifs.length}/3
                     </p>
                   </div>
@@ -740,11 +759,10 @@ const SetAnEvent = () => {
                         min="1"
                         max="10000"
                         placeholder="50"
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.guest_range && touched.guest_range
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.guest_range && touched.guest_range
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {formErrors.guest_range && touched.guest_range && (
@@ -773,11 +791,10 @@ const SetAnEvent = () => {
                         onBlur={handleBlur}
                         required
                         placeholder="100,000"
-                        className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                          formErrors.budget_range && touched.budget_range
-                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
-                            : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
-                        } dark:bg-gray-800 dark:text-white`}
+                        className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300 ${formErrors.budget_range && touched.budget_range
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500 dark:border-red-500'
+                          : `border-gray-300 dark:border-gray-600 ${theme.primaryRing}`
+                          } dark:bg-gray-800 dark:text-white`}
                       />
                       {formErrors.budget_range && touched.budget_range && (
                         <div className="flex items-center gap-1 mt-1 text-sm text-red-600 dark:text-red-400">
@@ -907,7 +924,7 @@ const SetAnEvent = () => {
                             <span>Best Match</span>
                           </div>
                         )}
-                        
+
                         <div className="relative overflow-hidden h-64">
                           {packageImage ? (
                             <img
@@ -928,21 +945,21 @@ const SetAnEvent = () => {
                             </div>
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                          
+
                           {/* Match Score Badge */}
                           <div className={`absolute top-4 right-4 flex flex-col items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br ${theme.primary} text-white shadow-xl border-4 border-white dark:border-gray-800`}>
                             <span className="text-xs font-semibold opacity-90">Match</span>
                             <p className="text-2xl font-bold leading-none">{matchPercentage}%</p>
                           </div>
                         </div>
-                        
+
                         <div className="p-6 flex flex-col flex-grow">
                           <div className="flex items-start justify-between mb-2">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight transition-colors duration-300 flex-1">
                               {packageName}
                             </h3>
                           </div>
-                          
+
                           <div className="flex items-center gap-2 mb-4">
                             <p className={`text-2xl font-bold ${theme.primaryText} transition-colors duration-300`}>
                               {formatPrice(packagePrice)}
@@ -956,7 +973,7 @@ const SetAnEvent = () => {
                               <span className={`text-xs font-bold ${theme.primaryText}`}>{matchPercentage}%</span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                              <div 
+                              <div
                                 className={`h-full bg-gradient-to-r ${theme.primary} transition-all duration-500 rounded-full`}
                                 style={{ width: `${matchPercentage}%` }}
                               />
@@ -1023,21 +1040,49 @@ const SetAnEvent = () => {
                     <Package className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No packages found</h3>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md">
-                    We couldn't find packages matching your criteria. Contact us to create a custom package tailored to your needs.
+                  <p className="text-gray-600 dark:text-gray-300 mb-2 max-w-md">
+                    We couldn't find packages matching your criteria. Don't worry! We can create a custom package tailored specifically to your needs.
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                    Your event details have been saved. Our team will contact you to discuss custom options.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Link to="/contact-us">
-                      <Button className={`bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white px-6`}>
-                        Contact Us for Custom Packages
+                    <Link to="/contact-us" state={{
+                      from: 'set-an-event',
+                      // Personal Information
+                      first_name: formData.first_name,
+                      last_name: formData.last_name,
+                      email: formData.email,
+                      mobile_number: formData.phone_number,
+                      // Event Details
+                      event_type: formData.event_type,
+                      date_of_event: formData.event_date,
+                      preferred_venue: formData.venue,
+                      budget: formData.budget_range ? formData.budget_range.replace(/,/g, '') : '',
+                      estimated_guests: formData.guest_range,
+                      // Additional info for message
+                      motifs: formData.motifs.join(', '),
+                      event_time: formData.event_time,
+                      message: `I'm looking for a custom package for my ${formData.event_type} event. Event details:\n- Date: ${formData.event_date}\n- Time: ${formData.event_time || 'Not specified'}\n- Venue: ${formData.venue}\n- Guests: ${formData.guest_range}\n- Budget: ₱${formData.budget_range || 'Flexible'}\n- Motifs: ${formData.motifs.join(', ')}`
+                    }}>
+                      <Button className={`bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white px-6 flex items-center gap-2`}>
+                        <MessageCircle className="w-4 h-4" />
+                        Request Custom Package
+                      </Button>
+                    </Link>
+                    <Link to="/packages">
+                      <Button variant="outline" className="px-6 flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Browse All Packages
                       </Button>
                     </Link>
                     <Button
                       onClick={() => setCurrentStep(1)}
                       variant="outline"
-                      className="px-6"
+                      className="px-6 flex items-center gap-2"
                     >
-                      Modify Search Criteria
+                      <Filter className="w-4 h-4" />
+                      Modify Search
                     </Button>
                   </div>
                 </div>
@@ -1055,11 +1100,16 @@ const SetAnEvent = () => {
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                       Not finding what you're looking for?
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      We're here to help! Our team can create a custom package tailored specifically to your vision and requirements.
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Don't worry! We have several options to help you find the perfect package:
                     </p>
+                    <ul className="text-xs text-gray-500 dark:text-gray-400 mb-4 ml-4 list-disc space-y-1">
+                      <li>Request a custom package tailored to your specific needs</li>
+                      <li>Browse all available packages in our catalog</li>
+                      <li>Modify your search criteria to see different options</li>
+                    </ul>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Link to="/contact-us" state={{ 
+                      <Link to="/contact-us" state={{
                         from: 'set-an-event',
                         // Personal Information
                         first_name: formData.first_name,
@@ -1075,6 +1125,7 @@ const SetAnEvent = () => {
                         // Additional info for message
                         motifs: formData.motifs.join(', '),
                         event_time: formData.event_time,
+                        message: `I'm interested in a custom package for my ${formData.event_type} event. The recommended packages don't quite match what I'm looking for. Event details:\n- Date: ${formData.event_date}\n- Time: ${formData.event_time || 'Not specified'}\n- Venue: ${formData.venue}\n- Guests: ${formData.guest_range}\n- Budget: ₱${formData.budget_range || 'Flexible'}\n- Motifs: ${formData.motifs.join(', ')}\n\nPlease contact me to discuss custom options.`
                       }}>
                         <Button className={`bg-gradient-to-r ${theme.primary} hover:${theme.primaryHover} text-white px-6 flex items-center gap-2`}>
                           <MessageCircle className="w-4 h-4" />
@@ -1136,7 +1187,7 @@ const SetAnEvent = () => {
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">Selected Package</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
@@ -1159,7 +1210,7 @@ const SetAnEvent = () => {
                       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Match Score</span>
                       <div className="flex items-center gap-3 mt-1">
                         <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                          <div 
+                          <div
                             className={`h-full bg-gradient-to-r ${theme.primary} rounded-full`}
                             style={{ width: `${Math.round(parseFloat(selectedPackage.score || selectedPackage.match_score || 0) * 100)}%` }}
                           />
@@ -1192,7 +1243,7 @@ const SetAnEvent = () => {
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 transition-colors duration-300">Event Details</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
@@ -1201,11 +1252,11 @@ const SetAnEvent = () => {
                         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Event Date</span>
                       </div>
                       <p className="text-base font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-                        {new Date(formData.event_date).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
+                        {new Date(formData.event_date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
                         })}
                       </p>
                     </div>
@@ -1245,7 +1296,7 @@ const SetAnEvent = () => {
                       </div>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {formData.motifs.map((motif, idx) => (
-                          <span 
+                          <span
                             key={idx}
                             className={`px-3 py-1 ${theme.primaryLight} ${theme.primaryText} text-sm font-medium rounded-full border ${theme.primaryBorder}`}
                           >

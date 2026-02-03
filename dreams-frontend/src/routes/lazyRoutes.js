@@ -20,9 +20,15 @@ export const Register = lazy(() => import('../pages/auth/Register'));
 export const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
 export const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
 export const VerifyEmail = lazy(() => import('../pages/auth/VerifyEmail'));
+export const FacebookCallback = lazy(() => import('../pages/auth/FacebookCallback'));
 
 // Client dashboard pages - lazy loaded
 export const ClientDashboard = lazy(() => import('../pages/Dashboard/client/ClientDashboard'));
+export const ClientBookings = lazy(() => import('../pages/Dashboard/client/ClientBookings'));
+export const ClientRecommendations = lazy(() => import('../pages/Dashboard/client/ClientRecommendations'));
+export const ClientPackages = lazy(() => import('../pages/Dashboard/client/ClientPackages'));
+export const ClientReviews = lazy(() => import('../pages/Dashboard/client/ClientReviews'));
+export const ClientPayments = lazy(() => import('../pages/Dashboard/client/ClientPayments'));
 export const SubmitTestimonial = lazy(() => import('../pages/Dashboard/client/SubmitTestimonial'));
 export const ProfileSettings = lazy(() => import('../pages/Dashboard/client/ProfileSettings'));
 

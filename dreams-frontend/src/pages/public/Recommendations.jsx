@@ -5,12 +5,12 @@ import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { Card, Button, Input } from '../../components/ui';
 import { PackageComparison } from '../../components/features';
-import { 
-  ThumbsUp, 
-  ThumbsDown, 
-  Star, 
-  Users, 
-  DollarSign, 
+import {
+  ThumbsUp,
+  ThumbsDown,
+  Star,
+  Users,
+  DollarSign,
   Sparkles,
   ChevronRight,
   X,
@@ -24,7 +24,9 @@ import {
   Heart,
   HelpCircle,
   Search,
-  Tag
+  Tag,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 
 const Recommendations = () => {
@@ -56,9 +58,55 @@ const Recommendations = () => {
   const [touchedFields, setTouchedFields] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [savedRecommendations, setSavedRecommendations] = useState([]);
 
   // Theme suggestions
   const themeSuggestions = ['elegant', 'modern', 'rustic', 'vintage', 'classic', 'romantic', 'minimalist', 'luxury', 'outdoor', 'indoor'];
+
+  // Load saved recommendations from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('savedRecommendations');
+      if (saved) {
+        setSavedRecommendations(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading saved recommendations:', error);
+    }
+  }, []);
+
+  // Save/unsave recommendation
+  const handleSaveForLater = (pkg) => {
+    try {
+      const packageId = pkg.id || pkg.package_id;
+      const saved = [...savedRecommendations];
+      const index = saved.findIndex(r => (r.id || r.package_id) === packageId);
+
+      if (index > -1) {
+        // Remove from saved
+        saved.splice(index, 1);
+        toast.success('Removed from saved recommendations');
+      } else {
+        // Add to saved
+        saved.push({
+          ...pkg,
+          savedAt: new Date().toISOString(),
+        });
+        toast.success('Saved for later! You can view it in your dashboard.');
+      }
+
+      setSavedRecommendations(saved);
+      localStorage.setItem('savedRecommendations', JSON.stringify(saved));
+    } catch (error) {
+      console.error('Error saving recommendation:', error);
+      toast.error('Failed to save recommendation');
+    }
+  };
+
+  const isSaved = (pkg) => {
+    const packageId = pkg.id || pkg.package_id;
+    return savedRecommendations.some(r => (r.id || r.package_id) === packageId);
+  };
 
   // Debounce search query for performance
   useEffect(() => {
@@ -170,7 +218,7 @@ const Recommendations = () => {
   // Form validation
   const validateField = (name, value) => {
     let error = '';
-    
+
     switch (name) {
       case 'type':
         if (!value) {
@@ -197,7 +245,7 @@ const Recommendations = () => {
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -230,16 +278,16 @@ const Recommendations = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Mark field as touched
     setTouchedFields({ ...touchedFields, [name]: true });
-    
+
     // Special handling for budget field - format with commas
     if (name === 'budget') {
       const numericValue = removeCommas(value);
       const formattedValue = formatNumberWithCommas(numericValue);
-    setFormData({
-      ...formData,
+      setFormData({
+        ...formData,
         [name]: formattedValue,
       });
       // Validate budget field
@@ -305,7 +353,7 @@ const Recommendations = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Mark all fields as touched
     setTouchedFields({
       type: true,
@@ -340,7 +388,7 @@ const Recommendations = () => {
       const recs = response.data.data || [];
       setRecommendations(recs);
       setSubmitted(true);
-      
+
       // Scroll to results
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -417,7 +465,7 @@ const Recommendations = () => {
               {submitted ? 'Recommended Packages for You' : 'Get Personalized Recommendations'}
             </h1>
             <p className="text-[#8a7c60] dark:text-gray-300 text-base font-normal leading-normal max-w-2xl transition-colors duration-300">
-              {submitted 
+              {submitted
                 ? "Based on your preferences, we've curated a selection of packages that we think you'll love. Explore the options below to find the perfect fit for your special occasion."
                 : "Fill out the form below to get personalized package recommendations tailored to your event needs."}
             </p>
@@ -446,7 +494,7 @@ const Recommendations = () => {
                   <span className="text-sm font-bold text-[#4338CA] dark:text-[#6366F1]">{getFormProgress()}%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-[#4338CA] to-[#6366F1] h-2.5 rounded-full transition-all duration-500"
                     style={{ width: `${getFormProgress()}%` }}
                   ></div>
@@ -476,13 +524,12 @@ const Recommendations = () => {
                           aria-required="true"
                           aria-invalid={touchedFields.type && formErrors.type ? 'true' : 'false'}
                           aria-describedby={touchedFields.type && formErrors.type ? 'event-type-error' : undefined}
-                          className={`w-full appearance-none pl-4 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${
-                            touchedFields.type && formErrors.type
+                          className={`w-full appearance-none pl-4 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${touchedFields.type && formErrors.type
                               ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                              : formData.type 
-                              ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700' 
-                              : 'border-gray-200 dark:border-gray-600'
-                          }`}
+                              : formData.type
+                                ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
+                                : 'border-gray-200 dark:border-gray-600'
+                            }`}
                         >
                           <option value="">Select event type...</option>
                           <option value="wedding">Wedding</option>
@@ -526,25 +573,24 @@ const Recommendations = () => {
                         <span className="text-red-500 text-lg" aria-label="required">*</span>
                       </label>
                       <div className="relative">
-                      <input
-                        id="guests-input"
-                        type="number"
-                        name="guests"
-                        value={formData.guests}
-                        onChange={handleChange}
+                        <input
+                          id="guests-input"
+                          type="number"
+                          name="guests"
+                          value={formData.guests}
+                          onChange={handleChange}
                           onBlur={handleBlur}
-                        min="1"
+                          min="1"
                           placeholder="e.g., 50, 100, 200"
                           aria-required="true"
                           aria-invalid={touchedFields.guests && formErrors.guests ? 'true' : 'false'}
                           aria-describedby={touchedFields.guests && formErrors.guests ? 'guests-error' : undefined}
-                          className={`w-full pl-4 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${
-                            touchedFields.guests && formErrors.guests
+                          className={`w-full pl-4 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${touchedFields.guests && formErrors.guests
                               ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                              : formData.guests 
-                              ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700' 
-                              : 'border-gray-200 dark:border-gray-600'
-                          }`}
+                              : formData.guests
+                                ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
+                                : 'border-gray-200 dark:border-gray-600'
+                            }`}
                         />
                         {touchedFields.guests && formData.guests && !formErrors.guests && (
                           <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
@@ -576,25 +622,24 @@ const Recommendations = () => {
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">
                           <span className="text-gray-500 dark:text-gray-400 font-semibold text-lg">₱</span>
                         </div>
-                      <input
+                        <input
                           id="budget-input"
                           type="text"
-                        name="budget"
-                        value={formData.budget}
-                        onChange={handleChange}
+                          name="budget"
+                          value={formData.budget}
+                          onChange={handleChange}
                           onBlur={handleBlur}
                           placeholder="e.g., 50,000 or 100,000"
                           inputMode="numeric"
                           aria-label="Budget amount in Philippine Peso"
                           aria-invalid={touchedFields.budget && formErrors.budget ? 'true' : 'false'}
                           aria-describedby={touchedFields.budget && formErrors.budget ? 'budget-error' : 'budget-help'}
-                          className={`w-full pl-10 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${
-                            touchedFields.budget && formErrors.budget
+                          className={`w-full pl-10 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${touchedFields.budget && formErrors.budget
                               ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                              : formData.budget 
-                              ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700' 
-                              : 'border-gray-200 dark:border-gray-600'
-                          }`}
+                              : formData.budget
+                                ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
+                                : 'border-gray-200 dark:border-gray-600'
+                            }`}
                         />
                         {touchedFields.budget && formData.budget && !formErrors.budget && (
                           <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
@@ -632,11 +677,10 @@ const Recommendations = () => {
                           onChange={handleChange}
                           placeholder="e.g., elegant, modern, rustic, vintage"
                           aria-label="Event theme or style preference"
-                          className={`w-full pl-4 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] focus:border-[#4338CA] dark:focus:border-[#6366F1] transition-all min-h-[48px] touch-manipulation ${
-                            formData.theme 
-                              ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700' 
+                          className={`w-full pl-4 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] focus:border-[#4338CA] dark:focus:border-[#6366F1] transition-all min-h-[48px] touch-manipulation ${formData.theme
+                              ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700'
                               : 'border-gray-200 dark:border-gray-600'
-                          }`}
+                            }`}
                         />
                       </div>
                       {/* Theme Suggestions */}
@@ -651,11 +695,10 @@ const Recommendations = () => {
                               setTouchedFields({ ...touchedFields, theme: true });
                             }}
                             aria-label={`Select ${theme} theme`}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[36px] touch-manipulation ${
-                              formData.theme === theme
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[36px] touch-manipulation ${formData.theme === theme
                                 ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA]/10 dark:hover:bg-[#6366F1]/20 hover:text-[#4338CA] dark:hover:text-[#6366F1]'
-                            }`}
+                              }`}
                           >
                             <Tag className="w-3 h-3 inline mr-1" />
                             {theme}
@@ -675,17 +718,16 @@ const Recommendations = () => {
                     <span>Additional Preferences</span>
                   </label>
                   <div className="relative">
-                  <input
-                    type="text"
-                    name="preferences"
-                    value={formData.preferences}
-                    onChange={handleChange}
+                    <input
+                      type="text"
+                      name="preferences"
+                      value={formData.preferences}
+                      onChange={handleChange}
                       placeholder="e.g., outdoor venue, photography included, catering service, live music"
-                      className={`w-full pl-4 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] focus:border-[#4338CA] dark:focus:border-[#6366F1] transition-all ${
-                        formData.preferences 
-                          ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700' 
+                      className={`w-full pl-4 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] focus:border-[#4338CA] dark:focus:border-[#6366F1] transition-all ${formData.preferences
+                          ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700'
                           : 'border-gray-200 dark:border-gray-600'
-                      }`}
+                        }`}
                     />
                   </div>
                   <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
@@ -695,26 +737,26 @@ const Recommendations = () => {
 
                 {/* Submit Button */}
                 <div className="pt-4">
-                <button
-                  type="submit"
+                  <button
+                    type="submit"
                     disabled={loading || !formData.type || !formData.guests || Object.values(formErrors).some(err => err)}
                     aria-label="Submit form to get personalized package recommendations"
                     aria-describedby="submit-help"
                     className="w-full px-8 py-5 bg-gradient-to-r from-[#4338CA] via-[#5B52D5] to-[#6366F1] text-white font-black text-lg rounded-2xl hover:from-[#4338CA]/90 hover:via-[#5B52D5]/90 hover:to-[#6366F1]/90 focus:outline-none focus:ring-4 focus:ring-[#4338CA]/30 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-[1.02] disabled:transform-none min-h-[56px] md:min-h-[64px] touch-manipulation"
-                >
-                  {loading ? (
-                    <>
+                  >
+                    {loading ? (
+                      <>
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                      <span>Getting Recommendations...</span>
-                    </>
-                  ) : (
-                    <>
+                        <span>Getting Recommendations...</span>
+                      </>
+                    ) : (
+                      <>
                         <Sparkles className="w-6 h-6" />
                         <span>Get Personalized Recommendations</span>
                         <ChevronRight className="w-6 h-6" />
-                    </>
-                  )}
-                </button>
+                      </>
+                    )}
+                  </button>
                   <p id="submit-help" className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     <Info className="w-4 h-4 inline mr-1.5" aria-hidden="true" />
                     Fields marked with <span className="text-red-500 dark:text-red-400 font-bold">*</span> are required
@@ -842,11 +884,10 @@ const Recommendations = () => {
                   onClick={() => setFilters({ ...filters, budgetRange: '1000-5000', eventType: '', guests: '' })}
                   aria-pressed={filters.budgetRange === '1000-5000'}
                   aria-label="Filter packages under 5,000 pesos"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${
-                    filters.budgetRange === '1000-5000'
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.budgetRange === '1000-5000'
                       ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
-                  }`}
+                    }`}
                 >
                   Under ₱5,000
                 </button>
@@ -854,11 +895,10 @@ const Recommendations = () => {
                   onClick={() => setFilters({ ...filters, budgetRange: '5000-10000', eventType: '', guests: '' })}
                   aria-pressed={filters.budgetRange === '5000-10000'}
                   aria-label="Filter packages between 5,000 and 10,000 pesos"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${
-                    filters.budgetRange === '5000-10000'
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.budgetRange === '5000-10000'
                       ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
-                  }`}
+                    }`}
                 >
                   ₱5,000 - ₱10,000
                 </button>
@@ -866,11 +906,10 @@ const Recommendations = () => {
                   onClick={() => setFilters({ ...filters, budgetRange: '', eventType: 'wedding', guests: '' })}
                   aria-pressed={filters.eventType === 'wedding'}
                   aria-label="Filter wedding packages"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${
-                    filters.eventType === 'wedding'
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.eventType === 'wedding'
                       ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
-                  }`}
+                    }`}
                 >
                   Wedding
                 </button>
@@ -878,11 +917,10 @@ const Recommendations = () => {
                   onClick={() => setFilters({ ...filters, budgetRange: '', eventType: '', guests: '50' })}
                   aria-pressed={filters.guests === '50'}
                   aria-label="Filter packages for 50 or more guests"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${
-                    filters.guests === '50'
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.guests === '50'
                       ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
-                  }`}
+                    }`}
                 >
                   50+ Guests
                 </button>
@@ -918,37 +956,37 @@ const Recommendations = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
-                <div className="relative">
-                  <select
-                    name="budgetRange"
-                    value={filters.budgetRange}
-                    onChange={handleFilterChange}
-                    className="w-full md:w-auto appearance-none bg-white dark:bg-gray-800 border border-[#F3E9DD] dark:border-gray-600 rounded-lg py-2.5 pl-3 pr-8 text-[#2D3748] dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f2a60d]/50 dark:focus:ring-[#f59e0b]/50 focus:border-[#f2a60d] dark:focus:border-[#f59e0b] transition-all"
-                  >
-                    <option value="">Budget Range</option>
-                    <option value="1000-3000">₱1,000 - ₱3,000</option>
-                    <option value="3000-5000">₱3,000 - ₱5,000</option>
-                    <option value="5000-10000">₱5,000 - ₱10,000</option>
-                    <option value="10000-999999">₱10,000+</option>
-                  </select>
-                  <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8a7c60] dark:text-gray-400 pointer-events-none w-5 h-5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-[#8a7c60] dark:text-gray-300 whitespace-nowrap transition-colors" htmlFor="guests">
-                    No. of Guests:
-                  </label>
-                  <input
-                    id="guests"
-                    name="guests"
-                    type="number"
-                    value={filters.guests}
-                    onChange={handleFilterChange}
-                    placeholder="e.g., 100"
-                    className="w-24 bg-white dark:bg-gray-800 border border-[#F3E9DD] dark:border-gray-600 rounded-lg py-2.5 px-3 text-[#2D3748] dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#f2a60d]/50 dark:focus:ring-[#f59e0b]/50 focus:border-[#f2a60d] dark:focus:border-[#f59e0b] transition-all"
-                  />
-                </div>
+                  <div className="relative">
+                    <select
+                      name="budgetRange"
+                      value={filters.budgetRange}
+                      onChange={handleFilterChange}
+                      className="w-full md:w-auto appearance-none bg-white dark:bg-gray-800 border border-[#F3E9DD] dark:border-gray-600 rounded-lg py-2.5 pl-3 pr-8 text-[#2D3748] dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f2a60d]/50 dark:focus:ring-[#f59e0b]/50 focus:border-[#f2a60d] dark:focus:border-[#f59e0b] transition-all"
+                    >
+                      <option value="">Budget Range</option>
+                      <option value="1000-3000">₱1,000 - ₱3,000</option>
+                      <option value="3000-5000">₱3,000 - ₱5,000</option>
+                      <option value="5000-10000">₱5,000 - ₱10,000</option>
+                      <option value="10000-999999">₱10,000+</option>
+                    </select>
+                    <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8a7c60] dark:text-gray-400 pointer-events-none w-5 h-5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-[#8a7c60] dark:text-gray-300 whitespace-nowrap transition-colors" htmlFor="guests">
+                      No. of Guests:
+                    </label>
+                    <input
+                      id="guests"
+                      name="guests"
+                      type="number"
+                      value={filters.guests}
+                      onChange={handleFilterChange}
+                      placeholder="e.g., 100"
+                      className="w-24 bg-white dark:bg-gray-800 border border-[#F3E9DD] dark:border-gray-600 rounded-lg py-2.5 px-3 text-[#2D3748] dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#f2a60d]/50 dark:focus:ring-[#f59e0b]/50 focus:border-[#f2a60d] dark:focus:border-[#f59e0b] transition-all"
+                    />
+                  </div>
                 </div>
                 <div className="relative self-start md:self-center">
                   <select
@@ -1043,7 +1081,7 @@ const Recommendations = () => {
                               </div>
                             </div>
                           </Link>
-                          
+
                           {/* Match Score Badge */}
                           <div className="absolute top-4 right-4">
                             <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-full p-2 shadow-lg border border-gray-200/50 dark:border-gray-700/50">
@@ -1083,11 +1121,10 @@ const Recommendations = () => {
                           <div className="absolute top-4 left-4 z-10">
                             <button
                               onClick={() => handleComparisonToggle(pkg)}
-                              className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 ${
-                                isSelected
+                              className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 ${isSelected
                                   ? 'bg-[#4338CA] dark:bg-[#6366F1] border-[#4338CA] dark:border-[#6366F1] text-white shadow-lg'
                                   : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-400 hover:border-[#4338CA] dark:hover:border-[#6366F1] hover:bg-white dark:hover:bg-gray-800'
-                              }`}
+                                }`}
                               title={isSelected ? 'Remove from comparison' : 'Add to comparison'}
                             >
                               {isSelected ? (
@@ -1103,8 +1140,8 @@ const Recommendations = () => {
                         <div className="p-5 flex flex-col flex-grow">
                           <Link to={`/packages/${packageId}`}>
                             <h3 className="text-[#181611] dark:text-white text-xl font-bold leading-normal mb-2 group-hover:text-[#4338CA] dark:group-hover:text-[#6366F1] transition-colors duration-300 cursor-pointer">
-                            {packageName}
-                          </h3>
+                              {packageName}
+                            </h3>
                           </Link>
 
                           {/* Justification Badges */}
@@ -1178,21 +1215,44 @@ const Recommendations = () => {
                             </div>
 
                             {/* Primary Actions */}
-                            <div className="grid grid-cols-2 gap-2">
-                              <Link to={`/packages/${packageId}`} className="flex-1">
-                                <button className="w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-[#4338CA] dark:bg-[#6366F1] text-white text-sm font-semibold transition-all duration-300 hover:bg-[#4338CA]/90 dark:hover:bg-[#6366F1]/90 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]">
-                                  <span>View Details</span>
-                                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <Link to={`/packages/${packageId}`} className="flex-1">
+                                  <button className="w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-[#4338CA] dark:bg-[#6366F1] text-white text-sm font-semibold transition-all duration-300 hover:bg-[#4338CA]/90 dark:hover:bg-[#6366F1]/90 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]">
+                                    <span>View Details</span>
+                                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                  </button>
+                                </Link>
+                                <button
+                                  onClick={() => {
+                                    // TODO: Open customization request modal
+                                    toast.info('Customization request feature coming soon!');
+                                  }}
+                                  className="w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-[#f2a60d] dark:bg-[#f59e0b] text-[#181611] dark:text-white text-sm font-semibold transition-all duration-300 hover:bg-[#f2a60d]/90 dark:hover:bg-[#f59e0b]/90 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                  <span>Customize</span>
                                 </button>
-                              </Link>
+                              </div>
+                              {/* Save for Later Button */}
                               <button
-                                onClick={() => {
-                                  // TODO: Open customization request modal
-                                  toast.info('Customization request feature coming soon!');
-                                }}
-                                className="w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-[#f2a60d] dark:bg-[#f59e0b] text-[#181611] dark:text-white text-sm font-semibold transition-all duration-300 hover:bg-[#f2a60d]/90 dark:hover:bg-[#f59e0b]/90 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+                                onClick={() => handleSaveForLater(pkg)}
+                                className={`w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 text-sm font-semibold transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${isSaved(pkg)
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                  }`}
+                                title={isSaved(pkg) ? 'Remove from saved' : 'Save for later'}
                               >
-                                <span>Customize</span>
+                                {isSaved(pkg) ? (
+                                  <>
+                                    <BookmarkCheck className="w-4 h-4" />
+                                    <span>Saved</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Bookmark className="w-4 h-4" />
+                                    <span>Save for Later</span>
+                                  </>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -1235,11 +1295,11 @@ const Recommendations = () => {
                       >
                         Clear All Filters
                       </button>
-                  <Link to="/contact-us">
+                      <Link to="/contact-us">
                         <button className="px-6 py-3 bg-gradient-to-r from-[#f2a60d] to-[#f59e0b] text-[#181611] dark:text-white rounded-xl font-semibold hover:from-[#f2a60d]/90 hover:to-[#f59e0b]/90 transition-all shadow-lg">
                           Request Custom Package
                         </button>
-                  </Link>
+                      </Link>
                     </div>
                   </div>
                 </div>

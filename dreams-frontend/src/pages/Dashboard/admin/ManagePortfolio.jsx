@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../../api/axios';
-import AdminSidebar from '../../../components/layout/AdminSidebar';
-import AdminNavbar from '../../../components/layout/AdminNavbar';
 import { ConfirmationModal, LoadingSpinner } from '../../../components/ui';
-import { useSidebar } from '../../../context/SidebarContext';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -18,7 +15,6 @@ const initialFormState = {
 };
 
 const ManagePortfolio = () => {
-  const { isCollapsed } = useSidebar();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState(initialFormState);
@@ -173,16 +169,7 @@ const ManagePortfolio = () => {
   };
 
   return (
-    <div className="flex">
-      <AdminSidebar />
-      <AdminNavbar />
-      <main
-        className="flex-1 bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen transition-all duration-300 pt-16"
-        style={{
-          marginLeft: isCollapsed ? '5rem' : '16rem',
-          width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
-        }}
-      >
+    <div className="bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
         <div className="p-4 sm:p-6 lg:p-10">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
             <div>
@@ -451,7 +438,6 @@ const ManagePortfolio = () => {
           variant="danger"
         />
         </div>
-      </main>
     </div>
   );
 };

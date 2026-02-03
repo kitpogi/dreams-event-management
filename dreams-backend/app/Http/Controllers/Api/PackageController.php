@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\LogsAudit;
 use App\Models\EventPackage;
 use App\Services\ImageService;
+use App\Http\Resources\PackageResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -166,7 +167,7 @@ class PackageController extends Controller
                 ->paginate($perPage, ['*'], 'page', $page);
 
             $response = [
-                'data' => $paginated->items(),
+                'data' => PackageResource::collection($paginated->items()),
                 'meta' => [
                     'current_page' => $paginated->currentPage(),
                     'per_page' => $paginated->perPage(),
@@ -233,8 +234,9 @@ class PackageController extends Controller
             $averageRating = $reviews->avg('rating');
             $totalReviews = $reviews->count();
 
-            $data = $package->toArray();
-            $data['average_rating'] = $averageRating ? round($averageRating, 1) : null;
+            // Use PackageResource for consistent formatting
+            $data = (new PackageResource($package))->toArray(request());
+            $data['average_rating'] = $averageRating ? round((float) $averageRating, 1) : null;
             $data['total_reviews'] = $totalReviews;
 
             return $data;
@@ -278,18 +280,9 @@ class PackageController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function store(Request $request)
+    public function store(\App\Http\Requests\Package\StorePackageRequest $request)
     {
-        $request->validate([
-            'package_name' => 'required|string|max:255',
-            'package_description' => 'required|string',
-            'package_category' => 'required|string|max:255',
-            'package_price' => 'required|numeric|min:0',
-            'capacity' => 'nullable|integer|min:1',
-            'venue_id' => 'nullable|exists:venues,id',
-            'package_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'package_inclusions' => 'required|string',
-        ]);
+        // Validation handled by FormRequest
 
         $data = $request->only([
             'package_name',
@@ -370,20 +363,11 @@ class PackageController extends Controller
      *     @OA\Response(response=404, description="Package not found")
      * )
      */
-    public function update(Request $request, $id)
+    public function update(\App\Http\Requests\Package\UpdatePackageRequest $request, $id)
     {
         $package = EventPackage::findOrFail($id);
 
-        $request->validate([
-            'package_name' => 'sometimes|string|max:255',
-            'package_description' => 'sometimes|string',
-            'package_category' => 'sometimes|string|max:255',
-            'package_price' => 'sometimes|numeric|min:0',
-            'capacity' => 'nullable|integer|min:1',
-            'venue_id' => 'nullable|exists:venues,id',
-            'package_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'package_inclusions' => 'sometimes|string',
-        ]);
+        // Validation handled by FormRequest
 
         // Store old values for audit log
         $oldValues = $package->only([

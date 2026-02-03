@@ -9,4 +9,4 @@ export * from './testimonialService';
 export * from './contactService';
 export * from './recommendationService';
 export * from './paymentService';
-
+export * from './taskService';

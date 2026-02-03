@@ -10,12 +10,8 @@ import {
   CalendarIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import AdminSidebar from "../../../components/layout/AdminSidebar";
-import AdminNavbar from "../../../components/layout/AdminNavbar";
-import { useSidebar } from "../../../context/SidebarContext";
 
 const AuditLogs = () => {
-  const { isCollapsed } = useSidebar();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -102,16 +98,7 @@ const AuditLogs = () => {
   };
 
   return (
-    <div className="flex">
-      <AdminSidebar />
-      <AdminNavbar />
-      <main
-        className="flex-1 bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen transition-all duration-300 pt-16"
-        style={{
-          marginLeft: isCollapsed ? '5rem' : '16rem',
-          width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
-        }}
-      >
+    <div className="bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
         <div className="p-4 sm:p-6 lg:p-10">
           <div className="mb-4 sm:mb-6">
             <div className="flex items-center gap-4 mb-4">
@@ -382,8 +369,7 @@ const AuditLogs = () => {
           </>
         )}
       </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 };

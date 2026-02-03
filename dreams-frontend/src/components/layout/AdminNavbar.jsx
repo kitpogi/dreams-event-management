@@ -9,7 +9,6 @@ import ProfileSettingsModal from '../modals/ProfileSettingsModal';
 import {
   PanelLeft,
   PanelRight,
-  ChevronDown,
   Settings,
   LogOut,
   LayoutDashboard,
@@ -20,7 +19,7 @@ import { ensureAbsoluteUrl } from '../../utils/imageUtils';
 
 const AdminNavbar = () => {
   const { user, logout, isAdmin } = useAuth();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, toggleSidebar, mainContentMargin, mainContentWidth } = useSidebar();
   const { darkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -35,14 +34,15 @@ const AdminNavbar = () => {
   const handleLogout = () => {
     logout();
     setShowProfileMenu(false);
+    navigate('/');
   };
 
   return (
-    <nav 
-      className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-50 transition-all duration-300"
-      style={{ 
-        left: isCollapsed ? '5rem' : '16rem',
-        width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)'
+    <nav
+      className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-50 transition-all duration-300"
+      style={{
+        left: mainContentMargin,
+        width: mainContentWidth
       }}
     >
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
@@ -86,44 +86,35 @@ const AdminNavbar = () => {
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="group relative p-1.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 hover:bg-gray-100/80 dark:hover:bg-gray-800/50"
               aria-expanded={showProfileMenu}
               aria-haspopup="true"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center text-white text-sm font-bold shadow-md overflow-hidden">
+              <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white text-sm font-bold shadow-lg ring-2 ring-white/20 dark:ring-gray-700/30 overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-[#5A45F2]/20">
                 {user?.profile_picture ? (
                   <img
                     src={ensureAbsoluteUrl(user.profile_picture)}
                     alt={user?.name || 'Profile'}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       // Fallback to initials if image fails
                       e.target.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <span>{user?.name?.charAt(0).toUpperCase() || 'A'}</span>
+                  <span className="transition-transform duration-300 group-hover:scale-110">{user?.name?.charAt(0).toUpperCase() || 'A'}</span>
                 )}
               </div>
-              <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user?.name || 'Admin'}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {user?.email || ''}
-                </p>
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
-                  showProfileMenu ? 'rotate-180' : ''
-                }`}
-              />
+              {/* Active Status Indicator with pulse animation - positioned outside avatar */}
+              <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-lg z-10">
+                <span className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></span>
+              </span>
             </button>
 
             {/* Profile Dropdown Menu */}
             {showProfileMenu && (
               <div
-                className="absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border overflow-hidden z-50 animate-fade-in bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                className="absolute right-0 mt-2 w-56 rounded-xl shadow-xl border overflow-hidden z-50 animate-fade-in bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 backdrop-blur-sm"
                 role="menu"
                 aria-orientation="vertical"
               >
@@ -136,29 +127,29 @@ const AdminNavbar = () => {
                       {user?.email || ''}
                     </p>
                   </div>
-                  
+
                   <Link
                     to={dashboardPath}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary-600/10 hover:to-primary-700/10 dark:hover:from-primary-600/20 dark:hover:to-primary-700/20"
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-[#5A45F2]/10 hover:to-[#7c3aed]/10 dark:hover:from-[#5A45F2]/20 dark:hover:to-[#7c3aed]/20"
                     onClick={() => setShowProfileMenu(false)}
                     role="menuitem"
                   >
-                    <LayoutDashboard className="w-4 h-4 text-primary-600 group-hover:scale-110 transition-transform" />
+                    <LayoutDashboard className="w-4 h-4 text-[#5A45F2] dark:text-[#7ee5ff] group-hover:scale-110 transition-transform" />
                     <span>Dashboard</span>
                   </Link>
-                  
+
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
                       setShowProfileModal(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-primary-600/10 hover:to-primary-700/10 dark:hover:from-primary-600/20 dark:hover:to-primary-700/20"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-gray-700 dark:text-gray-200 hover:bg-gradient-to-r hover:from-[#5A45F2]/10 hover:to-[#7c3aed]/10 dark:hover:from-[#5A45F2]/20 dark:hover:to-[#7c3aed]/20"
                     role="menuitem"
                   >
-                    <Settings className="w-4 h-4 text-primary-600 group-hover:scale-110 transition-transform" />
+                    <Settings className="w-4 h-4 text-[#5A45F2] dark:text-[#7ee5ff] group-hover:scale-110 transition-transform" />
                     <span>Profile Settings</span>
                   </button>
-                  
+
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20"
@@ -175,9 +166,9 @@ const AdminNavbar = () => {
       </div>
 
       {/* Profile Settings Modal */}
-      <ProfileSettingsModal 
-        isOpen={showProfileModal} 
-        onClose={() => setShowProfileModal(false)} 
+      <ProfileSettingsModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
       />
     </nav>
   );

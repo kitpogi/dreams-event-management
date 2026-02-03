@@ -7,9 +7,10 @@ use App\Services\ClientService;
 use App\Models\Review;
 use App\Models\BookingDetail;
 use App\Models\EventPackage;
+use App\Http\Requests\Review\StoreReviewRequest;
+use App\Http\Requests\Review\UpdateReviewRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 class ReviewController extends Controller
 {
@@ -82,110 +83,73 @@ class ReviewController extends Controller
     /**
      * Create a new review (requires authentication)
      */
-    public function store(Request $request)
+    public function store(StoreReviewRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'package_id' => 'required|exists:event_packages,package_id',
-            'booking_id' => 'required|exists:booking_details,booking_id',
-            'rating' => 'required|integer|min:1|max:5',
-            'review_message' => 'nullable|string|max:1000',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $validated = $request->validated();
 
         // Get authenticated user's client record
         $client = $this->clientService->getByUserEmail($request->user()->email);
         if (!$client) {
-            return response()->json([
-                'message' => 'Client record not found'
-            ], 404);
+            return $this->notFoundResponse('Client record not found');
         }
 
         // Verify the booking belongs to the client
-        $booking = BookingDetail::findOrFail($request->booking_id);
+        $booking = BookingDetail::findOrFail($validated['booking_id']);
         if ($booking->client_id !== $client->client_id) {
-            return response()->json([
-                'message' => 'Unauthorized. This booking does not belong to you.'
-            ], 403);
+            return $this->forbiddenResponse('Unauthorized. This booking does not belong to you.');
         }
 
         // Verify the booking is completed
         if ($booking->booking_status !== 'Completed') {
-            return response()->json([
-                'message' => 'You can only review completed bookings.'
-            ], 422);
+            return $this->errorResponse('You can only review completed bookings.', 422);
         }
 
         // Verify the booking is for the specified package
-        if ($booking->package_id != $request->package_id) {
-            return response()->json([
-                'message' => 'Package ID does not match the booking.'
-            ], 422);
+        if ($booking->package_id != $validated['package_id']) {
+            return $this->errorResponse('Package ID does not match the booking.', 422);
         }
 
         // Check if review already exists for this booking
-        $existingReview = Review::where('booking_id', $request->booking_id)->first();
+        $existingReview = Review::where('booking_id', $validated['booking_id'])->first();
         if ($existingReview) {
-            return response()->json([
-                'message' => 'You have already reviewed this booking.'
-            ], 422);
+            return $this->errorResponse('You have already reviewed this booking.', 422);
         }
 
         // Create the review
         $review = Review::create([
             'client_id' => $client->client_id,
-            'package_id' => $request->package_id,
-            'booking_id' => $request->booking_id,
-            'rating' => $request->rating,
-            'review_message' => $request->review_message,
+            'package_id' => $validated['package_id'],
+            'booking_id' => $validated['booking_id'],
+            'rating' => $validated['rating'],
+            'review_message' => $validated['review_message'] ?? null,
         ]);
 
         // Clear cache for this package's reviews and package details
-        Cache::forget("package_{$request->package_id}_reviews");
-        Cache::forget("package_{$request->package_id}_details");
+        Cache::forget("package_{$validated['package_id']}_reviews");
+        Cache::forget("package_{$validated['package_id']}_details");
 
         $review->load(['client', 'eventPackage']);
 
-        return response()->json([
-            'data' => $review,
-            'message' => 'Review submitted successfully'
-        ], 201);
+        return $this->successResponse($review, 'Review submitted successfully', 201);
     }
 
     /**
      * Update a review (only by the reviewer)
      */
-    public function update(Request $request, $id)
+    public function update(UpdateReviewRequest $request, $id)
     {
         $review = Review::findOrFail($id);
 
         // Get authenticated user's client record
         $client = $this->clientService->getByUserEmail($request->user()->email);
         if (!$client || $review->client_id !== $client->client_id) {
-            return response()->json([
-                'message' => 'Unauthorized. You can only update your own reviews.'
-            ], 403);
+            return $this->forbiddenResponse('Unauthorized. You can only update your own reviews.');
         }
 
-        $validator = Validator::make($request->all(), [
-            'rating' => 'sometimes|integer|min:1|max:5',
-            'review_message' => 'nullable|string|max:1000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
+        $validated = $request->validated();
         $packageId = $review->package_id;
-        $review->update($request->only(['rating', 'review_message']));
+        $review->update($validated);
         
         // Clear cache for this package's reviews and package details
         Cache::forget("package_{$packageId}_reviews");
@@ -193,10 +157,7 @@ class ReviewController extends Controller
         
         $review->load(['client', 'eventPackage']);
 
-        return response()->json([
-            'data' => $review,
-            'message' => 'Review updated successfully'
-        ]);
+        return $this->successResponse($review, 'Review updated successfully');
     }
 
     /**
@@ -211,9 +172,7 @@ class ReviewController extends Controller
         
         // Allow deletion if user is admin or owns the review
         if (!$request->user()->isAdmin() && (!$client || $review->client_id !== $client->client_id)) {
-            return response()->json([
-                'message' => 'Unauthorized. You can only delete your own reviews.'
-            ], 403);
+            return $this->forbiddenResponse('Unauthorized. You can only delete your own reviews.');
         }
 
         $packageId = $review->package_id;
@@ -223,9 +182,7 @@ class ReviewController extends Controller
         Cache::forget("package_{$packageId}_reviews");
         Cache::forget("package_{$packageId}_details");
 
-        return response()->json([
-            'message' => 'Review deleted successfully'
-        ]);
+        return $this->successResponse(null, 'Review deleted successfully');
     }
 }
 

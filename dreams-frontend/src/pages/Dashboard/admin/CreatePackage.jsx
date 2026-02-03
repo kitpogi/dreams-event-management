@@ -2,14 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
-import AdminSidebar from '../../../components/layout/AdminSidebar';
-import AdminNavbar from '../../../components/layout/AdminNavbar';
 import { LoadingSpinner } from '../../../components/ui';
-import { useSidebar } from '../../../context/SidebarContext';
 
 const CreatePackage = () => {
   const navigate = useNavigate();
-  const { isCollapsed } = useSidebar();
   const [venues, setVenues] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -323,16 +319,7 @@ const CreatePackage = () => {
   };
 
   return (
-    <div className="flex">
-      <AdminSidebar />
-      <AdminNavbar />
-      <main
-        className="flex-1 bg-gray-50 dark:bg-gray-900 min-h-screen transition-all duration-300 pt-16"
-        style={{
-          marginLeft: isCollapsed ? '5rem' : '16rem',
-          width: isCollapsed ? 'calc(100% - 5rem)' : 'calc(100% - 16rem)',
-        }}
-      >
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div className="p-4 sm:p-6 lg:p-10">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8 transition-colors duration-300">
             Create New Package
@@ -671,8 +658,7 @@ const CreatePackage = () => {
             </div>
           </form>
         </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 };

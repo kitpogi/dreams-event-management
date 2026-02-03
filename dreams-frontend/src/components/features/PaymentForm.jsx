@@ -15,12 +15,46 @@ const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer', icon: Building2 },
 ];
 
-export default function PaymentForm({ bookingId, amount, onSuccess, onCancel }) {
+export default function PaymentForm({ bookingId, amount, booking, onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentIntentId, setPaymentIntentId] = useState(null);
   const [clientKey, setClientKey] = useState(null);
   const [step, setStep] = useState('method'); // 'method' or 'processing'
+  const [paymentType, setPaymentType] = useState('remaining'); // 'deposit', 'remaining', 'full'
+
+  // Calculate payment amounts
+  const bookingStatus = (booking?.booking_status || '').toLowerCase();
+  const paymentStatus = booking?.payment_status || 'unpaid';
+  const totalAmount = parseFloat(booking?.total_amount || amount || 0);
+  const depositAmount = parseFloat(booking?.deposit_amount || (totalAmount * 0.30));
+  const totalPaid = booking?.total_paid || 0;
+  const remainingBalance = Math.max(0, totalAmount - totalPaid);
+
+  // Determine available payment options
+  const canPayDeposit = bookingStatus === 'pending' && paymentStatus !== 'paid';
+  const canPayRemaining = bookingStatus !== 'pending' && remainingBalance > 0;
+  const canPayFull = paymentStatus !== 'paid' && totalAmount > 0;
+
+  // Determine default payment amount based on type
+  const getPaymentAmount = () => {
+    if (paymentType === 'deposit') return depositAmount;
+    if (paymentType === 'remaining') return remainingBalance;
+    if (paymentType === 'full') return totalAmount;
+    // Default: remaining balance or deposit
+    return remainingBalance > 0 ? remainingBalance : depositAmount;
+  };
+
+  // Set default payment type
+  useEffect(() => {
+    if (bookingStatus === 'pending' && paymentStatus === 'unpaid') {
+      setPaymentType('deposit'); // Default to deposit for pending unpaid
+    } else if (remainingBalance > 0) {
+      setPaymentType('remaining'); // Default to remaining for approved
+    } else {
+      setPaymentType('full'); // Fallback to full
+    }
+  }, [bookingStatus, paymentStatus, remainingBalance]);
 
   useEffect(() => {
     // Load PayMongo JS SDK
@@ -41,15 +75,17 @@ export default function PaymentForm({ bookingId, amount, onSuccess, onCancel }) 
   }, []);
 
   const handleCreatePaymentIntent = async () => {
-    if (!amount || amount <= 0) {
+    const paymentAmount = getPaymentAmount();
+
+    if (!paymentAmount || paymentAmount <= 0) {
       toast.error('Invalid payment amount');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await createPaymentIntent(bookingId, amount, [paymentMethod]);
-      
+      const result = await createPaymentIntent(bookingId, paymentAmount, [paymentMethod]);
+
       if (result.success) {
         setPaymentIntentId(result.data.payment_intent_id);
         setClientKey(result.data.client_key);
@@ -178,10 +214,96 @@ export default function PaymentForm({ bookingId, amount, onSuccess, onCancel }) 
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>Payment Amount</Label>
-          <div className="text-2xl font-bold text-primary">
-            {formatCurrency(amount)}
+        {/* Payment Type Selection (if booking data available) */}
+        {booking && (canPayDeposit || canPayRemaining || canPayFull) && (
+          <div className="space-y-2">
+            <Label>Payment Type</Label>
+            <RadioGroup value={paymentType} onValueChange={setPaymentType}>
+              <div className="grid grid-cols-1 gap-3">
+                {canPayDeposit && (
+                  <div>
+                    <RadioGroupItem value="deposit" id="deposit" className="peer sr-only" />
+                    <Label
+                      htmlFor="deposit"
+                      className="flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent"
+                    >
+                      <div>
+                        <p className="font-semibold">Pay Deposit (30%)</p>
+                        <p className="text-sm text-muted-foreground">Secure your booking</p>
+                      </div>
+                      <span className="font-bold text-primary">{formatCurrency(depositAmount)}</span>
+                    </Label>
+                  </div>
+                )}
+                {canPayRemaining && (
+                  <div>
+                    <RadioGroupItem value="remaining" id="remaining" className="peer sr-only" />
+                    <Label
+                      htmlFor="remaining"
+                      className="flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent"
+                    >
+                      <div>
+                        <p className="font-semibold">Pay Remaining Balance</p>
+                        <p className="text-sm text-muted-foreground">Due before event</p>
+                      </div>
+                      <span className="font-bold text-primary">{formatCurrency(remainingBalance)}</span>
+                    </Label>
+                  </div>
+                )}
+                {canPayFull && (
+                  <div>
+                    <RadioGroupItem value="full" id="full" className="peer sr-only" />
+                    <Label
+                      htmlFor="full"
+                      className="flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer hover:bg-accent peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent"
+                    >
+                      <div>
+                        <p className="font-semibold">Pay in Full</p>
+                        <p className="text-sm text-muted-foreground">Complete payment</p>
+                      </div>
+                      <span className="font-bold text-primary">{formatCurrency(totalAmount)}</span>
+                    </Label>
+                  </div>
+                )}
+              </div>
+            </RadioGroup>
+          </div>
+        )}
+
+        {/* Payment Summary */}
+        <div className="space-y-2 p-4 bg-muted rounded-lg">
+          <Label>Payment Summary</Label>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Total Amount:</span>
+              <span className="font-medium">{formatCurrency(totalAmount)}</span>
+            </div>
+            {booking && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Deposit Amount:</span>
+                  <span className="font-medium">{formatCurrency(depositAmount)}</span>
+                </div>
+                {totalPaid > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amount Paid:</span>
+                    <span className="font-medium text-green-600">{formatCurrency(totalPaid)}</span>
+                  </div>
+                )}
+                {remainingBalance > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Remaining Balance:</span>
+                    <span className="font-medium text-orange-600">{formatCurrency(remainingBalance)}</span>
+                  </div>
+                )}
+              </>
+            )}
+            <div className="pt-2 border-t">
+              <div className="flex justify-between">
+                <span className="font-semibold">Amount to Pay:</span>
+                <span className="text-xl font-bold text-primary">{formatCurrency(getPaymentAmount())}</span>
+              </div>
+            </div>
           </div>
         </div>
 

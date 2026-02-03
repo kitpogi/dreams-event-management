@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Http\Requests\Testimonial;
+
+use App\Http\Requests\BaseFormRequest;
+
+class ClientSubmitTestimonialRequest extends BaseFormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true; // Requires authentication via middleware
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'client_name' => ['nullable', 'string', 'max:255'], // Auto-filled if not provided
+            'client_initials' => ['nullable', 'string', 'max:10'],
+            'event_type' => ['nullable', 'string', 'max:255'],
+            'event_date' => ['nullable', 'date'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'message' => ['required', 'string'],
+            'avatar_url' => ['nullable', 'url', 'max:2048'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:4096'], // 4MB max
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages(): array
+    {
+        return [
+            'client_name.max' => 'Client name must not exceed 255 characters',
+            'client_initials.max' => 'Client initials must not exceed 10 characters',
+            'event_type.max' => 'Event type must not exceed 255 characters',
+            'event_date.date' => 'Event date must be a valid date',
+            'rating.required' => 'Rating is required',
+            'rating.integer' => 'Rating must be a number',
+            'rating.min' => 'Rating must be at least 1',
+            'rating.max' => 'Rating must be at most 5',
+            'message.required' => 'Testimonial message is required',
+            'avatar_url.url' => 'Avatar URL must be a valid URL',
+            'avatar_url.max' => 'Avatar URL must not exceed 2048 characters',
+            'avatar.image' => 'Uploaded file must be an image',
+            'avatar.mimes' => 'Avatar must be a JPEG, JPG, PNG, GIF, or WEBP file',
+            'avatar.max' => 'Avatar size must not exceed 4MB',
+        ];
+    }
+}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Http\Resources\ClientResource;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -25,18 +26,9 @@ class ClientController extends Controller
             });
         }
 
-        $clients = $query->get()->map(function ($client) {
-            return [
-                'id' => $client->client_id,
-                'name' => trim(($client->client_fname ?? '') . ' ' . ($client->client_lname ?? '')),
-                'email' => $client->client_email,
-                'phone' => $client->client_contact,
-                'address' => $client->client_address,
-                'bookings_count' => $client->bookings_count ?? 0,
-            ];
-        });
+        $clients = $query->get();
 
-        return response()->json(['data' => $clients]);
+        return response()->json(['data' => ClientResource::collection($clients)]);
     }
 
     /**
@@ -47,18 +39,7 @@ class ClientController extends Controller
         $client = Client::with(['bookings.eventPackage', 'reviews', 'recommendations'])
             ->findOrFail($id);
 
-        return response()->json([
-            'data' => [
-                'id' => $client->client_id,
-                'name' => trim(($client->client_fname ?? '') . ' ' . ($client->client_lname ?? '')),
-                'email' => $client->client_email,
-                'phone' => $client->client_contact,
-                'address' => $client->client_address,
-                'bookings' => $client->bookings,
-                'reviews' => $client->reviews,
-                'recommendations' => $client->recommendations,
-            ]
-        ]);
+        return response()->json(['data' => new ClientResource($client)]);
     }
 }
 

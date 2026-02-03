@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -14,6 +14,8 @@ import {
   UserPlus,
   Users,
   Filter,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import {
@@ -25,6 +27,7 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 const NotificationCenter = () => {
   const { user, isAdmin, isCoordinator, isAuthenticated } = useAuth();
@@ -36,13 +39,133 @@ const NotificationCenter = () => {
   const [activeFilter, setActiveFilter] = useState('all');
 
   const isAdminUser = isAdmin || isCoordinator;
+  
+  // WebSocket connection for real-time notifications
+  const { 
+    isConnected, 
+    subscribeToUserNotifications, 
+    subscribeToAdminNotifications 
+  } = useWebSocket();
+
+  // Handle incoming real-time notifications
+  const handleRealtimeNotification = useCallback((event) => {
+    const { type, data } = event;
+    
+    let newNotification = null;
+    const now = new Date();
+
+    switch (type) {
+      case 'new_booking':
+        newNotification = {
+          id: `booking-${data.booking_id}-${Date.now()}`,
+          type: 'info',
+          title: 'New Booking Received',
+          message: `${data.client_name} booked ${data.package_name} for ${new Date(data.event_date).toLocaleDateString()}`,
+          icon: Calendar,
+          read: false,
+          createdAt: data.created_at || now.toISOString(),
+          action: {
+            type: 'navigate',
+            path: '/admin/bookings',
+            params: { booking: data.booking_id },
+          },
+          category: 'bookings',
+        };
+        break;
+
+      case 'booking_status':
+        const statusMessages = {
+          Approved: 'has been approved',
+          Confirmed: 'has been confirmed',
+          Cancelled: 'has been cancelled',
+          Completed: 'has been completed',
+          Pending: 'is pending review',
+        };
+        newNotification = {
+          id: `status-${data.booking_id}-${Date.now()}`,
+          type: data.new_status === 'Cancelled' ? 'error' : 
+                data.new_status === 'Approved' || data.new_status === 'Confirmed' ? 'success' : 'info',
+          title: `Booking ${data.new_status}`,
+          message: `Booking for ${data.package_name} ${statusMessages[data.new_status] || 'status updated'}`,
+          icon: data.new_status === 'Cancelled' ? XCircle : 
+                data.new_status === 'Approved' || data.new_status === 'Confirmed' ? CheckCircle : Clock,
+          read: false,
+          createdAt: data.updated_at || now.toISOString(),
+          bookingId: data.booking_id,
+          action: {
+            type: 'navigate',
+            path: isAdminUser ? '/admin/bookings' : '/dashboard',
+            params: isAdminUser ? { booking: data.booking_id } : { tab: 'list' },
+          },
+          category: 'bookings',
+        };
+        break;
+
+      case 'new_inquiry':
+        newNotification = {
+          id: `inquiry-${data.inquiry.id}-${Date.now()}`,
+          type: 'info',
+          title: 'New Contact Inquiry',
+          message: `${data.inquiry.name} sent a ${data.inquiry.event_type} inquiry`,
+          icon: Mail,
+          read: false,
+          createdAt: data.inquiry.created_at || now.toISOString(),
+          action: {
+            type: 'navigate',
+            path: '/admin/contact-inquiries',
+          },
+          category: 'inquiries',
+        };
+        break;
+
+      default:
+        console.log('Unknown notification type:', type);
+        return;
+    }
+
+    if (newNotification) {
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+      
+      // Play notification sound (optional)
+      try {
+        const audio = new Audio('/notification.mp3');
+        audio.volume = 0.3;
+        audio.play().catch(() => {}); // Ignore if autoplay blocked
+      } catch (e) {
+        // Audio not available
+      }
+    }
+  }, [isAdminUser]);
+
+  // Subscribe to WebSocket channels
+  useEffect(() => {
+    if (!isAuthenticated || !isConnected) return;
+
+    let unsubscribeUser = null;
+    let unsubscribeAdmin = null;
+
+    // Subscribe to user-specific notifications
+    unsubscribeUser = subscribeToUserNotifications(handleRealtimeNotification);
+
+    // Subscribe to admin notifications if user is admin/coordinator
+    if (isAdminUser) {
+      unsubscribeAdmin = subscribeToAdminNotifications(handleRealtimeNotification);
+    }
+
+    return () => {
+      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeAdmin) unsubscribeAdmin();
+    };
+  }, [isAuthenticated, isConnected, isAdminUser, subscribeToUserNotifications, subscribeToAdminNotifications, handleRealtimeNotification]);
 
   useEffect(() => {
     // Only fetch notifications if user is authenticated
     if (isAuthenticated) {
       fetchNotifications();
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      // Poll for new notifications every 60 seconds (reduced from 30s since we have WebSocket)
+      // This serves as a fallback in case WebSocket connection drops
+      const interval = setInterval(fetchNotifications, 60000);
       return () => clearInterval(interval);
     } else {
       // Clear notifications if user is not authenticated
@@ -100,7 +223,10 @@ const NotificationCenter = () => {
                 (inq.status || '').toLowerCase() === 'new'
               );
             }
-            
+            // Final safety check: ensure newInquiries is always an array
+            if (!Array.isArray(newInquiries)) {
+              newInquiries = [];
+            }
             const inquiryNotifications = generateInquiryNotifications(newInquiries);
             allNotifications.push(...inquiryNotifications);
           } catch (error) {
@@ -245,7 +371,6 @@ const NotificationCenter = () => {
         category: 'inquiries',
       });
     }
-
     return notifications;
   };
 
@@ -531,6 +656,7 @@ const NotificationCenter = () => {
           size="icon"
           className="relative"
           aria-label="Notifications"
+          title={isConnected ? 'Real-time notifications active' : 'Polling for notifications'}
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -540,6 +666,15 @@ const NotificationCenter = () => {
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
           )}
+          {/* WebSocket connection indicator */}
+          <span 
+            className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white dark:border-gray-800 ${
+              isConnected 
+                ? 'bg-green-500' 
+                : 'bg-gray-400'
+            }`}
+            title={isConnected ? 'Connected' : 'Disconnected'}
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-96 p-0" align="end">

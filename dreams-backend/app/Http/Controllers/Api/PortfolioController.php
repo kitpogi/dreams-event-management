@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PortfolioItem;
 use App\Services\ImageService;
+use App\Http\Requests\Portfolio\StorePortfolioRequest;
+use App\Http\Requests\Portfolio\UpdatePortfolioRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -68,17 +70,17 @@ class PortfolioController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StorePortfolioRequest $request)
     {
-        $data = $this->validateData($request);
-        $data['image_path'] = $this->resolveImagePath($request);
+        $validated = $request->validated();
+        $validated['image_path'] = $this->resolveImagePath($request);
 
-        $item = PortfolioItem::create($data);
+        $item = PortfolioItem::create($validated);
 
         // Clear portfolio cache
         Cache::flush(); // Clear all cache
 
-        return response()->json(['data' => $item], 201);
+        return $this->successResponse($item, 'Portfolio item created successfully', 201);
     }
 
     public function update(Request $request, PortfolioItem $portfolioItem)

@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '../ui/sheet';
-import { Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart } from 'lucide-react';
 import { NotificationCenter } from '../features';
 import { ensureAbsoluteUrl } from '../../utils/imageUtils';
 
@@ -24,7 +24,7 @@ const Navbar = () => {
   const [authMode, setAuthMode] = useState('login');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  
+
   // Get the correct dashboard path based on user role
   const dashboardPath = isAdmin ? '/admin/dashboard' : '/dashboard';
 
@@ -69,26 +69,25 @@ const Navbar = () => {
 
   return (
     <>
-      <nav 
+      <nav
         id="main-navigation"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled 
-            ? darkMode
-              ? 'bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-800'
-              : 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200'
-            : darkMode
-              ? 'bg-gray-900 border-b border-gray-800'
-              : 'bg-[#FFF7F0] border-b border-[#e7dbcf]'
-        }`}
-        role="navigation" 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+          ? darkMode
+            ? 'bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-800'
+            : 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200'
+          : darkMode
+            ? 'bg-gray-900 border-b border-gray-800'
+            : 'bg-[#FFF7F0] border-b border-[#e7dbcf]'
+          }`}
+        role="navigation"
         aria-label="Main navigation"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Navbar */}
           <div className="flex items-center justify-between h-20">
             {/* Logo/Brand */}
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 rounded-lg p-2 -ml-2"
             >
               <div className="relative">
@@ -98,14 +97,12 @@ const Navbar = () => {
                 </div>
               </div>
               <div className="hidden sm:block">
-                <h1 className={`font-serif text-xl md:text-2xl font-bold group-hover:text-[#5A45F2] transition-colors ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h1 className={`font-serif text-xl md:text-2xl font-bold group-hover:text-[#5A45F2] transition-colors ${darkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
                   D&apos;Dreams Events
                 </h1>
-                <p className={`text-[10px] md:text-xs italic -mt-1 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <p className={`text-[10px] md:text-xs italic -mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                   "We make your dream events happen."
                 </p>
               </div>
@@ -120,13 +117,12 @@ const Navbar = () => {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      active
-                        ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20'
-                        : darkMode
-                          ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
-                          : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-100'
-                    }`}
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${active
+                      ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20'
+                      : darkMode
+                        ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
+                        : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-100'
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{link.label}</span>
@@ -159,131 +155,116 @@ const Navbar = () => {
                   <NotificationCenter />
                   <div className="relative user-menu">
                     <button
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${
-                      darkMode 
-                        ? 'hover:bg-gray-800' 
-                        : 'hover:bg-gray-100'
-                    }`}
-                    aria-expanded={showDropdown}
-                    aria-haspopup="true"
-                    aria-label={`User menu for ${user?.name || 'user'}`}
-                  >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white text-sm font-bold shadow-md overflow-hidden">
-                      {user?.profile_picture ? (
-                        <img
-                          src={ensureAbsoluteUrl(user.profile_picture)}
-                          alt={user?.name || 'Profile'}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to initials if image fails
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : null}
-                      <span style={{ display: user?.profile_picture ? 'none' : 'block' }}>
-                        {user?.name?.charAt(0).toUpperCase() || 'U'}
-                      </span>
-                    </div>
-                    <span className={`hidden md:inline text-sm font-medium max-w-[120px] truncate ${
-                      darkMode ? 'text-gray-200' : 'text-gray-700'
-                    }`}>
-                      {user?.name}
-                    </span>
-                    <ChevronDown 
-                      className={`w-4 h-4 transition-transform duration-200 ${
-                        darkMode ? 'text-gray-400' : 'text-gray-500'
-                      } ${showDropdown ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-
-                  {/* Enhanced Dropdown Menu */}
-                  {showDropdown && (
-                    <div 
-                      className={`absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border overflow-hidden z-50 animate-fade-in ${
-                        darkMode 
-                          ? 'bg-gray-800 border-gray-700' 
-                          : 'bg-white border-gray-200'
-                      }`}
-                      role="menu"
-                      aria-orientation="vertical"
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className={`group relative p-1.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${darkMode
+                        ? 'hover:bg-gray-800/50'
+                        : 'hover:bg-gray-100/80'
+                        }`}
+                      aria-expanded={showDropdown}
+                      aria-haspopup="true"
+                      aria-label={`User menu for ${user?.name || 'user'}`}
                     >
-                      <div className="p-2">
-                        <div className={`px-3 py-2 mb-2 border-b ${
-                          darkMode ? 'border-gray-700' : 'border-gray-100'
-                        }`}>
-                          <p className={`text-sm font-semibold truncate ${
-                            darkMode ? 'text-white' : 'text-gray-900'
-                          }`}>
-                            {user?.name}
-                          </p>
-                          <p className={`text-xs truncate ${
-                            darkMode ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                            {user?.email}
-                          </p>
-                        </div>
-                        <Link
-                          to={dashboardPath}
-                          className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${
-                            darkMode
+                      <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] flex items-center justify-center text-white text-sm font-bold shadow-lg ring-2 ring-white/20 dark:ring-gray-700/30 overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-[#5A45F2]/20">
+                        {user?.profile_picture ? (
+                          <img
+                            src={ensureAbsoluteUrl(user.profile_picture)}
+                            alt={user?.name || 'Profile'}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            onError={(e) => {
+                              // Fallback to initials if image fails
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : null}
+                        <span style={{ display: user?.profile_picture ? 'none' : 'block' }} className="transition-transform duration-300 group-hover:scale-110">
+                          {user?.name?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                      {/* Active Status Indicator with pulse animation - positioned outside avatar */}
+                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-lg z-10">
+                        <span className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></span>
+                      </span>
+                    </button>
+
+                    {/* Enhanced Dropdown Menu */}
+                    {showDropdown && (
+                      <div
+                        className={`absolute right-0 mt-2 w-56 rounded-xl shadow-2xl border overflow-hidden z-50 animate-fade-in ${darkMode
+                          ? 'bg-gray-800 border-gray-700'
+                          : 'bg-white border-gray-200'
+                          }`}
+                        role="menu"
+                        aria-orientation="vertical"
+                      >
+                        <div className="p-2">
+                          <div className={`px-3 py-2 mb-2 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'
+                            }`}>
+                            <p className={`text-sm font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-900'
+                              }`}>
+                              {user?.name}
+                            </p>
+                            <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'
+                              }`}>
+                              {user?.email}
+                            </p>
+                          </div>
+                          <Link
+                            to={dashboardPath}
+                            className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${darkMode
                               ? 'text-gray-200 hover:bg-gradient-to-r hover:from-[#5A45F2]/20 hover:to-[#7c3aed]/20'
                               : 'text-gray-700 hover:bg-gradient-to-r hover:from-[#5A45F2]/10 hover:to-[#7c3aed]/10'
-                          }`}
-                          onClick={() => setShowDropdown(false)}
-                          role="menuitem"
-                        >
-                          <LayoutDashboard className="w-4 h-4 text-[#5A45F2] group-hover:scale-110 transition-transform" />
-                          <span>Dashboard</span>
-                        </Link>
-                        <Link
-                          to="/favorites"
-                          className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${
-                            darkMode
+                              }`}
+                            onClick={() => setShowDropdown(false)}
+                            role="menuitem"
+                          >
+                            <LayoutDashboard className="w-4 h-4 text-[#5A45F2] group-hover:scale-110 transition-transform" />
+                            <span>Dashboard</span>
+                          </Link>
+                          <Link
+                            to="/favorites"
+                            className={`flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${darkMode
                               ? 'text-gray-200 hover:bg-gradient-to-r hover:from-[#5A45F2]/20 hover:to-[#7c3aed]/20'
                               : 'text-gray-700 hover:bg-gradient-to-r hover:from-[#5A45F2]/10 hover:to-[#7c3aed]/10'
-                          }`}
-                          onClick={() => setShowDropdown(false)}
-                          role="menuitem"
-                        >
-                          <Heart className="w-4 h-4 text-[#5A45F2] group-hover:scale-110 transition-transform" />
-                          <span>My Favorites</span>
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${
-                            darkMode
+                              }`}
+                            onClick={() => setShowDropdown(false)}
+                            role="menuitem"
+                          >
+                            <Heart className="w-4 h-4 text-[#5A45F2] group-hover:scale-110 transition-transform" />
+                            <span>My Favorites</span>
+                          </Link>
+                          <button
+                            onClick={handleLogout}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all group ${darkMode
                               ? 'text-error-400 hover:bg-error-900/20'
                               : 'text-error-600 hover:bg-error-50'
-                          }`}
-                          role="menuitem"
-                        >
-                          <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span>Logout</span>
-                        </button>
+                              }`}
+                            role="menuitem"
+                          >
+                            <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            <span>Logout</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="hidden sm:flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => {
                       setAuthMode('login');
                       setShowAuthModal(true);
                     }}
-                    className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${
-                      darkMode
-                        ? 'text-[#7ee5ff] border-2 border-[#7ee5ff] hover:bg-[#7ee5ff]/10 hover:shadow-lg hover:shadow-[#7ee5ff]/20'
-                        : 'text-[#5A45F2] border-2 border-[#5A45F2] hover:bg-[#5A45F2]/10 hover:shadow-lg hover:shadow-[#5A45F2]/20'
-                    }`}
+                    className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${darkMode
+                      ? 'text-[#7ee5ff] border-2 border-[#7ee5ff] hover:bg-[#7ee5ff]/10 hover:shadow-lg hover:shadow-[#7ee5ff]/20'
+                      : 'text-[#5A45F2] border-2 border-[#5A45F2] hover:bg-[#5A45F2]/10 hover:shadow-lg hover:shadow-[#5A45F2]/20'
+                      }`}
                     aria-label="Open login modal"
                   >
                     <User className="w-4 h-4 group-hover:scale-110 transition-transform" />
                     <span>Login</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setAuthMode('register');
                       setShowAuthModal(true);
@@ -301,11 +282,10 @@ const Navbar = () => {
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <button
-                    className={`lg:hidden p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${
-                      darkMode
-                        ? 'text-gray-300 hover:bg-gray-800'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`lg:hidden p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${darkMode
+                      ? 'text-gray-300 hover:bg-gray-800'
+                      : 'text-gray-700 hover:bg-gray-100'
+                      }`}
                     aria-label="Toggle mobile menu"
                   >
                     <Menu className="w-6 h-6" />
@@ -313,16 +293,14 @@ const Navbar = () => {
                 </SheetTrigger>
                 <SheetContent
                   side="right"
-                  className={`w-[300px] sm:w-[400px] ${
-                    darkMode
-                      ? 'bg-gray-900 border-gray-800'
-                      : 'bg-white border-gray-200'
-                  }`}
+                  className={`w-[300px] sm:w-[400px] ${darkMode
+                    ? 'bg-gray-900 border-gray-800'
+                    : 'bg-white border-gray-200'
+                    }`}
                 >
                   <SheetHeader>
-                    <SheetTitle className={`text-left ${
-                      darkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
+                    <SheetTitle className={`text-left ${darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
                       Menu
                     </SheetTitle>
                   </SheetHeader>
@@ -335,40 +313,37 @@ const Navbar = () => {
                           key={link.to}
                           to={link.to}
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
-                            active
-                              ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20 border-l-4 border-[#5A45F2]'
-                              : darkMode
-                                ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
-                                : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
-                          }`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${active
+                            ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20 border-l-4 border-[#5A45F2]'
+                            : darkMode
+                              ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
+                              : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
+                            }`}
                         >
                           <Icon className="w-5 h-5" />
                           <span>{link.label}</span>
                         </Link>
                       );
                     })}
-                    
+
                     {!isAuthenticated && (
-                      <div className={`pt-4 mt-4 border-t space-y-2 ${
-                        darkMode ? 'border-gray-800' : 'border-gray-200'
-                      }`}>
-                        <button 
+                      <div className={`pt-4 mt-4 border-t space-y-2 ${darkMode ? 'border-gray-800' : 'border-gray-200'
+                        }`}>
+                        <button
                           onClick={() => {
                             setAuthMode('login');
                             setShowAuthModal(true);
                             setMobileMenuOpen(false);
                           }}
-                          className={`w-full group flex items-center justify-center gap-2 px-4 py-3 text-base font-semibold border-2 rounded-lg transition-all ${
-                            darkMode
-                              ? 'text-[#7ee5ff] border-[#7ee5ff] hover:bg-[#7ee5ff]/10 hover:shadow-lg hover:shadow-[#7ee5ff]/20'
-                              : 'text-[#5A45F2] border-[#5A45F2] hover:bg-[#5A45F2]/10 hover:shadow-lg hover:shadow-[#5A45F2]/20'
-                          }`}
+                          className={`w-full group flex items-center justify-center gap-2 px-4 py-3 text-base font-semibold border-2 rounded-lg transition-all ${darkMode
+                            ? 'text-[#7ee5ff] border-[#7ee5ff] hover:bg-[#7ee5ff]/10 hover:shadow-lg hover:shadow-[#7ee5ff]/20'
+                            : 'text-[#5A45F2] border-[#5A45F2] hover:bg-[#5A45F2]/10 hover:shadow-lg hover:shadow-[#5A45F2]/20'
+                            }`}
                         >
                           <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
                           <span>Login</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setAuthMode('register');
                             setShowAuthModal(true);
@@ -383,17 +358,15 @@ const Navbar = () => {
                     )}
 
                     {isAuthenticated && (
-                      <div className={`pt-4 mt-4 border-t space-y-2 ${
-                        darkMode ? 'border-gray-800' : 'border-gray-200'
-                      }`}>
+                      <div className={`pt-4 mt-4 border-t space-y-2 ${darkMode ? 'border-gray-800' : 'border-gray-200'
+                        }`}>
                         <Link
                           to={dashboardPath}
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
-                            darkMode
-                              ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
-                              : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
-                          }`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${darkMode
+                            ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
+                            : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
+                            }`}
                         >
                           <LayoutDashboard className="w-5 h-5" />
                           <span>Dashboard</span>
@@ -401,11 +374,10 @@ const Navbar = () => {
                         <Link
                           to="/favorites"
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
-                            darkMode
-                              ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
-                              : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
-                          }`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${darkMode
+                            ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
+                            : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-50'
+                            }`}
                         >
                           <Heart className="w-5 h-5" />
                           <span>My Favorites</span>
@@ -415,11 +387,10 @@ const Navbar = () => {
                             handleLogout();
                             setMobileMenuOpen(false);
                           }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
-                            darkMode
-                              ? 'text-error-400 hover:bg-error-900/20'
-                              : 'text-error-600 hover:bg-error-50'
-                          }`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${darkMode
+                            ? 'text-error-400 hover:bg-error-900/20'
+                            : 'text-error-600 hover:bg-error-50'
+                            }`}
                         >
                           <LogOut className="w-5 h-5" />
                           <span>Logout</span>
@@ -448,10 +419,11 @@ const Navbar = () => {
           setMobileMenuOpen(false);
           // Determine dashboard path based on newly authenticated user
           const userData = JSON.parse(localStorage.getItem('user') || '{}');
-          const path = (userData.role === 'admin' || userData.role === 'coordinator') 
-            ? '/admin/dashboard' 
+          const path = (userData.role === 'admin' || userData.role === 'coordinator')
+            ? '/admin/dashboard'
             : '/dashboard';
-          navigate(path);
+          // Small delay to allow React state to update before navigating
+          setTimeout(() => navigate(path), 100);
         }}
       />
     </>

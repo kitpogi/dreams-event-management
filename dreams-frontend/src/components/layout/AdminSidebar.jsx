@@ -1,83 +1,34 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import {
-  HomeIcon,
-  CubeIcon,
-  CalendarDaysIcon,
-  UsersIcon,
-  EnvelopeIcon,
-  BuildingOfficeIcon,
-  PhotoIcon,
-  ChatBubbleLeftRightIcon,
-  ChartBarIcon,
-  DocumentTextIcon,
-  Bars3Icon,
-} from '@heroicons/react/24/outline';
+import { Menu } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '../ui/accordion';
+import { useNotificationCounts } from '../../context/NotificationContext';
+import { mainMenuItems, menuGroups } from '../../config/sidebarMenu';
+import { Badge } from '../ui/badge';
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from '../ui/sheet';
 
+
 const AdminSidebar = () => {
   const location = useLocation();
   const { isCollapsed } = useSidebar();
+  const { counts } = useNotificationCounts();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openAccordions, setOpenAccordions] = useState([]);
 
-  // Main navigation items (always visible)
-  const mainMenuItems = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: HomeIcon },
-    { path: '/admin/analytics', label: 'Analytics', icon: ChartBarIcon },
-  ];
-
-  // Organized menu groups
-  const menuGroups = [
-    {
-      id: 'bookings',
-      label: 'Bookings',
-      icon: CalendarDaysIcon,
-      items: [
-        { path: '/admin/bookings', label: 'All Bookings', icon: CalendarDaysIcon },
-        { path: '/admin/bookings/calendar', label: 'Calendar View', icon: CalendarDaysIcon },
-      ],
-    },
-    {
-      id: 'content',
-      label: 'Content',
-      icon: CubeIcon,
-      items: [
-        { path: '/admin/packages', label: 'Packages', icon: CubeIcon },
-        { path: '/admin/venues', label: 'Venues', icon: BuildingOfficeIcon },
-        { path: '/admin/portfolio', label: 'Portfolio', icon: PhotoIcon },
-        { path: '/admin/testimonials', label: 'Testimonials', icon: ChatBubbleLeftRightIcon },
-      ],
-    },
-    {
-      id: 'users',
-      label: 'Users & Clients',
-      icon: UsersIcon,
-      items: [
-        { path: '/admin/clients', label: 'Clients', icon: UsersIcon },
-        { path: '/admin/contact-inquiries', label: 'Inquiries', icon: EnvelopeIcon },
-      ],
-    },
-    {
-      id: 'system',
-      label: 'System',
-      icon: DocumentTextIcon,
-      items: [
-        { path: '/admin/audit-logs', label: 'Audit Logs', icon: DocumentTextIcon },
-      ],
-    },
-  ];
+  // Get badge count for a menu item based on its path
+  const getBadgeCount = (path) => {
+    switch (path) {
+      case '/admin/bookings':
+        return counts.pendingBookings;
+      case '/admin/contact-inquiries':
+        return counts.newInquiries;
+      default:
+        return 0;
+    }
+  };
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -95,35 +46,66 @@ const AdminSidebar = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  const renderMenuItems = (items, showLabels = true) => {
+  const renderMenuItems = (items, showLabels = true, isSubItem = false) => {
     return items.map((item) => {
       const Icon = item.icon;
       const isActive = location.pathname === item.path;
+      const badgeCount = getBadgeCount(item.path);
 
       return (
-        <li key={item.path} role="listitem">
+        <li key={item.path} role="listitem" className="m-0 p-0">
           <Link
             to={item.path}
-            className={`flex items-center ${showLabels ? 'space-x-3' : 'justify-center'} px-4 py-2.5 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 group text-sm ${
-              isActive
-                ? 'bg-primary-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-            }`}
-            aria-current={isActive ? 'page' : undefined}
-            title={!showLabels ? item.label : undefined}
-          >
-            <Icon
-              className={`h-5 w-5 flex-shrink-0 ${
-                isActive ? 'text-white' : 'text-gray-400'
+            className={`relative !flex !items-center gap-3 ${showLabels ? '' : '!justify-center'} px-4 ${isSubItem ? 'py-2.5' : 'py-3'} rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 group ${isActive
+              ? 'bg-purple-600 text-white shadow-sm'
+              : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
               }`}
-              aria-hidden="true"
-            />
+            aria-current={isActive ? 'page' : undefined}
+            title={!showLabels ? `${item.label}${badgeCount > 0 ? ` (${badgeCount})` : ''}` : undefined}
+          >
+            {/* Active indicator bar */}
+            {isActive && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></span>
+            )}
+            {/* Icon container - fixed size, always aligned */}
+            <span className={`relative flex-shrink-0 flex items-center justify-center ${isSubItem ? 'h-4 w-4' : 'h-5 w-5'}`}>
+              <Icon
+                className={`${isSubItem ? 'h-4 w-4' : 'h-5 w-5'} transition-transform duration-200 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200'
+                  }`}
+                aria-hidden="true"
+              />
+              {/* Badge on icon when collapsed */}
+              {!showLabels && badgeCount > 0 && (
+                <Badge
+                  className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center text-[10px] bg-red-500 hover:bg-red-500 text-white border-2 border-white dark:border-gray-900 animate-pulse"
+                >
+                  {badgeCount > 9 ? '9+' : badgeCount}
+                </Badge>
+              )}
+            </span>
+            {/* Text - follows icon alignment, can be any length */}
             {showLabels && (
-              <span className="font-medium">{item.label}</span>
+              <span className={`flex-1 ${isSubItem ? 'text-sm' : 'text-base'} font-medium whitespace-nowrap min-w-0 ${isActive ? 'text-white' : ''}`}>{item.label}</span>
+            )}
+            {/* Badge when expanded */}
+            {showLabels && badgeCount > 0 && (
+              <Badge
+                className={`h-5 min-w-[20px] px-1.5 flex items-center justify-center text-xs font-bold ${isActive
+                    ? 'bg-white/20 hover:bg-white/30 text-white'
+                    : 'bg-red-500 hover:bg-red-500 text-white'
+                  } ${!isActive ? 'animate-pulse' : ''}`}
+              >
+                {badgeCount > 99 ? '99+' : badgeCount}
+              </Badge>
             )}
             {!showLabels && (
-              <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+              <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-gray-700">
                 {item.label}
+                {badgeCount > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                    {badgeCount}
+                  </span>
+                )}
               </span>
             )}
           </Link>
@@ -136,8 +118,9 @@ const AdminSidebar = () => {
     const showLabels = !collapsed;
 
     return (
-      <>
-        <div className={`mb-6 ${collapsed ? 'flex justify-center' : ''}`}>
+      <nav className="h-full flex flex-col">
+        {/* Header - Fixed */}
+        <div className={`flex-shrink-0 p-4 pb-2 ${collapsed ? 'flex justify-center' : ''}`}>
           {collapsed ? (
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-lg">A</span>
@@ -149,13 +132,42 @@ const AdminSidebar = () => {
             </>
           )}
         </div>
-        <nav id="admin-sidebar" className="flex-1" aria-label="Admin navigation" role="navigation">
+
+        {/* Navigation - Scrollable */}
+        <div
+          id="admin-sidebar"
+          className="flex-1 px-3 overflow-y-auto overflow-x-hidden sidebar-scrollbar min-h-0"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(156, 163, 175, 0.5) transparent',
+          }}
+        >
+          <style>{`
+            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar {
+              width: 6px;
+            }
+            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb {
+              background-color: rgba(156, 163, 175, 0.5);
+              border-radius: 3px;
+            }
+            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+              background-color: rgba(156, 163, 175, 0.7);
+            }
+            .dark #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb {
+              background-color: rgba(75, 85, 99, 0.5);
+            }
+            .dark #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+              background-color: rgba(75, 85, 99, 0.7);
+            }
+          `}</style>
+
           {/* Main Navigation */}
-          <div className="mb-4">
-            <ul className="space-y-1" role="list">
-              {renderMenuItems(mainMenuItems, showLabels)}
-            </ul>
-          </div>
+          <ul className="space-y-1 m-0 p-0 list-none" role="list">
+            {renderMenuItems(mainMenuItems, showLabels)}
+          </ul>
 
           {/* Divider */}
           {!collapsed && (
@@ -165,7 +177,7 @@ const AdminSidebar = () => {
           {/* Menu Groups */}
           {collapsed ? (
             // Collapsed view - show all individual item icons with tooltips
-            <div className="space-y-1">
+            <ul className="space-y-1 m-0 p-0 list-none" role="list">
               {menuGroups.map((group) => (
                 <div key={group.id} className="space-y-1">
                   {group.items.map((item) => {
@@ -173,76 +185,71 @@ const AdminSidebar = () => {
                     const isActive = location.pathname === item.path;
 
                     return (
-                      <div key={item.path} className="relative group">
-                        <Link
-                          to={item.path}
-                          className={`flex items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 ${
-                            isActive
-                              ? 'bg-primary-600 text-white'
+                      <li key={item.path} role="listitem" className="m-0 p-0">
+                        <div className="relative group">
+                          <Link
+                            to={item.path}
+                            className={`relative !flex !items-center !justify-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                              ? 'bg-purple-600 text-white shadow-sm'
                               : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                          }`}
-                          title={item.label}
-                        >
-                          <ItemIcon
-                            className={`h-5 w-5 flex-shrink-0 ${
-                              isActive ? 'text-white' : 'text-gray-400'
-                            }`}
-                            aria-hidden="true"
-                          />
-                        </Link>
-                        <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                          {item.label}
-                        </span>
-                      </div>
+                              }`}
+                            title={item.label}
+                          >
+                            {/* Active indicator bar */}
+                            {isActive && (
+                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></span>
+                            )}
+                            <span className="flex-shrink-0 h-5 w-5 flex items-center justify-center">
+                              <ItemIcon
+                                className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200'
+                                  }`}
+                                aria-hidden="true"
+                              />
+                            </span>
+                          </Link>
+                          <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-gray-700">
+                            {item.label}
+                          </span>
+                        </div>
+                      </li>
                     );
                   })}
                 </div>
               ))}
-            </div>
+            </ul>
           ) : (
-            // Expanded view - show accordion
-            <Accordion 
-              type="multiple" 
-              className="space-y-1" 
-              value={openAccordions}
-              onValueChange={setOpenAccordions}
-            >
+            // Expanded view - show groups with labels
+            <div className="space-y-4">
               {menuGroups.map((group) => {
                 const GroupIcon = group.icon;
                 const hasActiveItem = group.items.some((item) => location.pathname === item.path);
-                const isContentGroup = group.id === 'content';
 
                 return (
-                  <AccordionItem key={group.id} value={group.id} className="border-none">
-                    <AccordionTrigger 
-                      className="px-4 py-2.5 hover:no-underline rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <GroupIcon
-                          className={`h-5 w-5 flex-shrink-0 ${
-                            hasActiveItem ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'
-                          }`}
-                          aria-hidden="true"
-                        />
-                        <span className={`font-medium text-sm ${
-                          hasActiveItem ? 'text-primary-600 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300'
-                        }`}>
-                          {group.label}
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-1 pt-1">
-                      <ul className="space-y-0.5 ml-8" role="list">
-                        {renderMenuItems(group.items, showLabels)}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
+                  <div key={group.id} className="space-y-1">
+                    {/* Group Label */}
+                    <div className={`px-4 py-2 flex items-center gap-3 ${hasActiveItem
+                      ? 'text-primary-600 dark:text-primary-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                      <GroupIcon
+                        className="h-4 w-4 flex-shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="text-xs font-semibold uppercase tracking-wider">
+                        {group.label}
+                      </span>
+                    </div>
+                    {/* Group Items */}
+                    <ul className="space-y-0.5 m-0 p-0 list-none" role="list">
+                      {renderMenuItems(group.items, showLabels, true)}
+                    </ul>
+                  </div>
                 );
               })}
-            </Accordion>
+            </div>
           )}
-        </nav>
-      </>
+        </div>
+      </nav>
     );
   };
 
@@ -255,11 +262,11 @@ const AdminSidebar = () => {
             className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-primary-600 text-primary-foreground rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
             aria-label="Toggle menu"
           >
-            <Bars3Icon className="h-6 w-6" />
+            <Menu className="h-6 w-6" />
           </button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
-          <div className="p-6">
+          <div className="p-6 h-full">
             <SidebarContent collapsed={false} />
           </div>
         </SheetContent>
@@ -267,11 +274,11 @@ const AdminSidebar = () => {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex bg-white dark:bg-gray-900 shadow-md min-h-screen fixed left-0 top-0 flex-col z-40 transition-all duration-300 ${
-          isCollapsed ? 'w-20' : 'w-64'
-        } ${isCollapsed ? 'px-3 py-6' : 'p-6'}`}
+        className={`hidden lg:block h-screen fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out bg-white dark:bg-gray-900 shadow-md ${isCollapsed ? 'w-20' : 'w-72'}`}
       >
-        <SidebarContent collapsed={isCollapsed} />
+        <div className={`h-full ${isCollapsed ? 'px-3 py-6' : 'p-6'}`}>
+          <SidebarContent collapsed={isCollapsed} />
+        </div>
       </aside>
     </>
   );

@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Models\User;
 use App\Mail\PasswordResetMail;
 use App\Mail\EmailVerificationMail;
+use App\Exceptions\UnauthorizedException;
+use App\Services\TokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -48,15 +54,15 @@ use Carbon\Carbon;
  */
 class AuthController extends Controller
 {
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-        ]);
+    protected $tokenService;
 
+    public function __construct(TokenService $tokenService)
+    {
+        $this->tokenService = $tokenService;
+    }
+
+    public function register(RegisterRequest $request)
+    {
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -69,10 +75,6 @@ class AuthController extends Controller
         // Generate email verification token
         $verificationToken = Str::random(64);
         
-        // Store verification token (we'll use the same password_reset_tokens table structure)
-        // Or create a separate table - for simplicity, using a signed URL approach
-        // Store in a temporary way - using signed URLs with expiration
-        
         // Send verification email
         try {
             Mail::to($user->email)->send(new EmailVerificationMail($user, $verificationToken));
@@ -81,20 +83,20 @@ class AuthController extends Controller
             // Don't fail registration if email fails, but log it
         }
 
-        // Store verification token in database (using password_reset_tokens table with a prefix)
+        // Store verification token in database
         DB::table('password_reset_tokens')->insert([
             'email' => $user->email,
             'token' => Hash::make($verificationToken),
             'created_at' => Carbon::now(),
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Create tokens using TokenService
+        $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
 
-        return response()->json([
-            'token' => $token,
+        return $this->successResponse([
+            ...$tokens,
             'user' => $user,
-            'message' => 'Registration successful! Please check your email to verify your account.',
-        ], 201);
+        ], 'Registration successful! Please check your email to verify your account.', 201);
     }
 
     /**
@@ -121,27 +123,39 @@ class AuthController extends Controller
      *     @OA\Response(response=422, description="Invalid credentials")
      * )
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
         $user = User::where('email', $request->email)->first();
 
+        // Check if account is locked
+        if ($user && $user->isLocked()) {
+            $minutesRemaining = now()->diffInMinutes($user->locked_until, false);
+            throw ValidationException::withMessages([
+                'email' => ["Account is locked. Please try again in {$minutesRemaining} minutes."],
+            ]);
+        }
+
+        // Check credentials
         if (!$user || !Hash::check($request->password, $user->password)) {
+            if ($user) {
+                $user->incrementFailedLoginAttempts();
+            }
+            
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Reset failed login attempts on successful login
+        $user->resetFailedLoginAttempts();
 
-        return response()->json([
-            'token' => $token,
+        // Create tokens using TokenService
+        $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
+
+        return $this->successResponse([
+            ...$tokens,
             'user' => $user,
-        ]);
+        ], 'Login successful');
     }
 
     /**
@@ -164,7 +178,7 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully']);
+        return $this->successResponse(null, 'Logged out successfully');
     }
 
     /**
@@ -183,7 +197,7 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return $this->successResponse($request->user());
     }
 
     /**
@@ -219,15 +233,22 @@ class AuthController extends Controller
     {
         // Only admins (not coordinators) can create coordinators
         if ($request->user()->role !== 'admin') {
-            return response()->json([
-                'message' => 'Unauthorized. Only admins can create coordinators.'
-            ], 403);
+            return $this->forbiddenResponse('Unauthorized. Only admins can create coordinators.');
         }
 
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                \Illuminate\Validation\Rules\Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
             'phone' => 'nullable|string|max:20',
         ]);
 
@@ -239,10 +260,7 @@ class AuthController extends Controller
             'role' => 'coordinator',
         ]);
 
-        return response()->json([
-            'message' => 'Coordinator created successfully',
-            'data' => $coordinator,
-        ], 201);
+        return $this->successResponse($coordinator, 'Coordinator created successfully', 201);
     }
 
     /**
@@ -300,12 +318,12 @@ class AuthController extends Controller
                 ]);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
 
-            return response()->json([
-                'token' => $token,
+            return $this->successResponse([
+                ...$tokens,
                 'user' => $user,
-            ]);
+            ], 'Login successful');
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to authenticate with Google',
@@ -315,7 +333,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Login or register with Facebook OAuth
+     * Login or register with Facebook OAuth (access token method)
      */
     public function facebookLogin(Request $request)
     {
@@ -357,12 +375,109 @@ class AuthController extends Controller
                 ]);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
 
-            return response()->json([
-                'token' => $token,
+            return $this->successResponse([
+                ...$tokens,
                 'user' => $user,
+            ], 'Login successful');
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to authenticate with Facebook',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle Facebook OAuth callback (authorization code method)
+     */
+    public function facebookCallback(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+            'redirect_uri' => 'required|string',
+        ]);
+
+        try {
+            // Exchange authorization code for access token
+            $tokenResponse = Http::get('https://graph.facebook.com/v18.0/oauth/access_token', [
+                'client_id' => env('FACEBOOK_APP_ID'),
+                'client_secret' => env('FACEBOOK_APP_SECRET'),
+                'redirect_uri' => $request->redirect_uri,
+                'code' => $request->code,
             ]);
+
+            if (!$tokenResponse->successful()) {
+                return response()->json([
+                    'message' => 'Failed to exchange authorization code',
+                    'error' => $tokenResponse->json()
+                ], 401);
+            }
+
+            $tokenData = $tokenResponse->json();
+            $accessToken = $tokenData['access_token'] ?? null;
+
+            if (!$accessToken) {
+                return response()->json([
+                    'message' => 'No access token received from Facebook'
+                ], 401);
+            }
+
+            // Get user info with access token
+            $userResponse = Http::get('https://graph.facebook.com/me', [
+                'fields' => 'id,name,email',
+                'access_token' => $accessToken,
+            ]);
+
+            if (!$userResponse->successful()) {
+                Log::error('Facebook user info error', [
+                    'response' => $userResponse->json(),
+                    'status' => $userResponse->status()
+                ]);
+                return response()->json([
+                    'message' => 'Failed to get user info from Facebook',
+                    'error' => $userResponse->json()
+                ], 401);
+            }
+
+            $facebookUser = $userResponse->json();
+
+            // Debug: Log what Facebook returned
+            Log::info('Facebook user data', ['user' => $facebookUser]);
+
+            if (!isset($facebookUser['email'])) {
+                Log::warning('Facebook user missing email', ['user' => $facebookUser]);
+                return response()->json([
+                    'message' => 'Email is required. Please grant email permission when logging in with Facebook. Your Facebook account may not have a verified email address.',
+                    'debug' => [
+                        'received_fields' => array_keys($facebookUser),
+                        'user_id' => $facebookUser['id'] ?? null,
+                        'user_name' => $facebookUser['name'] ?? null,
+                    ]
+                ], 400);
+            }
+
+            // Find or create user
+            $user = User::where('email', $facebookUser['email'])->first();
+
+            if (!$user) {
+                // Create new user
+                $user = User::create([
+                    'name' => $facebookUser['name'],
+                    'email' => $facebookUser['email'],
+                    'password' => Hash::make(uniqid()), // Random password for OAuth users
+                    'role' => 'client',
+                    'email_verified_at' => now(), // Facebook emails are verified
+                ]);
+            }
+
+            $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
+
+            return $this->successResponse([
+                ...$tokens,
+                'user' => $user,
+            ], 'Login successful');
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to authenticate with Facebook',
@@ -402,9 +517,7 @@ class AuthController extends Controller
 
         if (!$user) {
             // Return success even if user doesn't exist for security (prevents email enumeration)
-            return response()->json([
-                'message' => 'If that email address exists in our system, we will send a password reset link.'
-            ], 200);
+            return $this->successResponse(null, 'If that email address exists in our system, we will send a password reset link.');
         }
 
         // Generate reset token
@@ -425,14 +538,10 @@ class AuthController extends Controller
             Mail::to($request->email)->send(new PasswordResetMail($token, $request->email));
         } catch (\Exception $e) {
             Log::error('Failed to send password reset email: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Failed to send password reset email. Please try again later.'
-            ], 500);
+            return $this->errorResponse('Failed to send password reset email. Please try again later.', 500, null, 'EMAIL_SEND_FAILED');
         }
 
-        return response()->json([
-            'message' => 'If that email address exists in our system, we will send a password reset link.'
-        ], 200);
+        return $this->successResponse(null, 'If that email address exists in our system, we will send a password reset link.');
     }
 
     /**
@@ -461,13 +570,8 @@ class AuthController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function resetPassword(Request $request)
+    public function resetPassword(ResetPasswordRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'token' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
 
         // Find the password reset record
         $resetRecord = DB::table('password_reset_tokens')
@@ -475,25 +579,19 @@ class AuthController extends Controller
             ->first();
 
         if (!$resetRecord) {
-            return response()->json([
-                'message' => 'Invalid or expired reset token.'
-            ], 400);
+            return $this->errorResponse('Invalid or expired reset token.', 400, null, 'INVALID_TOKEN');
         }
 
         // Check if token is valid (60 minutes expiry)
         $createdAt = Carbon::parse($resetRecord->created_at);
         if ($createdAt->addMinutes(60)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-            return response()->json([
-                'message' => 'This password reset token has expired. Please request a new one.'
-            ], 400);
+            return $this->errorResponse('This password reset token has expired. Please request a new one.', 400, null, 'TOKEN_EXPIRED');
         }
 
         // Verify token
         if (!Hash::check($request->token, $resetRecord->token)) {
-            return response()->json([
-                'message' => 'Invalid reset token.'
-            ], 400);
+            return $this->errorResponse('Invalid reset token.', 400, null, 'INVALID_TOKEN');
         }
 
         // Update user password
@@ -504,9 +602,10 @@ class AuthController extends Controller
         // Delete the reset token
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
-        return response()->json([
-            'message' => 'Password has been reset successfully. You can now login with your new password.'
-        ], 200);
+        // Unlock account if it was locked
+        $user->unlockAccount();
+
+        return $this->successResponse(null, 'Password has been reset successfully. You can now login with your new password.');
     }
 
     /**
@@ -543,16 +642,12 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'User not found.'
-            ], 404);
+            return $this->notFoundResponse('User not found.');
         }
 
         // Check if already verified
         if ($user->email_verified_at) {
-            return response()->json([
-                'message' => 'Email address is already verified.'
-            ], 400);
+            return $this->errorResponse('Email address is already verified.', 400, null, 'ALREADY_VERIFIED');
         }
 
         // Find the verification token (stored in password_reset_tokens table)
@@ -561,25 +656,19 @@ class AuthController extends Controller
             ->first();
 
         if (!$tokenRecord) {
-            return response()->json([
-                'message' => 'Invalid or expired verification token.'
-            ], 400);
+            return $this->errorResponse('Invalid or expired verification token.', 400, null, 'INVALID_TOKEN');
         }
 
         // Check if token is valid (24 hours expiry)
         $createdAt = Carbon::parse($tokenRecord->created_at);
         if ($createdAt->addHours(24)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-            return response()->json([
-                'message' => 'This verification token has expired. Please request a new verification email.'
-            ], 400);
+            return $this->errorResponse('This verification token has expired. Please request a new verification email.', 400, null, 'TOKEN_EXPIRED');
         }
 
         // Verify token
         if (!Hash::check($request->token, $tokenRecord->token)) {
-            return response()->json([
-                'message' => 'Invalid verification token.'
-            ], 400);
+            return $this->errorResponse('Invalid verification token.', 400, null, 'INVALID_TOKEN');
         }
 
         // Mark email as verified
@@ -589,9 +678,7 @@ class AuthController extends Controller
         // Delete the verification token
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
-        return response()->json([
-            'message' => 'Email address has been verified successfully!'
-        ], 200);
+        return $this->successResponse(null, 'Email address has been verified successfully!');
     }
 
     /**
@@ -626,16 +713,12 @@ class AuthController extends Controller
 
         if (!$user) {
             // Return success even if user doesn't exist for security
-            return response()->json([
-                'message' => 'If that email address exists in our system and is not verified, we will send a verification link.'
-            ], 200);
+            return $this->successResponse(null, 'If that email address exists in our system and is not verified, we will send a verification link.');
         }
 
         // Check if already verified
         if ($user->email_verified_at) {
-            return response()->json([
-                'message' => 'Email address is already verified.'
-            ], 400);
+            return $this->errorResponse('Email address is already verified.', 400, null, 'ALREADY_VERIFIED');
         }
 
         // Generate new verification token
@@ -656,14 +739,10 @@ class AuthController extends Controller
             Mail::to($user->email)->send(new EmailVerificationMail($user, $verificationToken));
         } catch (\Exception $e) {
             Log::error('Failed to send email verification: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Failed to send verification email. Please try again later.'
-            ], 500);
+            return $this->errorResponse('Failed to send verification email. Please try again later.', 500, null, 'EMAIL_SEND_FAILED');
         }
 
-        return response()->json([
-            'message' => 'If that email address exists in our system and is not verified, we will send a verification link.'
-        ], 200);
+        return $this->successResponse(null, 'If that email address exists in our system and is not verified, we will send a verification link.');
     }
 
     /**
@@ -709,10 +788,7 @@ class AuthController extends Controller
 
         $user->update($validated);
 
-        return response()->json([
-            'message' => 'Profile updated successfully',
-            'user' => $user->fresh(),
-        ]);
+        return $this->successResponse($user->fresh(), 'Profile updated successfully');
     }
 
     /**
@@ -770,11 +846,10 @@ class AuthController extends Controller
         // Update user
         $user->update(['profile_picture' => $url]);
 
-        return response()->json([
-            'message' => 'Profile picture uploaded successfully',
+        return $this->successResponse([
             'profile_picture' => $url,
             'user' => $user->fresh(),
-        ]);
+        ], 'Profile picture uploaded successfully');
     }
 
     /**
@@ -803,13 +878,8 @@ class AuthController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function changePassword(Request $request)
+    public function changePassword(ChangePasswordRequest $request)
     {
-        $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
-
         $user = $request->user();
 
         // Verify current password
@@ -824,9 +894,101 @@ class AuthController extends Controller
             'password' => Hash::make($request->new_password),
         ]);
 
-        return response()->json([
-            'message' => 'Password changed successfully',
+        return $this->successResponse(null, 'Password changed successfully');
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth/refresh",
+     *     summary="Refresh access token",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"refresh_token"},
+     *             @OA\Property(property="refresh_token", type="string", example="refresh_token_here")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token refreshed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="access_token", type="string"),
+     *             @OA\Property(property="token_type", type="string", example="Bearer"),
+     *             @OA\Property(property="expires_in", type="integer", example=3600)
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Invalid or expired refresh token")
+     * )
+     */
+    public function refresh(Request $request)
+    {
+        $request->validate([
+            'refresh_token' => 'required|string',
         ]);
+
+        $result = $this->tokenService->refreshAccessToken($request->refresh_token);
+
+        if (!$result) {
+            return $this->unauthorizedResponse('Invalid or expired refresh token');
+        }
+
+        return $this->successResponse($result, 'Token refreshed successfully');
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth/revoke",
+     *     summary="Revoke refresh token",
+     *     tags={"Authentication"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"refresh_token"},
+     *             @OA\Property(property="refresh_token", type="string", example="refresh_token_here")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token revoked successfully"
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function revoke(Request $request)
+    {
+        $request->validate([
+            'refresh_token' => 'required|string',
+        ]);
+
+        $revoked = $this->tokenService->revokeRefreshToken($request->refresh_token);
+
+        if (!$revoked) {
+            return $this->errorResponse('Invalid refresh token', 400, null, 'INVALID_TOKEN');
+        }
+
+        return $this->successResponse(null, 'Token revoked successfully');
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth/revoke-all",
+     *     summary="Revoke all tokens for current user",
+     *     tags={"Authentication"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="All tokens revoked successfully"
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function revokeAll(Request $request)
+    {
+        $this->tokenService->revokeAllTokens($request->user());
+
+        return $this->successResponse(null, 'All tokens revoked successfully');
     }
 }
 

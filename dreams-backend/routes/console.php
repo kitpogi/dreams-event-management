@@ -14,3 +14,11 @@ Schedule::command('bookings:send-reminders')
     ->timezone('Asia/Manila')
     ->withoutOverlapping();
 
+// Schedule auto-completion of bookings to run daily at 11:59 PM
+// This marks approved bookings as completed after their event date has passed
+Schedule::command('bookings:mark-completed')
+    ->dailyAt('23:59')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/mark-completed.log'));
+

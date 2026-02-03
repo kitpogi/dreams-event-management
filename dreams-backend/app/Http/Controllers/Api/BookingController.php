@@ -9,6 +9,9 @@ use App\Models\EventPackage;
 use App\Models\BookingDetail;
 use App\Models\Client;
 use App\Models\User;
+use App\Events\NewBookingCreated;
+use App\Events\BookingStatusChanged;
+use App\Http\Resources\BookingResource;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Response;
 use App\Mail\BookingConfirmationMail;
@@ -73,7 +76,7 @@ class BookingController extends Controller
         $page = (int) $request->query('page', 1);
         $page = max(1, $page);
 
-        $query = BookingDetail::with(['eventPackage', 'client', 'coordinator']);
+        $query = BookingDetail::with(['eventPackage', 'client', 'coordinator', 'payments']);
 
         if ($request->user()->isAdmin()) {
             // Admin can see all bookings
@@ -102,8 +105,9 @@ class BookingController extends Controller
 
         $bookings = $paginatedQuery->paginate($perPage, ['*'], 'page', $page);
 
+        // Use API Resource to format response (only loads relationships that are needed)
         return response()->json([
-            'data' => $bookings->items(),
+            'data' => BookingResource::collection($bookings->items()),
             'meta' => [
                 'current_page' => $bookings->currentPage(),
                 'per_page' => $bookings->perPage(),
@@ -159,7 +163,7 @@ class BookingController extends Controller
             }
         }
 
-        return response()->json(['data' => $booking]);
+        return response()->json(['data' => new BookingResource($booking)]);
     }
 
     /**
@@ -193,62 +197,51 @@ class BookingController extends Controller
      *     @OA\Response(response=401, description="Unauthenticated")
      * )
      */
-    public function store(Request $request)
+    public function store(\App\Http\Requests\Booking\StoreBookingRequest $request)
     {
-        $request->validate([
-            'package_id' => 'required|exists:event_packages,package_id',
-            'event_date' => [
-                'required',
-                'date',
-                function ($attribute, $value, $fail) {
-                    $today = now()->startOfDay();
-                    $eventDate = Carbon::parse($value)->startOfDay();
-                    if ($eventDate->lt($today)) {
-                        $fail('The event date must be today or a future date.');
-                    }
-                },
-            ],
-            'event_venue' => 'nullable|string|max:255',
-            'event_time' => 'nullable|string', // Accept but don't require event_time
-            'guest_count' => 'nullable|integer|min:1',
-            'number_of_guests' => 'nullable|integer|min:1',
-            'special_requests' => 'nullable|string',
-        ]);
-
+        // Validation handled by FormRequest
         $package = EventPackage::with('venue')->findOrFail($request->package_id);
 
-        // Check if the date is available for this package
-        $eventDate = Carbon::parse($request->event_date)->startOfDay();
+        // Check if the date is available for this package (with timezone awareness)
+        try {
+            $eventDate = Carbon::parse($request->event_date, config('app.timezone'))->startOfDay();
+        } catch (\Exception $e) {
+            return $this->validationErrorResponse(
+                ['event_date' => ['Invalid date format. Please use YYYY-MM-DD format.']],
+                'Invalid date format'
+            );
+        }
         $isAvailable = $this->checkDateAvailability($request->package_id, $eventDate);
-        
+
         if (!$isAvailable) {
-            return response()->json([
-                'message' => 'This date is not available for booking. Please choose another date.',
-                'errors' => ['event_date' => ['The selected date is already booked.']]
-            ], 422);
+            return $this->validationErrorResponse(
+                ['event_date' => ['The selected date is already booked.']],
+                'This date is not available for booking. Please choose another date.'
+            );
         }
 
         // Map number_of_guests to guest_count if provided
         // Handle both empty string and null
         $guestCount = null;
         if ($request->has('guest_count') && $request->guest_count !== '' && $request->guest_count !== null) {
-            $guestCount = (int)$request->guest_count;
+            $guestCount = (int) $request->guest_count;
         } elseif ($request->has('number_of_guests') && $request->number_of_guests !== '' && $request->number_of_guests !== null) {
-            $guestCount = (int)$request->number_of_guests;
+            $guestCount = (int) $request->number_of_guests;
         }
-        
+
         if (!$guestCount || $guestCount < 1) {
-            return response()->json([
-                'message' => 'Number of guests is required and must be at least 1',
-                'errors' => ['number_of_guests' => ['The number of guests field is required and must be at least 1.']]
-            ], 422);
+            return $this->validationErrorResponse(
+                ['number_of_guests' => ['The number of guests field is required and must be at least 1.']],
+                'Number of guests is required and must be at least 1'
+            );
         }
 
         // Check capacity if package has a capacity field
         if (isset($package->capacity) && $guestCount > $package->capacity) {
-            return response()->json([
-                'message' => 'Number of guests exceeds package capacity'
-            ], 422);
+            return $this->validationErrorResponse(
+                ['guest_count' => ['Number of guests exceeds package capacity.']],
+                'Number of guests exceeds package capacity'
+            );
         }
 
         // Get event venue from request or package venue, or use a default
@@ -263,6 +256,27 @@ class BookingController extends Controller
         // Find or create corresponding client based on authenticated user
         $client = $this->clientService->findOrCreateFromUser($request->user());
 
+        // Calculate payment amounts with strict decimal precision
+        // Ensure package_price is valid decimal
+        if (!is_numeric($package->package_price) || $package->package_price < 0) {
+            return response()->json([
+                'message' => 'Invalid package price',
+                'errors' => ['package_price' => ['The package price is invalid.']]
+            ], 422);
+        }
+
+        $totalAmount = round((float) $package->package_price, 2);
+        $depositPercentage = 0.30; // 30% deposit (configurable via config file if needed)
+        $depositAmount = round($totalAmount * $depositPercentage, 2);
+
+        // Validate calculated amounts
+        if ($totalAmount <= 0) {
+            return response()->json([
+                'message' => 'Package price must be greater than zero',
+                'errors' => ['package_price' => ['The package price must be greater than zero.']]
+            ], 422);
+        }
+
         $bookingData = [
             'client_id' => $client->client_id,
             'package_id' => $request->package_id,
@@ -270,7 +284,15 @@ class BookingController extends Controller
             'event_venue' => $eventVenue,
             'guest_count' => $guestCount,
             'special_requests' => $request->special_requests,
+            'event_type' => $request->event_type,
+            'theme' => $request->theme,
+            'budget_range' => $request->budget_range,
+            'alternate_contact' => $request->alternate_contact,
             'booking_status' => 'Pending',
+            'total_amount' => $totalAmount,
+            'deposit_amount' => $depositAmount,
+            'payment_required' => true,
+            'payment_status' => 'unpaid',
         ];
 
         // Add event_time if provided
@@ -293,34 +315,44 @@ class BookingController extends Controller
             Log::error('Failed to send booking confirmation email: ' . $e->getMessage());
         }
 
-        return response()->json(['data' => $booking], 201);
+        // Broadcast new booking event to admins
+        try {
+            broadcast(new NewBookingCreated($booking))->toOthers();
+        } catch (\Exception $e) {
+            Log::error('Failed to broadcast new booking event: ' . $e->getMessage());
+        }
+
+        return $this->successResponse(new BookingResource($booking), 'Booking created successfully', 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(\App\Http\Requests\Booking\UpdateBookingRequest $request, $id)
     {
         $booking = BookingDetail::findOrFail($id);
 
         // Check if user owns the booking
         $client = $this->clientService->getByUserEmail($request->user()->email);
         if ($client && $booking->client_id !== $client->client_id && !$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->forbiddenResponse('Unauthorized');
         }
 
-        $request->validate([
-            'event_date' => 'sometimes|date|after_or_equal:today',
-            'event_time' => 'nullable|string',
-            'event_venue' => 'sometimes|string|max:255',
-            'guest_count' => 'sometimes|integer|min:1',
-            'number_of_guests' => 'sometimes|integer|min:1',
-            'special_requests' => 'nullable|string',
-        ]);
+        // Validation handled by FormRequest
 
         // Map number_of_guests to guest_count if provided
-        $data = $request->only(['event_date', 'event_time', 'event_venue', 'guest_count', 'special_requests']);
+        $data = $request->only([
+            'event_date',
+            'event_time',
+            'event_venue',
+            'guest_count',
+            'special_requests',
+            'event_type',
+            'theme',
+            'budget_range',
+            'alternate_contact'
+        ]);
         if ($request->has('number_of_guests') && $request->number_of_guests !== '' && $request->number_of_guests !== null) {
-            $data['guest_count'] = (int)$request->number_of_guests;
+            $data['guest_count'] = (int) $request->number_of_guests;
         }
-        
+
         // Handle event_time - set to null if empty string
         if (isset($data['event_time']) && $data['event_time'] === '') {
             $data['event_time'] = null;
@@ -328,7 +360,7 @@ class BookingController extends Controller
 
         $booking->update($data);
 
-        return response()->json(['data' => $booking]);
+        return $this->successResponse(new BookingResource($booking), 'Booking updated successfully');
     }
 
     public function adminUpdateStatus(Request $request, $id)
@@ -379,7 +411,133 @@ class BookingController extends Controller
             }
         }
 
-        return response()->json(['data' => $booking]);
+        // Broadcast status change event for real-time notifications
+        if ($oldStatus !== $status) {
+            try {
+                broadcast(new BookingStatusChanged($booking, $oldStatus, $status))->toOthers();
+            } catch (\Exception $e) {
+                Log::error('Failed to broadcast booking status change: ' . $e->getMessage());
+            }
+        }
+
+        return $this->successResponse(new BookingResource($booking), 'Booking updated successfully');
+    }
+
+    /**
+     * Bulk update status for multiple bookings (admin only)
+     */
+    public function bulkUpdateStatus(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $request->validate([
+            'booking_ids' => 'required|array|min:1|max:100',
+            'booking_ids.*' => 'required|integer',
+            'status' => 'required|in:Pending,Approved,Confirmed,Completed,Cancelled',
+        ]);
+
+        $bookingIds = $request->booking_ids;
+        $newStatus = $request->status;
+
+        // Map "Confirmed" to "Approved" for database consistency
+        if ($newStatus === 'Confirmed') {
+            $newStatus = 'Approved';
+        }
+
+        $bookings = BookingDetail::with(['client', 'eventPackage'])
+            ->whereIn('booking_id', $bookingIds)
+            ->get();
+
+        if ($bookings->isEmpty()) {
+            return response()->json(['message' => 'No bookings found with the provided IDs.'], 404);
+        }
+
+        $successCount = 0;
+        $failedIds = [];
+        $results = [];
+
+        foreach ($bookings as $booking) {
+            /** @var BookingDetail $booking */
+            try {
+                $oldStatus = $booking->booking_status;
+
+                // Skip if status is the same
+                if ($oldStatus === $newStatus) {
+                    $results[] = [
+                        'booking_id' => $booking->booking_id,
+                        'status' => 'skipped',
+                        'message' => 'Status unchanged'
+                    ];
+                    continue;
+                }
+
+                $booking->update(['booking_status' => $newStatus]);
+                $booking->refresh();
+
+                // Log the status change
+                $this->logAudit(
+                    'booking.bulk_status_changed',
+                    $booking,
+                    ['booking_status' => $oldStatus],
+                    ['booking_status' => $newStatus],
+                    "Bulk updated booking #{$booking->booking_id} status from '{$oldStatus}' to '{$newStatus}'"
+                );
+
+                // Send status update email
+                if ($booking->client && $booking->client->client_email) {
+                    try {
+                        Mail::to($booking->client->client_email)->send(
+                            new BookingStatusUpdateMail($booking, $oldStatus, $newStatus)
+                        );
+                    } catch (\Exception $e) {
+                        Log::error("Failed to send bulk status update email for booking #{$booking->booking_id}: " . $e->getMessage());
+                    }
+                }
+
+                // Broadcast status change event
+                try {
+                    broadcast(new BookingStatusChanged($booking, $oldStatus, $newStatus))->toOthers();
+                } catch (\Exception $e) {
+                    Log::error("Failed to broadcast bulk status change for booking #{$booking->booking_id}: " . $e->getMessage());
+                }
+
+                $successCount++;
+                $results[] = [
+                    'booking_id' => $booking->booking_id,
+                    'status' => 'success',
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus
+                ];
+            } catch (\Exception $e) {
+                Log::error("Failed to bulk update booking #{$booking->booking_id}: " . $e->getMessage());
+                $failedIds[] = $booking->booking_id;
+                $results[] = [
+                    'booking_id' => $booking->booking_id,
+                    'status' => 'failed',
+                    'message' => $e->getMessage()
+                ];
+            }
+        }
+
+        $message = $successCount > 0
+            ? "Successfully updated {$successCount} booking(s) to '{$newStatus}'."
+            : 'No bookings were updated.';
+
+        if (count($failedIds) > 0) {
+            $message .= " Failed to update " . count($failedIds) . " booking(s).";
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => [
+                'success_count' => $successCount,
+                'failed_count' => count($failedIds),
+                'results' => $results
+            ]
+        ]);
     }
 
     /**
@@ -428,7 +586,7 @@ class BookingController extends Controller
 
         // Validate cancellation is allowed
         $currentStatus = $booking->booking_status;
-        
+
         // Cannot cancel if already completed or cancelled
         if ($currentStatus === 'Completed') {
             return response()->json([
@@ -446,7 +604,7 @@ class BookingController extends Controller
         if ($booking->event_date) {
             $eventDate = Carbon::parse($booking->event_date);
             $daysUntilEvent = Carbon::now()->diffInDays($eventDate, false);
-            
+
             if ($daysUntilEvent >= 0 && $daysUntilEvent < 7) {
                 return response()->json([
                     'message' => 'Cannot cancel booking less than 7 days before the event date. Please contact support for assistance.'
@@ -459,7 +617,7 @@ class BookingController extends Controller
 
         // Update booking status to Cancelled
         $updateData = ['booking_status' => 'Cancelled'];
-        
+
         // Store cancellation reason if provided
         if ($request->has('cancellation_reason') && $request->cancellation_reason) {
             // Add cancellation reason to special_requests or create a new field
@@ -494,6 +652,13 @@ class BookingController extends Controller
                 // Log error but don't fail the request
                 Log::error('Failed to send booking cancellation email: ' . $e->getMessage());
             }
+        }
+
+        // Broadcast cancellation event for real-time notifications
+        try {
+            broadcast(new BookingStatusChanged($booking, $oldStatus, 'Cancelled'))->toOthers();
+        } catch (\Exception $e) {
+            Log::error('Failed to broadcast booking cancellation: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -678,7 +843,7 @@ class BookingController extends Controller
                 'venue' => $booking->event_venue,
                 'guest_count' => $booking->guest_count,
             ];
-        })->filter(fn ($e) => $e['date']);
+        })->filter(fn($e) => $e['date']);
 
         return response()->json([
             'data' => $events->values(),
@@ -717,7 +882,7 @@ class BookingController extends Controller
             ->with('eventPackage')
             ->get()
             ->sum(function ($booking) {
-                return $booking->eventPackage ? (float) $booking->eventPackage->package_price : 0;
+                return $booking->eventPackage ? round((float) $booking->eventPackage->package_price, 2) : 0;
             });
 
         // Monthly revenue trend (last 6 months)
@@ -730,7 +895,7 @@ class BookingController extends Controller
                 ->with('eventPackage')
                 ->get()
                 ->sum(function ($booking) {
-                    return $booking->eventPackage ? (float) $booking->eventPackage->package_price : 0;
+                    return $booking->eventPackage ? round((float) $booking->eventPackage->package_price, 2) : 0;
                 });
             $monthlyRevenue[] = [
                 'month' => $monthStart->format('M Y'),
@@ -748,9 +913,9 @@ class BookingController extends Controller
                     'package_id' => $bookings->first()->package_id,
                     'package_name' => $bookings->first()->eventPackage->package_name ?? 'N/A',
                     'booking_count' => $bookings->count(),
-                    'total_revenue' => $bookings->sum(function ($booking) {
-                        return $booking->eventPackage ? (float) $booking->eventPackage->package_price : 0;
-                    }),
+                    'total_revenue' => round($bookings->sum(function ($booking) {
+                        return $booking->eventPackage ? round((float) $booking->eventPackage->package_price, 2) : 0;
+                    }), 2),
                 ];
             })
             ->sortByDesc('booking_count')
@@ -779,7 +944,7 @@ class BookingController extends Controller
             ->map(function ($booking) {
                 return [
                     'id' => $booking->booking_id,
-                    'client_name' => $booking->client 
+                    'client_name' => $booking->client
                         ? ($booking->client->client_fname . ' ' . $booking->client->client_lname)
                         : 'N/A',
                     'package_name' => $booking->eventPackage->package_name ?? 'N/A',
@@ -824,7 +989,7 @@ class BookingController extends Controller
         ]);
 
         $booking = BookingDetail::findOrFail($id);
-        
+
         // Verify coordinator exists and is actually a coordinator
         $coordinator = User::findOrFail($request->coordinator_id);
         if (!$coordinator->isCoordinator()) {
@@ -862,7 +1027,7 @@ class BookingController extends Controller
         $booking = BookingDetail::with('coordinator')->findOrFail($id);
         $oldCoordinatorId = $booking->coordinator_id;
         $coordinatorName = $booking->coordinator ? $booking->coordinator->name : 'Unknown';
-        
+
         $booking->coordinator_id = null;
         $booking->save();
 
@@ -903,7 +1068,7 @@ class BookingController extends Controller
     public function getCoordinatorBookings(Request $request)
     {
         $user = $request->user();
-        
+
         if (!$user->isCoordinator()) {
             return response()->json([
                 'message' => 'Only coordinators can access this endpoint.'
@@ -955,7 +1120,7 @@ class BookingController extends Controller
         ]);
 
         $booking = BookingDetail::findOrFail($id);
-        
+
         // Check if user has permission (admin or assigned coordinator)
         $user = $request->user();
         if (!$user->isAdmin()) {
@@ -1026,14 +1191,14 @@ class BookingController extends Controller
             ]);
 
             $packageId = $request->package_id;
-            $startDate = $request->start_date 
+            $startDate = $request->start_date
                 ? Carbon::parse($request->start_date)->startOfDay()
                 : Carbon::today()->startOfDay();
-            
-            $monthsAhead = $request->has('months_ahead') 
-                ? (int) $request->months_ahead 
+
+            $monthsAhead = $request->has('months_ahead')
+                ? (int) $request->months_ahead
                 : 3;
-            
+
             $endDate = $request->end_date
                 ? Carbon::parse($request->end_date)->startOfDay()
                 : $startDate->copy()->addMonths($monthsAhead);
@@ -1096,17 +1261,215 @@ class BookingController extends Controller
 
     /**
      * Helper method to check if a date is available for a package
+     * 
+     * @param int $packageId The package ID to check
+     * @param Carbon $eventDate The date to check
+     * @param string|null $eventTime Optional time slot to check (format: HH:MM)
+     * @param bool $strictMode If true, only Approved/Confirmed/Completed block the date
+     *                         If false (default), also includes Pending bookings
+     * @return bool True if the date/time is available
      */
-    protected function checkDateAvailability($packageId, Carbon $eventDate): bool
+    protected function checkDateAvailability($packageId, Carbon $eventDate, ?string $eventTime = null, bool $strictMode = false): bool
     {
-        // Check if there's already a booking for this package on this date
-        // Only count bookings that are not cancelled
-        $existingBooking = BookingDetail::where('package_id', $packageId)
-            ->whereDate('event_date', $eventDate->format('Y-m-d'))
-            ->whereNotIn('booking_status', ['Cancelled'])
-            ->exists();
+        $query = BookingDetail::where('package_id', $packageId)
+            ->whereDate('event_date', $eventDate->format('Y-m-d'));
 
-        return !$existingBooking;
+        if ($strictMode) {
+            // Only approved/confirmed/completed bookings block the date
+            // This is useful for showing "tentatively booked" vs "confirmed booking"
+            $query->whereIn('booking_status', ['Approved', 'Confirmed', 'Completed']);
+        } else {
+            // All non-cancelled bookings block the date (including Pending)
+            $query->whereNotIn('booking_status', ['Cancelled', 'Completed']);
+        }
+
+        // If time is provided, also check for time conflicts
+        if ($eventTime) {
+            $query->where('event_time', $eventTime);
+        }
+
+        return !$query->exists();
+    }
+
+    /**
+     * Helper method to get detailed availability info for a date
+     * 
+     * @param int $packageId The package ID to check
+     * @param Carbon $eventDate The date to check
+     * @return array Availability info including conflicting bookings
+     */
+    protected function getDateAvailabilityDetails($packageId, Carbon $eventDate): array
+    {
+        $conflictingBookings = BookingDetail::where('package_id', $packageId)
+            ->whereDate('event_date', $eventDate->format('Y-m-d'))
+            ->whereNotIn('booking_status', ['Cancelled', 'Completed'])
+            ->select(['booking_id', 'event_time', 'booking_status', 'client_id'])
+            ->with('client:client_id,client_fname,client_lname')
+            ->get();
+
+        $pendingCount = $conflictingBookings->where('booking_status', 'Pending')->count();
+        $approvedCount = $conflictingBookings->whereIn('booking_status', ['Approved', 'Confirmed'])->count();
+
+        return [
+            'is_available' => $conflictingBookings->isEmpty(),
+            'has_approved_booking' => $approvedCount > 0,
+            'has_pending_booking' => $pendingCount > 0,
+            'pending_count' => $pendingCount,
+            'approved_count' => $approvedCount,
+            'conflicting_bookings' => $conflictingBookings->map(function ($booking) {
+                return [
+                    'booking_id' => $booking->booking_id,
+                    'event_time' => $booking->event_time,
+                    'event_duration' => $booking->event_duration,
+                    'event_end_time' => $booking->event_end_time,
+                    'status' => $booking->booking_status,
+                    'client_name' => $booking->client
+                        ? trim(($booking->client->client_fname ?? '') . ' ' . ($booking->client->client_lname ?? ''))
+                        : null,
+                ];
+            })->values(),
+        ];
+    }
+
+    /**
+     * Check detailed availability for a date (admin endpoint)
+     */
+    public function checkAvailabilityDetails(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $request->validate([
+            'package_id' => 'required|exists:event_packages,package_id',
+            'event_date' => 'required|date',
+        ]);
+
+        $eventDate = Carbon::parse($request->event_date)->startOfDay();
+        $details = $this->getDateAvailabilityDetails($request->package_id, $eventDate);
+
+        return response()->json([
+            'package_id' => $request->package_id,
+            'date' => $eventDate->format('Y-m-d'),
+            ...$details,
+        ]);
+    }
+
+    /**
+     * Check if a time slot is available (no overlapping bookings)
+     * 
+     * @param int $packageId The package ID
+     * @param Carbon $eventDate The event date
+     * @param string $startTime Start time in HH:MM format
+     * @param float $durationHours Duration in hours (e.g., 2.5 for 2:30)
+     * @param int|null $excludeBookingId Optional booking ID to exclude (for updates)
+     * @return array ['available' => bool, 'conflicts' => array]
+     */
+    protected function checkTimeSlotAvailability(
+        int $packageId,
+        Carbon $eventDate,
+        string $startTime,
+        float $durationHours,
+        ?int $excludeBookingId = null
+    ): array {
+        // Calculate end time
+        $startMinutes = $this->timeToMinutes($startTime);
+        $endMinutes = $startMinutes + (int) ($durationHours * 60);
+        $endTime = $this->minutesToTime($endMinutes);
+
+        // Get all active bookings for this date and package
+        $query = BookingDetail::where('package_id', $packageId)
+            ->whereDate('event_date', $eventDate->format('Y-m-d'))
+            ->whereNotIn('booking_status', ['Cancelled', 'Completed'])
+            ->whereNotNull('event_time');
+
+        if ($excludeBookingId) {
+            $query->where('booking_id', '!=', $excludeBookingId);
+        }
+
+        $existingBookings = $query->get();
+
+        $conflicts = [];
+
+        foreach ($existingBookings as $booking) {
+            $existingStart = $this->timeToMinutes($booking->event_time);
+
+            // Calculate existing booking's end time
+            $existingDuration = $booking->event_duration ?? 4; // Default 4 hours if not set
+            $existingEnd = $existingStart + (int) ($existingDuration * 60);
+
+            // Check for overlap: two ranges overlap if they start before the other ends
+            // Overlap condition: start1 < end2 AND start2 < end1
+            if ($startMinutes < $existingEnd && $existingStart < $endMinutes) {
+                $conflicts[] = [
+                    'booking_id' => $booking->booking_id,
+                    'status' => $booking->booking_status,
+                    'time_range' => "{$booking->event_time} - " . $this->minutesToTime($existingEnd),
+                    'overlap_type' => $this->getOverlapType($startMinutes, $endMinutes, $existingStart, $existingEnd),
+                ];
+            }
+        }
+
+        return [
+            'available' => empty($conflicts),
+            'requested_slot' => [
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'duration_hours' => $durationHours,
+            ],
+            'conflicts' => $conflicts,
+        ];
+    }
+
+    /**
+     * Convert time string (HH:MM) to minutes from midnight
+     */
+    protected function timeToMinutes(string $time): int
+    {
+        $parts = explode(':', $time);
+        return (int) $parts[0] * 60 + (int) ($parts[1] ?? 0);
+    }
+
+    /**
+     * Convert minutes from midnight to time string (HH:MM)
+     */
+    protected function minutesToTime(int $minutes): string
+    {
+        $hours = (int) floor($minutes / 60) % 24;
+        $mins = $minutes % 60;
+        return sprintf('%02d:%02d', $hours, $mins);
+    }
+
+    /**
+     * Determine the type of time overlap
+     */
+    protected function getOverlapType(int $start1, int $end1, int $start2, int $end2): string
+    {
+        if ($start1 >= $start2 && $end1 <= $end2) {
+            return 'contained'; // New booking is fully within existing
+        }
+        if ($start2 >= $start1 && $end2 <= $end1) {
+            return 'contains'; // New booking fully contains existing
+        }
+        if ($start1 < $start2) {
+            return 'overlaps_start'; // New booking overlaps start of existing
+        }
+        return 'overlaps_end'; // New booking overlaps end of existing
+    }
+
+    /**
+     * Calculate and set end time based on start time and duration
+     */
+    protected function calculateEndTime(?string $startTime, ?float $durationHours): ?string
+    {
+        if (!$startTime || !$durationHours) {
+            return null;
+        }
+
+        $startMinutes = $this->timeToMinutes($startTime);
+        $endMinutes = $startMinutes + (int) ($durationHours * 60);
+
+        return $this->minutesToTime($endMinutes);
     }
 }
 

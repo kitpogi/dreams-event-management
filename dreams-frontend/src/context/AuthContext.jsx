@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
 import { ensureAbsoluteUrl } from '../utils/imageUtils';
 
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
+
     if (storedToken && userData) {
       setToken(storedToken);
       setUser(JSON.parse(userData));
@@ -34,16 +34,17 @@ export const AuthProvider = ({ children }) => {
   const fetchCurrentUser = async () => {
     try {
       const response = await api.get('/auth/me');
-      const userData = response.data;
-      
+      // Backend may wrap response in a 'data' property
+      const userData = response.data.data || response.data;
+
       // Ensure profile picture URL is absolute
-      if (userData.profile_picture) {
+      if (userData?.profile_picture) {
         userData.profile_picture = ensureAbsoluteUrl(userData.profile_picture);
       }
-      
+
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       return { success: true, user: userData };
     } catch (error) {
       // Token invalid, clear storage
@@ -71,22 +72,28 @@ export const AuthProvider = ({ children }) => {
       }
 
       const response = await api.post('/auth/login', { email, password });
-      const { token: newToken, user: userData } = response.data;
-      
+
+      // Backend wraps response in a 'data' property
+      const responseData = response.data.data || response.data;
+
+      // Backend returns access_token, not token
+      const newToken = responseData.access_token || responseData.token;
+      const userData = responseData.user;
+
       // Ensure profile picture URL is absolute
-      if (userData.profile_picture) {
+      if (userData?.profile_picture) {
         userData.profile_picture = ensureAbsoluteUrl(userData.profile_picture);
       }
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
-      
+
       return { success: true };
     } catch (error) {
       let message = 'Login failed';
-      
+
       if (error.response?.status === 422) {
         // Validation errors
         const errors = error.response.data?.errors;
@@ -107,9 +114,9 @@ export const AuthProvider = ({ children }) => {
       } else {
         message = error.response?.data?.message || message;
       }
-      
+
       console.error('Login error:', error.response?.data || error.message);
-      
+
       return {
         success: false,
         message: message,
@@ -120,25 +127,30 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post('/auth/register', userData);
-      const { token: newToken, user: newUser, message } = response.data;
-      
+      // Backend wraps response in a 'data' property
+      const responseData = response.data.data || response.data;
+      // Backend returns access_token, not token
+      const newToken = responseData.access_token || responseData.token;
+      const newUser = responseData.user;
+      const message = response.data.message;
+
       // Ensure profile picture URL is absolute
-      if (newUser.profile_picture) {
+      if (newUser?.profile_picture) {
         newUser.profile_picture = ensureAbsoluteUrl(newUser.profile_picture);
       }
-      
+
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
       setToken(newToken);
       setUser(newUser);
-      
-      return { 
+
+      return {
         success: true,
         message: message || 'Registration successful! Please check your email to verify your account.'
       };
     } catch (error) {
       let message = 'Registration failed';
-      
+
       if (error.response?.status === 422) {
         // Validation errors
         const errors = error.response.data?.errors;
@@ -156,7 +168,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         message = error.response?.data?.message || message;
       }
-      
+
       return {
         success: false,
         message: message,
@@ -182,7 +194,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (userData) => {
     // Ensure profile picture URL is absolute before updating
-    if (userData.profile_picture) {
+    if (userData?.profile_picture) {
       userData.profile_picture = ensureAbsoluteUrl(userData.profile_picture);
     }
     setUser(userData);

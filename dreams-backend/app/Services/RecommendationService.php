@@ -12,6 +12,18 @@ use App\Services\ScoringStrategies\PreferenceScoringStrategy;
 class RecommendationService
 {
     protected $strategies;
+    
+    /**
+     * Strategy weights - higher weight = more important
+     * Budget is most important (1.5x), then Category (1.2x), Capacity (1.0x), Theme (0.8x), Preferences (0.5x)
+     */
+    protected $weights = [
+        CategoryScoringStrategy::class => 1.2,  // Event type is very important
+        BudgetScoringStrategy::class => 1.5,     // Budget is MOST important
+        CapacityScoringStrategy::class => 1.0,   // Capacity is important
+        ThemeScoringStrategy::class => 0.8,       // Theme is less important than budget
+        PreferenceScoringStrategy::class => 0.5,  // Preferences are nice-to-have
+    ];
 
     public function __construct()
     {
@@ -26,28 +38,47 @@ class RecommendationService
     }
 
     /**
-     * Score packages based on criteria using scoring strategies
+     * Score packages based on criteria using scoring strategies with weighting
      */
     public function scorePackages($packages, $criteria)
     {
         return $packages->map(function ($package) use ($criteria) {
             $totalScore = 0;
             $justifications = [];
+            $scoreBreakdown = []; // Track individual scores for debugging
 
-            // Apply each scoring strategy
+            // Apply each scoring strategy with its weight
             foreach ($this->strategies as $strategy) {
                 $result = $strategy->score($package, $criteria);
-                $totalScore += $result['score'];
+                $strategyClass = get_class($strategy);
+                $weight = $this->weights[$strategyClass] ?? 1.0;
+                
+                // Apply weight to the score
+                $weightedScore = $result['score'] * $weight;
+                $totalScore += $weightedScore;
+                
+                // Store breakdown for transparency
+                $scoreBreakdown[$strategyClass] = [
+                    'raw' => $result['score'],
+                    'weight' => $weight,
+                    'weighted' => $weightedScore,
+                ];
                 
                 if (!empty($result['justification'])) {
-                    $justifications[] = $result['justification'];
+                    // Include weight info in justification if weight != 1.0
+                    $justification = $result['justification'];
+                    if ($weight != 1.0) {
+                        $justification .= sprintf(' (weighted: %.1fx)', $weight);
+                    }
+                    $justifications[] = $justification;
                 }
             }
 
             return [
                 'package' => $package,
-                'score' => $totalScore,
+                'score' => round($totalScore, 2), // Round to 2 decimal places
                 'justification' => implode(', ', $justifications) ?: 'No matches found',
+                'score_breakdown' => $scoreBreakdown, // Include for debugging/transparency
             ];
         })->sortByDesc('score');
     }
