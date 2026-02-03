@@ -228,7 +228,7 @@ const Home = () => {
             <div key={pkg.id || i} className="group cursor-pointer">
               <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden mb-5 bg-gray-100 dark:bg-gray-800">
                 <img
-                  src={getImageUrl(pkg.images?.[0]) || "https://images.unsplash.com/photo-1540575467063-17e6fc8a6a44?auto=format&fit=crop&q=80&w=800"}
+                  src={getImageUrl(pkg.package_image) || "https://images.unsplash.com/photo-1540575467063-17e6fc8a6a44?auto=format&fit=crop&q=80&w=800"}
                   onError={handleImageError}
                   alt={pkg.title}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -239,9 +239,9 @@ const Home = () => {
               </div>
               <div>
                 <p className="text-gray-500 text-sm font-bold mb-1">Starting From</p>
-                <p className="text-xl font-bold text-red-500 mb-2">₱ {pkg.price?.toLocaleString()}</p>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-indigo-600 transition-colors">{pkg.title}</h3>
-                <p className="text-gray-400 text-sm mb-2">{pkg.category || "Full Coordination"} • {pkg.location || "Metro Manila"}</p>
+                <p className="text-xl font-bold text-red-500 mb-2">₱ {pkg.price?.toLocaleString() || pkg.package_price?.toLocaleString()}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-indigo-600 transition-colors">{pkg.title || pkg.package_name}</h3>
+                <p className="text-gray-400 text-sm mb-2">{pkg.category || pkg.package_category || "Full Coordination"} • {pkg.location || "Metro Manila"}</p>
                 <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   <span>4.9 (150 Reviews)</span>
