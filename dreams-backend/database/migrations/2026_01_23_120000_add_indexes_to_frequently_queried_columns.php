@@ -198,14 +198,40 @@ return new class extends Migration
     private function indexExists(string $table, string $indexName): bool
     {
         $connection = Schema::getConnection();
-        $databaseName = $connection->getDatabaseName();
+        $driver = $connection->getDriverName();
         
-        $result = $connection->select(
-            "SELECT COUNT(*) as count FROM information_schema.statistics 
-             WHERE table_schema = ? AND table_name = ? AND index_name = ?",
-            [$databaseName, $table, $indexName]
-        );
-        
-        return $result[0]->count > 0;
+        try {
+            // Handle different database drivers
+            if ($driver === 'sqlite') {
+                // For SQLite, query pragma_index_info
+                $result = $connection->select(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                    [$indexName]
+                );
+            } elseif ($driver === 'mysql') {
+                // For MySQL, use information_schema
+                $databaseName = $connection->getDatabaseName();
+                $result = $connection->select(
+                    "SELECT COUNT(*) as count FROM information_schema.statistics 
+                     WHERE table_schema = ? AND table_name = ? AND index_name = ?",
+                    [$databaseName, $table, $indexName]
+                );
+                return $result[0]->count > 0;
+            } elseif ($driver === 'pgsql') {
+                // For PostgreSQL, use pg_indexes
+                $result = $connection->select(
+                    "SELECT 1 FROM pg_indexes WHERE indexname = ?",
+                    [$indexName]
+                );
+            } else {
+                // Default: assume index doesn't exist (safe fallback)
+                return false;
+            }
+            
+            return count($result) > 0;
+        } catch (\Exception $e) {
+            // If query fails, assume index doesn't exist (safe fallback)
+            return false;
+        }
     }
 };
