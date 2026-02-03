@@ -25,6 +25,14 @@ use Laravel\Sanctum\HasApiTokens;
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
+ *
+ * @method array enableTwoFactorAuth(string $method = 'app')
+ * @method void disableTwoFactorAuth()
+ * @method string|null getTwoFactorSecret()
+ * @method bool hasTwoFactorEnabled()
+ * @method string|null getTwoFactorMethod()
+ * @method bool verifyTwoFactorToken(string $token)
+ * @method int getRemainingBackupCodesCount()
  */
 class User extends Authenticatable
 {

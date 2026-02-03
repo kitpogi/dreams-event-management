@@ -6,6 +6,8 @@ use App\Services\Auth\TwoFactorAuthService;
 
 /**
  * Trait for adding 2FA support to User model
+ *
+ * @mixin \App\Models\User
  */
 trait HasTwoFactorAuth
 {

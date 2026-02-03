@@ -30,6 +30,7 @@ class TwoFactorAuthController extends Controller
             'method' => 'required|in:app,email,sms',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
         
         if ($user->two_factor_enabled) {
@@ -68,6 +69,7 @@ class TwoFactorAuthController extends Controller
             'token' => 'required|string',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
 
         if (!$user->two_factor_enabled) {
@@ -114,6 +116,7 @@ class TwoFactorAuthController extends Controller
             'password' => 'required|string',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
 
         // Verify password
@@ -148,6 +151,7 @@ class TwoFactorAuthController extends Controller
      */
     public function status(): JsonResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
         return response()->json([
@@ -170,6 +174,7 @@ class TwoFactorAuthController extends Controller
             'password' => 'required|string',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
 
         if (!$user->two_factor_enabled) {
@@ -209,6 +214,7 @@ class TwoFactorAuthController extends Controller
      */
     public function sendEmailOTP(): JsonResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->two_factor_method !== 'email') {
@@ -239,6 +245,7 @@ class TwoFactorAuthController extends Controller
      */
     public function sendSmsOTP(): JsonResponse
     {
+        /** @var User $user */
         $user = Auth::user();
 
         if ($user->two_factor_method !== 'sms') {
