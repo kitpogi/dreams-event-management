@@ -8,6 +8,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
         \App\Providers\RateLimitServiceProvider::class,
         \App\Providers\AuthServiceProvider::class,
+        \App\Providers\EncryptionServiceProvider::class,
     ])
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

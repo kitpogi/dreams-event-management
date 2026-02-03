@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasTwoFactorAuth;
+use App\Traits\HasEncryptedFields;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -36,7 +37,14 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasTwoFactorAuth;
+    use HasApiTokens, HasFactory, Notifiable, HasTwoFactorAuth, HasEncryptedFields;
+
+    /**
+     * Fields that should be encrypted in database
+     */
+    protected array $encrypted = [
+        'phone',
+    ];
 
     protected $fillable = [
         'name',

@@ -38,6 +38,7 @@
     34 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     35 => 'App\\Providers\\RateLimitServiceProvider',
     36 => 'App\\Providers\\AuthServiceProvider',
+    37 => 'App\\Providers\\EncryptionServiceProvider',
   ),
   'eager' => 
   array (
@@ -61,6 +62,7 @@
     17 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
     18 => 'App\\Providers\\RateLimitServiceProvider',
     19 => 'App\\Providers\\AuthServiceProvider',
+    20 => 'App\\Providers\\EncryptionServiceProvider',
   ),
   'deferred' => 
   array (
