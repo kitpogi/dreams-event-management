@@ -2,6 +2,7 @@
 
 namespace App\Services\Encryption;
 
+use App\Services\Contracts\EncryptionServiceInterface;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -10,7 +11,7 @@ use Illuminate\Contracts\Encryption\DecryptException;
  * Service for encrypting and decrypting sensitive fields at the application level
  * Provides field-level encryption for PII and other sensitive data
  */
-class FieldEncryptionService
+class FieldEncryptionService implements EncryptionServiceInterface
 {
     /**
      * Encrypt a value

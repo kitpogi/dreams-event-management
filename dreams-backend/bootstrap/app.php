@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'validate.request' => \App\Http\Middleware\ValidateRequest::class,
             'log.api' => \App\Http\Middleware\LogApiRequest::class,
             'csrf.api' => \App\Http\Middleware\VerifyCsrfToken::class,
+            'cache.headers' => \App\Http\Middleware\CacheHeaders::class,
         ]);
         
         // Apply XSS protection to all API routes
