@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'log.api' => \App\Http\Middleware\LogApiRequest::class,
             'csrf.api' => \App\Http\Middleware\VerifyCsrfToken::class,
             'cache.headers' => \App\Http\Middleware\CacheHeaders::class,
+            'compress' => \App\Http\Middleware\CompressResponse::class,
+            'api.version' => \App\Http\Middleware\ApiVersion::class,
         ]);
         
         // Apply XSS protection to all API routes
