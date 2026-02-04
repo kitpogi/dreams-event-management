@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Review;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ReviewRepository extends BaseRepository
 {
@@ -110,9 +111,9 @@ class ReviewRepository extends BaseRepository
     }
 
     /**
-     * Search reviews
+     * Search reviews with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

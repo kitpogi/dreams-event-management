@@ -57,7 +57,11 @@ class SendBookingStatusUpdate implements ShouldQueue
             return;
         }
 
-        Mail::to($client->email)->send(new BookingStatusUpdateMail($this->booking));
+        Mail::to($client->email)->send(new BookingStatusUpdateMail(
+            $this->booking,
+            $this->previousStatus,
+            $this->booking->booking_status ?? $this->booking->status ?? 'unknown'
+        ));
 
         Log::info('Booking status update email sent successfully', [
             'booking_id' => $this->booking->id,

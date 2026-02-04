@@ -166,9 +166,9 @@ class BookingRepository extends BaseRepository
     }
 
     /**
-     * Search bookings
+     * Search bookings with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

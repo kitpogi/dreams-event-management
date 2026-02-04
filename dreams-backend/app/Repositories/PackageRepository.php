@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\EventPackage;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class PackageRepository extends BaseRepository
 {
@@ -62,9 +63,9 @@ class PackageRepository extends BaseRepository
     }
 
     /**
-     * Search packages
+     * Search packages with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

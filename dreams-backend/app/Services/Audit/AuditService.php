@@ -162,7 +162,7 @@ class AuditService
      *
      * @return array<string, mixed>
      */
-    public function getAnalytics(string $startDate = null, string $endDate = null): array
+    public function getAnalytics(?string $startDate = null, ?string $endDate = null): array
     {
         $query = AuditLog::query();
 

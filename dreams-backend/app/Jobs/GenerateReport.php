@@ -143,7 +143,7 @@ class GenerateReport implements ShouldQueue
             'total' => $group->sum('total_amount'),
         ]);
 
-        $byMonth = $bookings->groupBy(fn ($b) => $b->event_date->format('Y-m'))
+        $byMonth = $bookings->groupBy(fn ($b) => \Carbon\Carbon::parse($b->event_date)->format('Y-m'))
             ->map(fn ($group) => [
                 'count' => $group->count(),
                 'total' => $group->sum('total_amount'),

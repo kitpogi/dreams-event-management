@@ -56,7 +56,10 @@ class SendBookingReminder implements ShouldQueue
             return;
         }
 
-        Mail::to($client->email)->send(new BookingReminderMail($this->booking));
+        Mail::to($client->email)->send(new BookingReminderMail(
+            $this->booking,
+            $this->daysUntilEvent <= 1 ? '1_day' : '1_week'
+        ));
 
         Log::info('Booking reminder email sent successfully', [
             'booking_id' => $this->booking->id,

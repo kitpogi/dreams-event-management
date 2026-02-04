@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class UserRepository extends BaseRepository
 {
@@ -95,9 +96,9 @@ class UserRepository extends BaseRepository
     }
 
     /**
-     * Search users
+     * Search users with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

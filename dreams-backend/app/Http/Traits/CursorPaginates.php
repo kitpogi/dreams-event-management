@@ -86,7 +86,7 @@ trait CursorPaginates
             'data' => $resourceClass::collection($paginator->items()),
             'meta' => [
                 'per_page' => $paginator->perPage(),
-                'has_more_pages' => $paginator->hasMorePages(),
+                'has_more_pages' => $paginator->nextCursor() !== null,
                 'next_cursor' => $paginator->nextCursor()?->encode(),
                 'prev_cursor' => $paginator->previousCursor()?->encode(),
                 'path' => $paginator->path(),

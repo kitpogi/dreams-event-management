@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\ContactInquiry;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ContactInquiryRepository extends BaseRepository
 {
@@ -86,9 +87,9 @@ class ContactInquiryRepository extends BaseRepository
     }
 
     /**
-     * Search inquiries
+     * Search inquiries with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\PortfolioItem;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class PortfolioRepository extends BaseRepository
 {
@@ -85,9 +86,9 @@ class PortfolioRepository extends BaseRepository
     }
 
     /**
-     * Search portfolio
+     * Search portfolio with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Testimonial;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class TestimonialRepository extends BaseRepository
 {
@@ -75,9 +76,9 @@ class TestimonialRepository extends BaseRepository
     }
 
     /**
-     * Search testimonials
+     * Search testimonials with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)

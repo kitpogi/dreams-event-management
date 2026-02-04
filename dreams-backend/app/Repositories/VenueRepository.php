@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Venue;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class VenueRepository extends BaseRepository
 {
@@ -86,9 +87,9 @@ class VenueRepository extends BaseRepository
     }
 
     /**
-     * Search venues
+     * Search venues with pagination
      */
-    public function search(string $query, int $perPage = 15)
+    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)
