@@ -4,9 +4,10 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\ApiKey;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Middleware for API key authentication.
@@ -175,7 +176,7 @@ class AuthenticateApiKey
             );
         } catch (\Exception $e) {
             // Log error but don't fail the request
-            \Log::warning('Failed to log API key usage: ' . $e->getMessage());
+            Log::warning('Failed to log API key usage: ' . $e->getMessage());
         }
     }
 }

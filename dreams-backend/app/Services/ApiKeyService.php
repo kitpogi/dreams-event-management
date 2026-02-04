@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ApiKey;
 use App\Models\ApiKeyUsageLog;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class ApiKeyService
 {
@@ -37,7 +38,7 @@ class ApiKeyService
         $credentials = ApiKey::generateCredentials();
         
         $apiKey->update([
-            'secret_hash' => \Hash::make($credentials['secret']),
+            'secret_hash' => Hash::make($credentials['secret']),
         ]);
 
         return $credentials['secret'];
@@ -97,7 +98,7 @@ class ApiKeyService
 
         // Top endpoints
         $topEndpoints = $logs->groupBy('endpoint')
-            ->map->count()
+            ->mapWithKeys(fn($group, $endpoint) => [$endpoint => $group->count()])
             ->sortDesc()
             ->take(10);
 

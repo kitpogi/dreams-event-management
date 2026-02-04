@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\PermissionCacheService;
 
@@ -91,7 +92,7 @@ class CheckPermission
         // Check cached permission
         $cacheKey = "permission:{$user->id}:{$permission}";
         
-        return $this->permissionCache->getCachedAuthorization($user, $permission, function () use ($user, $resource, $action) {
+        return Cache::remember($cacheKey, 300, function () use ($user, $resource, $action) {
             return $this->evaluatePermission($user, $resource, $action);
         });
     }
