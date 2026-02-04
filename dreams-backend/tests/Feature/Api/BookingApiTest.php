@@ -49,14 +49,16 @@ class BookingApiTest extends TestCase
     public function test_user_can_create_booking(): void
     {
         $user = $this->authenticateUser();
-        $package = EventPackage::factory()->create();
+        $package = EventPackage::factory()->create([
+            'capacity' => 200, // Ensure capacity is sufficient for guest count
+        ]);
 
         $bookingData = [
             'package_id' => $package->package_id,
             'event_date' => now()->addMonth()->format('Y-m-d'),
             'event_time' => '10:00',
             'event_venue' => 'Test Venue',
-            'guest_count' => 100,
+            'guest_count' => 100, // Must be within package capacity
             'special_requests' => 'Test request',
         ];
 

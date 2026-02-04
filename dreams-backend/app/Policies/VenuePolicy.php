@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Venue;
+use App\Traits\CachesPermissions;
 
 class VenuePolicy
 {
+    use CachesPermissions;
+
     /**
      * Determine if the user can view any venues.
      */
@@ -31,8 +34,8 @@ class VenuePolicy
      */
     public function create(User $user): bool
     {
-        // Only admin can create venues
-        return $user->isAdmin();
+        // Only admin can create venues (cached)
+        return $this->isAdminCached($user);
     }
 
     /**
@@ -40,8 +43,8 @@ class VenuePolicy
      */
     public function update(User $user, Venue $venue): bool
     {
-        // Only admin can update venues
-        return $user->isAdmin();
+        // Only admin can update venues (cached)
+        return $this->getCachedOrCheck($user, 'update', $venue, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -49,13 +52,14 @@ class VenuePolicy
      */
     public function delete(User $user, Venue $venue): bool
     {
-        // Only admin can delete venues
-        // Additional check: cannot delete if venue is used in packages
-        if (!$user->isAdmin()) {
-            return false;
-        }
+        // Only admin can delete venues (cached with additional checks)
+        return $this->getCachedOrCheck($user, 'delete', $venue, function () use ($user, $venue) {
+            if (!$this->isAdminCached($user)) {
+                return false;
+            }
 
-        // Check if venue is used in any packages
-        return !$venue->packages()->exists();
+            // Check if venue is used in any packages
+            return !$venue->packages()->exists();
+        });
     }
 }

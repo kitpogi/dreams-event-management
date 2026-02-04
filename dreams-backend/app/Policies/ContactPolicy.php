@@ -4,16 +4,19 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\ContactInquiry;
+use App\Traits\CachesPermissions;
 
 class ContactPolicy
 {
+    use CachesPermissions;
+
     /**
      * Determine if the user can view any contact inquiries.
      */
     public function viewAny(User $user): bool
     {
-        // Only admin can view contact inquiries
-        return $user->isAdmin();
+        // Only admin can view contact inquiries (cached)
+        return $this->isAdminCached($user);
     }
 
     /**
@@ -21,8 +24,8 @@ class ContactPolicy
      */
     public function view(User $user, ContactInquiry $contactInquiry): bool
     {
-        // Only admin can view contact inquiries
-        return $user->isAdmin();
+        // Only admin can view contact inquiries (cached)
+        return $this->getCachedOrCheck($user, 'view', $contactInquiry, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -39,8 +42,8 @@ class ContactPolicy
      */
     public function update(User $user, ContactInquiry $contactInquiry): bool
     {
-        // Only admin can update contact inquiries
-        return $user->isAdmin();
+        // Only admin can update contact inquiries (cached)
+        return $this->getCachedOrCheck($user, 'update', $contactInquiry, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -48,8 +51,8 @@ class ContactPolicy
      */
     public function delete(User $user, ContactInquiry $contactInquiry): bool
     {
-        // Only admin can delete contact inquiries
-        return $user->isAdmin();
+        // Only admin can delete contact inquiries (cached)
+        return $this->getCachedOrCheck($user, 'delete', $contactInquiry, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -57,7 +60,7 @@ class ContactPolicy
      */
     public function reply(User $user, ContactInquiry $contactInquiry): bool
     {
-        // Only admin can reply to contact inquiries
-        return $user->isAdmin();
+        // Only admin can reply to contact inquiries (cached)
+        return $this->getCachedOrCheck($user, 'reply', $contactInquiry, fn() => $this->isAdminCached($user));
     }
 }

@@ -21,7 +21,7 @@
   - [x] Create Policy classes for all resources (Booking, Package, Contact, Review, Payment, Venue, Portfolio, Testimonial - 8 policies)
   - [x] Add role-based permissions (RBAC) (Implemented in policies)
   - [x] Add resource-level permissions (Implemented in policies)
-  - [ ] Add permission caching
+  - [x] Add permission caching ✅ (PermissionCacheService + CachesPermissions trait with 5-min TTL, applied to all 8 policies)
   - [ ] Add middleware for granular permissions
 
 - [ ] **API Security**
@@ -605,13 +605,14 @@
 - ✅ Unit tests for Services, Models, Validation rules
 - ✅ Feature tests for API endpoints, Auth flows, Booking flows
 - ✅ Test infrastructure (factories, helpers, traits)
+- ✅ Permission caching (PermissionCacheService + CachesPermissions trait, all 8 policies)
 
 **In Progress (⏳ ~5 items):**
 
 - Documentation (Swagger done, code docs partial)
 - CI/CD testing integration
 
-**Not Started / Remaining (❌ ~140 items / 70%):**
+**Not Started / Remaining (❌ ~139 items / 69.5%):**
 
 - Repository Pattern
 - DTOs implementation
@@ -628,11 +629,11 @@
 **Key Focus Areas:**
 
 1. ✅ Basic API structure and endpoints
-2. ✅ Authentication and authorization (COMPLETE - refresh tokens, 2FA, policies)
+2. ✅ Authentication and authorization (COMPLETE - refresh tokens, 2FA, policies, permission caching)
 3. ✅ Core booking and package management
 4. ✅ Error handling and API standardization
 5. ✅ Testing coverage (100% pass rate - 179/179 tests)
-6. ✅ Security hardening (2FA, encryption, lockout, policies)
+6. ✅ Security hardening (2FA, encryption, lockout, policies, caching)
 7. ⏳ Performance optimization
 8. ⏳ Monitoring and logging
 9. ⏳ Advanced features
@@ -659,3 +660,9 @@
    - Encryption tests: 17 passing
    - Recommendation/Scoring tests: 21 passing
    - All other tests: passing
+
+4. ✅ Permission caching for improved authorization performance
+   - PermissionCacheService with 5-minute TTL
+   - CachesPermissions trait for policies
+   - Applied to all 8 policies (Booking, Package, Review, Venue, Contact, Payment, Portfolio, Testimonial)
+   - Cache tag support for Redis/Memcached

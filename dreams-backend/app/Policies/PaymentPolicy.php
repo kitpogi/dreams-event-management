@@ -5,9 +5,12 @@ namespace App\Policies;
 use App\Models\User;
 use App\Models\Payment;
 use App\Services\ClientService;
+use App\Traits\CachesPermissions;
 
 class PaymentPolicy
 {
+    use CachesPermissions;
+
     protected $clientService;
 
     public function __construct(ClientService $clientService)
@@ -29,18 +32,20 @@ class PaymentPolicy
      */
     public function view(User $user, Payment $payment): bool
     {
-        // Admin can view all payments
-        if ($user->isAdmin()) {
-            return true;
-        }
+        return $this->getCachedOrCheck($user, 'view', $payment, function () use ($user, $payment) {
+            // Admin can view all payments
+            if ($this->isAdminCached($user)) {
+                return true;
+            }
 
-        // Clients can only view payments for their own bookings
-        $client = $this->clientService->getByUserEmail($user->email);
-        if ($client && $payment->booking) {
-            return $payment->booking->client_id === $client->client_id;
-        }
+            // Clients can only view payments for their own bookings
+            $client = $this->clientService->getByUserEmail($user->email);
+            if ($client && $payment->booking) {
+                return $payment->booking->client_id === $client->client_id;
+            }
 
-        return false;
+            return false;
+        });
     }
 
     /**
@@ -48,8 +53,8 @@ class PaymentPolicy
      */
     public function create(User $user): bool
     {
-        // Clients can create payments for their bookings, admin can create for any booking
-        return $user->role === 'client' || $user->isAdmin();
+        // Clients can create payments for their bookings, admin can create for any booking (cached)
+        return $this->isClientCached($user) || $this->isAdminCached($user);
     }
 
     /**
@@ -57,8 +62,8 @@ class PaymentPolicy
      */
     public function update(User $user, Payment $payment): bool
     {
-        // Only admin can update payments
-        return $user->isAdmin();
+        // Only admin can update payments (cached)
+        return $this->getCachedOrCheck($user, 'update', $payment, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -66,8 +71,8 @@ class PaymentPolicy
      */
     public function delete(User $user, Payment $payment): bool
     {
-        // Only admin can delete payments
-        return $user->isAdmin();
+        // Only admin can delete payments (cached)
+        return $this->getCachedOrCheck($user, 'delete', $payment, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -75,17 +80,19 @@ class PaymentPolicy
      */
     public function attachPaymentMethod(User $user, Payment $payment): bool
     {
-        // Admin can attach payment method to any payment
-        if ($user->isAdmin()) {
-            return true;
-        }
+        return $this->getCachedOrCheck($user, 'attachPaymentMethod', $payment, function () use ($user, $payment) {
+            // Admin can attach payment method to any payment
+            if ($this->isAdminCached($user)) {
+                return true;
+            }
 
-        // Clients can attach payment method to their own payments
-        $client = $this->clientService->getByUserEmail($user->email);
-        if ($client && $payment->booking) {
-            return $payment->booking->client_id === $client->client_id;
-        }
+            // Clients can attach payment method to their own payments
+            $client = $this->clientService->getByUserEmail($user->email);
+            if ($client && $payment->booking) {
+                return $payment->booking->client_id === $client->client_id;
+            }
 
-        return false;
+            return false;
+        });
     }
 }

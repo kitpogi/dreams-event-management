@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\EventPackage;
+use App\Traits\CachesPermissions;
 
 class PackagePolicy
 {
+    use CachesPermissions;
+
     /**
      * Determine if the user can view any packages.
      */
@@ -28,8 +31,8 @@ class PackagePolicy
      */
     public function create(User $user): bool
     {
-        // Only admin can create packages
-        return $user->role === 'admin';
+        // Only admin can create packages (cached)
+        return $this->isAdminCached($user);
     }
 
     /**
@@ -37,8 +40,8 @@ class PackagePolicy
      */
     public function update(User $user, EventPackage $package): bool
     {
-        // Only admin can update packages
-        return $user->role === 'admin';
+        // Only admin can update packages (cached)
+        return $this->getCachedOrCheck($user, 'update', $package, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -46,7 +49,7 @@ class PackagePolicy
      */
     public function delete(User $user, EventPackage $package): bool
     {
-        // Only admin can delete packages
-        return $user->role === 'admin';
+        // Only admin can delete packages (cached)
+        return $this->getCachedOrCheck($user, 'delete', $package, fn() => $this->isAdminCached($user));
     }
 }

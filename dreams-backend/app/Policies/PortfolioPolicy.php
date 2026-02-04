@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\PortfolioItem;
+use App\Traits\CachesPermissions;
 
 class PortfolioPolicy
 {
+    use CachesPermissions;
+
     /**
      * Determine if the user can view any portfolio items.
      */
@@ -30,8 +33,8 @@ class PortfolioPolicy
      */
     public function create(User $user): bool
     {
-        // Only admin can create portfolio items
-        return $user->isAdmin();
+        // Only admin can create portfolio items (cached)
+        return $this->isAdminCached($user);
     }
 
     /**
@@ -39,8 +42,8 @@ class PortfolioPolicy
      */
     public function update(User $user, PortfolioItem $portfolioItem): bool
     {
-        // Only admin can update portfolio items
-        return $user->isAdmin();
+        // Only admin can update portfolio items (cached)
+        return $this->getCachedOrCheck($user, 'update', $portfolioItem, fn() => $this->isAdminCached($user));
     }
 
     /**
@@ -48,7 +51,7 @@ class PortfolioPolicy
      */
     public function delete(User $user, PortfolioItem $portfolioItem): bool
     {
-        // Only admin can delete portfolio items
-        return $user->isAdmin();
+        // Only admin can delete portfolio items (cached)
+        return $this->getCachedOrCheck($user, 'delete', $portfolioItem, fn() => $this->isAdminCached($user));
     }
 }

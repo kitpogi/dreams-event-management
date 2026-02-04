@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Review;
+use App\Traits\CachesPermissions;
 
 class ReviewPolicy
 {
+    use CachesPermissions;
+
     /**
      * Determine if the user can view any reviews.
      */
@@ -28,8 +31,8 @@ class ReviewPolicy
      */
     public function create(User $user): bool
     {
-        // Only authenticated clients can create reviews
-        return $user->role === 'client';
+        // Only authenticated clients can create reviews (cached)
+        return $this->isClientCached($user);
     }
 
     /**
@@ -38,13 +41,14 @@ class ReviewPolicy
     public function update(User $user, Review $review): bool
     {
         // Users can only update their own reviews, or admin can update any
-        if ($user->isAdmin()) {
-            return true;
-        }
+        return $this->getCachedOrCheck($user, 'update', $review, function () use ($user, $review) {
+            if ($this->isAdminCached($user)) {
+                return true;
+            }
 
-        // Check if user is the author of the review
-        // Assuming Review has a user_id or client_id relationship
-        return $review->client_id && $user->id === $review->client_id;
+            // Check if user is the author of the review
+            return $review->client_id && $user->id === $review->client_id;
+        });
     }
 
     /**
@@ -53,11 +57,13 @@ class ReviewPolicy
     public function delete(User $user, Review $review): bool
     {
         // Users can delete their own reviews, or admin can delete any
-        if ($user->isAdmin()) {
-            return true;
-        }
+        return $this->getCachedOrCheck($user, 'delete', $review, function () use ($user, $review) {
+            if ($this->isAdminCached($user)) {
+                return true;
+            }
 
-        // Check if user is the author of the review
-        return $review->client_id && $user->id === $review->client_id;
+            // Check if user is the author of the review
+            return $review->client_id && $user->id === $review->client_id;
+        });
     }
 }
