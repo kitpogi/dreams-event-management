@@ -34,6 +34,6 @@ class CleanupApiKeyLogs extends Command
 
         $this->info("Deleted {$deleted} old log entries.");
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

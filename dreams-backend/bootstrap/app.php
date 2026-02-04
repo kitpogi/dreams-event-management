@@ -23,6 +23,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'xss.protection' => \App\Http\Middleware\XssProtectionMiddleware::class,
+            'api.key' => \App\Http\Middleware\AuthenticateApiKey::class,
+            'signed.request' => \App\Http\Middleware\VerifySignedRequest::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'role' => \App\Http\Middleware\CheckRole::class,
+            'password.expired' => \App\Http\Middleware\CheckPasswordExpired::class,
+            'validate.request' => \App\Http\Middleware\ValidateRequest::class,
+            'log.api' => \App\Http\Middleware\LogApiRequest::class,
+            'csrf.api' => \App\Http\Middleware\VerifyCsrfToken::class,
         ]);
         
         // Apply XSS protection to all API routes

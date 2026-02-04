@@ -36,6 +36,6 @@ class DeactivateExpiredApiKeys extends Command
             $this->info('No expired API keys found.');
         }
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

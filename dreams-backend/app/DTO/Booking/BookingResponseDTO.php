@@ -52,9 +52,9 @@ class BookingResponseDTO extends BaseDTO
         if ($includeRelations) {
             if ($booking->relationLoaded('eventPackage') && $booking->eventPackage) {
                 $package = [
-                    'id' => $booking->eventPackage->id,
+                    'id' => $booking->eventPackage->package_id,
                     'name' => $booking->eventPackage->package_name,
-                    'type' => $booking->eventPackage->event_type,
+                    'type' => $booking->eventPackage->package_category,
                     'price' => (float) $booking->eventPackage->package_price,
                     'image' => $booking->eventPackage->package_image,
                 ];
@@ -62,10 +62,10 @@ class BookingResponseDTO extends BaseDTO
 
             if ($booking->relationLoaded('client') && $booking->client) {
                 $client = [
-                    'id' => $booking->client->id,
+                    'id' => $booking->client->client_id,
                     'name' => trim(($booking->client->client_fname ?? '') . ' ' . ($booking->client->client_lname ?? '')),
                     'email' => $booking->client->client_email,
-                    'phone' => $booking->client->client_phone,
+                    'phone' => $booking->client->client_contact,
                 ];
             }
 
@@ -81,7 +81,7 @@ class BookingResponseDTO extends BaseDTO
         }
 
         return new static(
-            id: $booking->id,
+            id: $booking->booking_id,
             packageId: $booking->package_id,
             clientId: $booking->client_id,
             eventDate: $booking->event_date instanceof Carbon 
@@ -92,12 +92,12 @@ class BookingResponseDTO extends BaseDTO
             guestCount: $booking->guest_count,
             specialRequests: $booking->special_requests,
             status: $booking->booking_status,
-            eventTheme: $booking->event_theme,
+            eventTheme: $booking->theme,
             totalAmount: (float) ($booking->total_amount ?? 0),
             paidAmount: (float) ($booking->paid_amount ?? 0),
             balanceAmount: (float) ($booking->balance_amount ?? $booking->total_amount ?? 0),
             paymentStatus: $booking->payment_status ?? 'pending',
-            notes: $booking->notes,
+            notes: $booking->internal_notes,
             createdAt: $booking->created_at->toISOString(),
             updatedAt: $booking->updated_at->toISOString(),
             package: $package,

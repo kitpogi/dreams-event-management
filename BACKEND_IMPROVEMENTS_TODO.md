@@ -24,11 +24,11 @@
   - [x] Add permission caching ✅ (PermissionCacheService + CachesPermissions trait with 5-min TTL, applied to all 8 policies)
   - [x] Add middleware for granular permissions ✅ (CheckPermission + CheckRole middleware with permission matrix)
 
-- [ ] **API Security**
+- [x] **API Security** ✅ COMPLETE
   - [x] Add API key authentication for external services ✅ (ApiKey model + AuthenticateApiKey middleware with rate limiting, IP whitelist, usage logging)
-  - [ ] Implement request signing
+  - [x] Implement request signing ✅ (RequestSigningService + VerifySignedRequest middleware with HMAC-SHA256, replay attack prevention)
   - [x] Add IP whitelisting for admin endpoints ✅ (Implemented in API key allowed_ips feature)
-  - [ ] Add CSRF protection for state-changing operations
+  - [x] Add CSRF protection for state-changing operations ✅ (VerifyCsrfToken middleware with double-submit cookie pattern for SPAs)
   - [x] Implement request validation middleware ✅ (ValidateRequest middleware for Content-Type, size, JSON validation)
 
 ### Phase 2: Data Protection
@@ -78,9 +78,9 @@
   - [x] Add DTO validation ✅ (Validation via fromRequest/fromArray methods)
   - [x] Create resource transformers ✅ (PaginationDTO, ApiResponseDTO with toApiArray())
 
-- [x] **API Resources**
+- [x] **API Resources** ✅ COMPLETE
   - [x] Create API Resource classes for all models (Partially done - BookingResource, PackageResource, ClientResource exist)
-  - [ ] Add conditional fields based on user role
+  - [x] Add conditional fields based on user role ✅ (BookingResource + ClientResource with role-based field visibility for admin/coordinator/client)
   - [x] Implement resource collections (Using Resource::collection() in controllers)
   - [x] Add pagination resources (Pagination metadata included in responses)
   - [x] Add relationship loading optimization (Eager loading with with() implemented)
@@ -95,10 +95,10 @@
   - [x] Add error code system
   - [x] Implement error response formatting
 
-- [x] **Validation Errors**
+- [x] **Validation Errors** ✅ COMPLETE
   - [x] Standardize validation error responses
   - [x] Add field-level error messages
-  - [ ] Implement validation error translation
+  - [x] Implement validation error translation ✅ (ValidationTranslationService + custom_validation.php language file + BaseFormRequest integration)
   - [x] Add validation error logging
 
 - [ ] **Error Monitoring**

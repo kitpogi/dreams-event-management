@@ -4,9 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use App\Models\Review;
 use App\Services\Cache\RecommendationCacheService;
 
+/**
+ * @property int $package_id
+ * @property string $package_name
+ * @property string|null $package_description
+ * @property string|null $package_category
+ * @property float $package_price
+ * @property int|null $capacity
+ * @property int|null $venue_id
+ * @property string|null $package_image
+ * @property string|null $package_inclusions
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class EventPackage extends Model
 {
     use HasFactory;
@@ -55,7 +69,7 @@ class EventPackage extends Model
             $cacheService->clearAll();
         } catch (\Exception $e) {
             // Don't fail if cache clearing fails
-            \Log::warning('Failed to clear recommendation cache: ' . $e->getMessage());
+            Log::warning('Failed to clear recommendation cache: ' . $e->getMessage());
         }
     }
 

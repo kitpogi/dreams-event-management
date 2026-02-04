@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
  * @property array|null $allowed_ips
  * @property string $rate_limit
  * @property bool $is_active
+ * @property bool $requires_signature
  * @property \Illuminate\Support\Carbon|null $last_used_at
  * @property \Illuminate\Support\Carbon|null $expires_at
  * @property \Illuminate\Support\Carbon $created_at
@@ -33,6 +34,7 @@ class ApiKey extends Model
         'allowed_ips',
         'rate_limit',
         'is_active',
+        'requires_signature',
         'last_used_at',
         'expires_at',
     ];
@@ -41,6 +43,7 @@ class ApiKey extends Model
         'permissions' => 'array',
         'allowed_ips' => 'array',
         'is_active' => 'boolean',
+        'requires_signature' => 'boolean',
         'last_used_at' => 'datetime',
         'expires_at' => 'datetime',
     ];
@@ -81,6 +84,7 @@ class ApiKey extends Model
             'allowed_ips' => $attributes['allowed_ips'] ?? null,
             'rate_limit' => $attributes['rate_limit'] ?? '1000',
             'is_active' => $attributes['is_active'] ?? true,
+            'requires_signature' => $attributes['requires_signature'] ?? false,
             'expires_at' => $attributes['expires_at'] ?? null,
         ]);
 

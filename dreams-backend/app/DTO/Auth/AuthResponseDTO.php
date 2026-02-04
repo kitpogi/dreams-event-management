@@ -43,7 +43,7 @@ class AuthResponseDTO extends BaseDTO
             twoFactorRequired: false,
             twoFactorEnabled: (bool) $user->two_factor_enabled,
             phone: $user->phone,
-            profileImage: $user->profile_image,
+            profileImage: $user->profile_picture,
         );
     }
 
@@ -63,7 +63,7 @@ class AuthResponseDTO extends BaseDTO
             twoFactorRequired: true,
             twoFactorEnabled: true,
             phone: $user->phone,
-            profileImage: $user->profile_image,
+            profileImage: $user->profile_picture,
         );
     }
 

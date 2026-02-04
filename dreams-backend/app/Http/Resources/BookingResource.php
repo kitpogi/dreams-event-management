@@ -14,6 +14,11 @@ class BookingResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $user = $request->user();
+        $isAdmin = $user && method_exists($user, 'isAdmin') && $user->isAdmin();
+        $isCoordinator = $user && method_exists($user, 'isCoordinator') && $user->isCoordinator();
+        $isStaff = $isAdmin || $isCoordinator;
+
         // Calculate payment summary
         $totalPaid = round((float) $this->payments()
             ->where('status', 'paid')
@@ -22,18 +27,16 @@ class BookingResource extends JsonResource
         $totalAmount = round((float) ($this->total_amount ?? 0), 2);
         $remainingBalance = round(max(0, $totalAmount - $totalPaid), 2);
 
-        return [
+        $data = [
             'booking_id' => $this->booking_id,
             'client_id' => $this->client_id,
             'package_id' => $this->package_id,
-            'coordinator_id' => $this->coordinator_id,
             'event_date' => $this->event_date?->format('Y-m-d'),
             'event_time' => $this->event_time,
             'event_venue' => $this->event_venue,
             'guest_count' => $this->guest_count,
             'booking_status' => $this->booking_status,
             'special_requests' => $this->special_requests,
-            'internal_notes' => $this->internal_notes,
             'event_type' => $this->event_type,
             'theme' => $this->theme,
             'budget_range' => $this->budget_range,
@@ -67,26 +70,54 @@ class BookingResource extends JsonResource
                     'client_contact' => $this->client->client_contact,
                 ];
             }),
-            'coordinator' => $this->whenLoaded('coordinator', function () {
+        ];
+
+        // Staff-only fields (admin and coordinator)
+        if ($isStaff) {
+            $data['coordinator_id'] = $this->coordinator_id;
+            $data['internal_notes'] = $this->internal_notes;
+            
+            $data['coordinator'] = $this->whenLoaded('coordinator', function () {
                 return [
                     'id' => $this->coordinator->id,
                     'name' => $this->coordinator->name,
                     'email' => $this->coordinator->email,
                 ];
-            }),
-            'payments' => $this->whenLoaded('payments', function () {
-                return $this->payments->map(function ($payment) {
-                    return [
-                        'id' => $payment->id,
-                        'payment_intent_id' => $payment->payment_intent_id,
-                        'amount' => round((float) $payment->amount, 2),
-                        'currency' => $payment->currency,
-                        'status' => $payment->status,
-                        'payment_method' => $payment->payment_method,
-                        'created_at' => $payment->created_at?->toISOString(),
-                    ];
-                });
-            }),
-        ];
+            });
+        }
+
+        // Admin-only fields
+        if ($isAdmin) {
+            $data['admin_metadata'] = [
+                'profit_margin' => $this->profit_margin ?? null,
+                'cost_breakdown' => $this->cost_breakdown ?? null,
+                'source' => $this->source ?? 'website',
+            ];
+        }
+
+        // Payment details for staff and booking owner
+        $data['payments'] = $this->whenLoaded('payments', function () use ($isStaff) {
+            return $this->payments->map(function ($payment) use ($isStaff) {
+                $paymentData = [
+                    'id' => $payment->id,
+                    'amount' => round((float) $payment->amount, 2),
+                    'currency' => $payment->currency,
+                    'status' => $payment->status,
+                    'payment_method' => $payment->payment_method,
+                    'created_at' => $payment->created_at?->toISOString(),
+                ];
+
+                // Staff can see additional payment details
+                if ($isStaff) {
+                    $paymentData['payment_intent_id'] = $payment->payment_intent_id;
+                    $paymentData['refund_id'] = $payment->refund_id ?? null;
+                    $paymentData['failure_reason'] = $payment->failure_reason ?? null;
+                }
+
+                return $paymentData;
+            });
+        });
+
+        return $data;
     }
 }

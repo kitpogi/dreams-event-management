@@ -36,6 +36,6 @@ class MarkExpiredPasswords extends Command
             $this->info('No expired passwords found.');
         }
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }
