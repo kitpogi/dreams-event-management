@@ -89,7 +89,7 @@ class ContactInquiryRepository extends BaseRepository
     /**
      * Search inquiries with pagination
      */
-    public function searchPaginated(string $query, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
+    public function searchPaginated(string $query, int $perPage = 15): LengthAwarePaginator
     {
         return $this->model
             ->with($this->relations)
