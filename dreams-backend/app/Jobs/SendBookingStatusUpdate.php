@@ -43,28 +43,28 @@ class SendBookingStatusUpdate implements ShouldQueue
     public function handle(): void
     {
         Log::info('Sending booking status update email', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
             'previous_status' => $this->previousStatus,
-            'new_status' => $this->booking->status,
+            'new_status' => $this->booking->booking_status,
         ]);
 
         $client = $this->booking->client;
         
-        if (!$client || !$client->email) {
+        if (!$client || !$client->client_email) {
             Log::warning('Cannot send status update - no client email', [
-                'booking_id' => $this->booking->id,
+                'booking_id' => $this->booking->booking_id,
             ]);
             return;
         }
 
-        Mail::to($client->email)->send(new BookingStatusUpdateMail(
+        Mail::to($client->client_email)->send(new BookingStatusUpdateMail(
             $this->booking,
             $this->previousStatus,
-            $this->booking->booking_status ?? $this->booking->status ?? 'unknown'
+            $this->booking->booking_status ?? 'unknown'
         ));
 
         Log::info('Booking status update email sent successfully', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
         ]);
     }
 
@@ -74,7 +74,7 @@ class SendBookingStatusUpdate implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         Log::error('Failed to send booking status update email', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
             'error' => $exception->getMessage(),
         ]);
     }
@@ -86,6 +86,6 @@ class SendBookingStatusUpdate implements ShouldQueue
      */
     public function tags(): array
     {
-        return ['email', 'booking', 'status-update', 'booking:' . $this->booking->id];
+        return ['email', 'booking', 'status-update', 'booking:' . $this->booking->booking_id];
     }
 }

@@ -94,7 +94,7 @@ class GenerateReport implements ShouldQueue
             ->with(['client', 'package', 'venue'])
             ->get();
 
-        $byStatus = $bookings->groupBy('status')->map->count();
+        $byStatus = $bookings->groupBy('booking_status')->map->count();
         $totalRevenue = $bookings->sum('total_amount');
         $totalGuests = $bookings->sum('guest_count');
 
@@ -111,10 +111,10 @@ class GenerateReport implements ShouldQueue
                 'by_status' => $byStatus,
             ],
             'bookings' => $bookings->map(fn ($b) => [
-                'id' => $b->id,
-                'client' => $b->client?->full_name,
+                'id' => $b->booking_id,
+                'client' => $b->client?->client_fname . ' ' . $b->client?->client_lname,
                 'event_date' => $b->event_date,
-                'status' => $b->status,
+                'status' => $b->booking_status,
                 'total_amount' => $b->total_amount,
             ])->toArray(),
             'generated_at' => now()->toISOString(),
@@ -133,7 +133,7 @@ class GenerateReport implements ShouldQueue
 
         $bookings = BookingDetail::query()
             ->whereBetween('event_date', [$startDate, $endDate])
-            ->whereIn('status', ['confirmed', 'completed'])
+            ->whereIn('booking_status', ['confirmed', 'completed'])
             ->with('package')
             ->get();
 
@@ -182,7 +182,7 @@ class GenerateReport implements ShouldQueue
             ->get();
 
         $byClient = $bookings->groupBy('client_id')->map(fn ($group) => [
-            'client_name' => $group->first()->client?->full_name ?? 'Unknown',
+            'client_name' => trim(($group->first()->client?->client_fname ?? '') . ' ' . ($group->first()->client?->client_lname ?? '')) ?: 'Unknown',
             'bookings_count' => $group->count(),
             'total_spent' => $group->sum('total_amount'),
         ])->sortByDesc('total_spent')->take(20);

@@ -43,26 +43,26 @@ class SendBookingReminder implements ShouldQueue
     public function handle(): void
     {
         Log::info('Sending booking reminder email', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
             'days_until_event' => $this->daysUntilEvent,
         ]);
 
         $client = $this->booking->client;
         
-        if (!$client || !$client->email) {
+        if (!$client || !$client->client_email) {
             Log::warning('Cannot send reminder - no client email', [
-                'booking_id' => $this->booking->id,
+                'booking_id' => $this->booking->booking_id,
             ]);
             return;
         }
 
-        Mail::to($client->email)->send(new BookingReminderMail(
+        Mail::to($client->client_email)->send(new BookingReminderMail(
             $this->booking,
             $this->daysUntilEvent <= 1 ? '1_day' : '1_week'
         ));
 
         Log::info('Booking reminder email sent successfully', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
         ]);
     }
 
@@ -72,7 +72,7 @@ class SendBookingReminder implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         Log::error('Failed to send booking reminder email', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
             'error' => $exception->getMessage(),
         ]);
     }
@@ -84,6 +84,6 @@ class SendBookingReminder implements ShouldQueue
      */
     public function tags(): array
     {
-        return ['email', 'booking', 'reminder', 'booking:' . $this->booking->id];
+        return ['email', 'booking', 'reminder', 'booking:' . $this->booking->booking_id];
     }
 }

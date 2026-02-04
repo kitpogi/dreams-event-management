@@ -47,23 +47,23 @@ class SendBookingConfirmation implements ShouldQueue
     public function handle(): void
     {
         Log::info('Sending booking confirmation email', [
-            'booking_id' => $this->booking->id,
-            'client_email' => $this->booking->client?->email,
+            'booking_id' => $this->booking->booking_id,
+            'client_email' => $this->booking->client?->client_email,
         ]);
 
         $client = $this->booking->client;
         
-        if (!$client || !$client->email) {
+        if (!$client || !$client->client_email) {
             Log::warning('Cannot send booking confirmation - no client email', [
-                'booking_id' => $this->booking->id,
+                'booking_id' => $this->booking->booking_id,
             ]);
             return;
         }
 
-        Mail::to($client->email)->send(new BookingConfirmationMail($this->booking));
+        Mail::to($client->client_email)->send(new BookingConfirmationMail($this->booking));
 
         Log::info('Booking confirmation email sent successfully', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
         ]);
     }
 
@@ -73,7 +73,7 @@ class SendBookingConfirmation implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         Log::error('Failed to send booking confirmation email', [
-            'booking_id' => $this->booking->id,
+            'booking_id' => $this->booking->booking_id,
             'error' => $exception->getMessage(),
         ]);
     }
@@ -85,6 +85,6 @@ class SendBookingConfirmation implements ShouldQueue
      */
     public function tags(): array
     {
-        return ['email', 'booking', 'booking:' . $this->booking->id];
+        return ['email', 'booking', 'booking:' . $this->booking->booking_id];
     }
 }
