@@ -3,7 +3,9 @@
 namespace Tests\Feature\Api;
 
 use App\Models\User;
+use App\Models\Client;
 use App\Models\BookingDetail;
+use App\Models\EventPackage;
 use Tests\TestCase;
 
 class BookingApiTest extends TestCase
@@ -14,7 +16,13 @@ class BookingApiTest extends TestCase
     public function test_user_can_retrieve_their_bookings(): void
     {
         $user = $this->authenticateUser();
-        BookingDetail::factory()->count(3)->create(['user_id' => $user->id]);
+        
+        // Create a client associated with this user's email
+        $client = Client::factory()->create([
+            'client_email' => $user->email,
+        ]);
+        
+        BookingDetail::factory()->count(3)->create(['client_id' => $client->client_id]);
 
         $response = $this->jsonApi(
             'GET',
@@ -25,9 +33,7 @@ class BookingApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [],
+                'data',
                 'meta' => [
                     'current_page',
                     'per_page',
@@ -43,11 +49,12 @@ class BookingApiTest extends TestCase
     public function test_user_can_create_booking(): void
     {
         $user = $this->authenticateUser();
+        $package = EventPackage::factory()->create();
 
         $bookingData = [
-            'package_id' => 1,
+            'package_id' => $package->package_id,
             'event_date' => now()->addMonth()->format('Y-m-d'),
-            'event_time' => '10:00 AM',
+            'event_time' => '10:00',
             'event_venue' => 'Test Venue',
             'guest_count' => 100,
             'special_requests' => 'Test request',
@@ -65,7 +72,7 @@ class BookingApiTest extends TestCase
                 'success',
                 'message',
                 'data' => [
-                    'id',
+                    'booking_id',
                     'booking_status',
                     'event_date',
                 ],
@@ -96,21 +103,25 @@ class BookingApiTest extends TestCase
     public function test_user_can_view_their_booking(): void
     {
         $user = $this->authenticateUser();
-        $booking = BookingDetail::factory()->create(['user_id' => $user->id]);
+        
+        // Create a client associated with this user's email
+        $client = Client::factory()->create([
+            'client_email' => $user->email,
+        ]);
+        
+        $booking = BookingDetail::factory()->create(['client_id' => $client->client_id]);
 
         $response = $this->jsonApi(
             'GET',
-            "/api/bookings/{$booking->id}",
+            "/api/bookings/{$booking->booking_id}",
             [],
             $this->getAuthHeader($user)
         );
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'success',
-                'message',
                 'data' => [
-                    'id',
+                    'booking_id',
                     'booking_status',
                     'event_date',
                 ],
@@ -123,12 +134,14 @@ class BookingApiTest extends TestCase
     public function test_user_cannot_view_other_user_booking(): void
     {
         $user1 = $this->authenticateUser();
-        $user2 = User::factory()->create();
-        $booking = BookingDetail::factory()->create(['user_id' => $user2->id]);
+        
+        // Create another client (different from user1)
+        $client2 = Client::factory()->create();
+        $booking = BookingDetail::factory()->create(['client_id' => $client2->client_id]);
 
         $response = $this->jsonApi(
             'GET',
-            "/api/bookings/{$booking->id}",
+            "/api/bookings/{$booking->booking_id}",
             [],
             $this->getAuthHeader($user1)
         );
@@ -142,9 +155,15 @@ class BookingApiTest extends TestCase
     public function test_user_can_update_their_booking(): void
     {
         $user = $this->authenticateUser();
+        
+        // Create a client associated with this user's email
+        $client = Client::factory()->create([
+            'client_email' => $user->email,
+        ]);
+        
         $booking = BookingDetail::factory()->create([
-            'user_id' => $user->id,
-            'booking_status' => 'pending',
+            'client_id' => $client->client_id,
+            'booking_status' => 'Pending',
         ]);
 
         $updateData = [
@@ -153,8 +172,8 @@ class BookingApiTest extends TestCase
         ];
 
         $response = $this->jsonApi(
-            'PUT',
-            "/api/bookings/{$booking->id}",
+            'PATCH',
+            "/api/bookings/{$booking->booking_id}",
             $updateData,
             $this->getAuthHeader($user)
         );
@@ -163,7 +182,7 @@ class BookingApiTest extends TestCase
             ->assertJsonStructure(['success', 'message', 'data']);
 
         $this->assertDatabaseHas('booking_details', [
-            'id' => $booking->id,
+            'booking_id' => $booking->booking_id,
             'event_venue' => 'Updated Venue',
         ]);
     }

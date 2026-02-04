@@ -41,7 +41,8 @@ class RecommendationServiceTest extends TestCase
         $this->assertEquals(2, $scored->count());
         
         $weddingPackage = $scored->firstWhere('package.package_id', $package1->package_id);
-        $this->assertEquals(40, $weddingPackage['score']);
+        // 40 points × 1.2 weight = 48
+        $this->assertEquals(48, $weddingPackage['score']);
         $this->assertStringContainsString('Type match', $weddingPackage['justification']);
     }
 
@@ -52,10 +53,10 @@ class RecommendationServiceTest extends TestCase
             'package_price' => 50000,
         ]);
         $package2 = EventPackage::factory()->create([
-            'package_price' => 60000,
+            'package_price' => 55000, // 10% over - "slightly over" (within 15%)
         ]);
         $package3 = EventPackage::factory()->create([
-            'package_price' => 70000,
+            'package_price' => 70000, // 40% over - no points
         ]);
 
         $packages = collect([$package1, $package2, $package3]);
@@ -67,8 +68,10 @@ class RecommendationServiceTest extends TestCase
         $slightlyOver = $scored->firstWhere('package.package_id', $package2->package_id);
         $overBudget = $scored->firstWhere('package.package_id', $package3->package_id);
 
-        $this->assertEquals(30, $withinBudget['score']);
-        $this->assertEquals(10, $slightlyOver['score']);
+        // 40 points × 1.5 weight = 60
+        $this->assertEquals(60, $withinBudget['score']);
+        // 20 points × 1.5 weight = 30
+        $this->assertEquals(30, $slightlyOver['score']);
         $this->assertEquals(0, $overBudget['score']);
     }
 
@@ -90,7 +93,8 @@ class RecommendationServiceTest extends TestCase
         $scored = $this->recommendationService->scorePackages($packages, $criteria);
 
         $elegantPackage = $scored->firstWhere('package.package_id', $package1->package_id);
-        $this->assertEquals(15, $elegantPackage['score']);
+        // 15 points × 0.8 weight = 12
+        $this->assertEquals(12, $elegantPackage['score']);
         $this->assertStringContainsString('motif/theme match', $elegantPackage['justification']);
     }
 
@@ -134,7 +138,9 @@ class RecommendationServiceTest extends TestCase
         $scored = $this->recommendationService->scorePackages($packages, $criteria);
 
         $scores = $scored->pluck('score')->toArray();
-        $this->assertEquals([70, 30], $scores); // 40 (type) + 30 (budget) = 70, then 30 (budget only)
+        // Wedding + within budget: 48 (type) + 60 (budget) = 108
+        // Birthday within budget: 0 (type) + 60 (budget) = 60
+        $this->assertEquals([108, 60], $scores);
     }
 
     /** @test */

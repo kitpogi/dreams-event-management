@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use Tests\TestCase;
-use App\Models\User;
+use App\Models\Client;
 use App\Models\BookingDetail;
 use App\Models\EventPackage;
 
@@ -14,26 +14,26 @@ class BookingServiceTest extends TestCase
      */
     public function test_booking_can_be_created(): void
     {
-        $user = User::factory()->create();
+        $client = Client::factory()->create();
         $package = EventPackage::factory()->create();
 
         $bookingData = [
-            'package_id' => $package->id,
+            'package_id' => $package->package_id,
             'event_date' => now()->addMonth(),
-            'event_time' => '10:00 AM',
+            'event_time' => '10:00',
             'event_venue' => 'Test Venue',
             'guest_count' => 100,
             'special_requests' => 'Test request',
         ];
 
         $booking = BookingDetail::factory()->create(array_merge($bookingData, [
-            'user_id' => $user->id,
-            'booking_status' => 'pending',
+            'client_id' => $client->client_id,
+            'booking_status' => 'Pending',
         ]));
 
-        $this->assertNotNull($booking->id);
-        $this->assertEquals($user->id, $booking->user_id);
-        $this->assertEquals('pending', $booking->booking_status);
+        $this->assertNotNull($booking->booking_id);
+        $this->assertEquals($client->client_id, $booking->client_id);
+        $this->assertEquals('Pending', $booking->booking_status);
     }
 
     /**
@@ -41,9 +41,9 @@ class BookingServiceTest extends TestCase
      */
     public function test_booking_status_transition_is_valid(): void
     {
-        $booking = BookingDetail::factory()->create(['booking_status' => 'pending']);
+        $booking = BookingDetail::factory()->create(['booking_status' => 'Pending']);
 
-        $validStatuses = ['pending', 'approved', 'confirmed', 'completed', 'cancelled'];
+        $validStatuses = ['Pending', 'Approved', 'Confirmed', 'Completed', 'Cancelled'];
         foreach ($validStatuses as $status) {
             $booking->update(['booking_status' => $status]);
             $this->assertEquals($status, $booking->fresh()->booking_status);

@@ -20,7 +20,7 @@ class BudgetScoringStrategyTest extends TestCase
     }
 
     /** @test */
-    public function it_scores_30_points_when_package_is_within_budget()
+    public function it_scores_40_points_when_package_is_within_budget()
     {
         $package = EventPackage::factory()->create([
             'package_price' => 50000,
@@ -29,12 +29,12 @@ class BudgetScoringStrategyTest extends TestCase
         $criteria = ['budget' => 50000];
         $result = $this->strategy->score($package, $criteria);
 
-        $this->assertEquals(30, $result['score']);
-        $this->assertEquals('Within budget (+30)', $result['justification']);
+        $this->assertEquals(40, $result['score']);
+        $this->assertEquals('Within budget (+40)', $result['justification']);
     }
 
     /** @test */
-    public function it_scores_30_points_when_package_is_below_budget()
+    public function it_scores_40_points_when_package_is_below_budget()
     {
         $package = EventPackage::factory()->create([
             'package_price' => 40000,
@@ -43,26 +43,42 @@ class BudgetScoringStrategyTest extends TestCase
         $criteria = ['budget' => 50000];
         $result = $this->strategy->score($package, $criteria);
 
-        $this->assertEquals(30, $result['score']);
-        $this->assertEquals('Within budget (+30)', $result['justification']);
+        $this->assertEquals(40, $result['score']);
+        $this->assertEquals('Within budget (+40)', $result['justification']);
     }
 
     /** @test */
-    public function it_scores_10_points_when_package_is_slightly_over_budget()
+    public function it_scores_20_points_when_package_is_slightly_over_budget()
     {
+        // 10% over budget (within 15% threshold)
         $package = EventPackage::factory()->create([
-            'package_price' => 60000, // 20% over 50000
+            'package_price' => 55000,
         ]);
 
         $criteria = ['budget' => 50000];
         $result = $this->strategy->score($package, $criteria);
 
-        $this->assertEquals(10, $result['score']);
-        $this->assertEquals('Slightly over budget (+10)', $result['justification']);
+        $this->assertEquals(20, $result['score']);
+        $this->assertEquals('Slightly over budget (+20)', $result['justification']);
     }
 
     /** @test */
-    public function it_scores_0_points_when_package_is_more_than_20_percent_over_budget()
+    public function it_scores_5_points_when_package_is_moderately_over_budget()
+    {
+        // 20% over budget (within 15-25% threshold)
+        $package = EventPackage::factory()->create([
+            'package_price' => 60000,
+        ]);
+
+        $criteria = ['budget' => 50000];
+        $result = $this->strategy->score($package, $criteria);
+
+        $this->assertEquals(5, $result['score']);
+        $this->assertEquals('Moderately over budget (+5)', $result['justification']);
+    }
+
+    /** @test */
+    public function it_scores_0_points_when_package_is_more_than_25_percent_over_budget()
     {
         $package = EventPackage::factory()->create([
             'package_price' => 70000, // 40% over 50000
@@ -152,26 +168,26 @@ class BudgetScoringStrategyTest extends TestCase
     }
 
     /** @test */
-    public function it_handles_exact_20_percent_over_budget_boundary()
+    public function it_handles_exact_15_percent_over_budget_boundary()
     {
         $budget = 50000;
         $package = EventPackage::factory()->create([
-            'package_price' => $budget * 1.2, // Exactly 20% over
+            'package_price' => $budget * 1.15, // Exactly 15% over - still "slightly over"
         ]);
 
         $criteria = ['budget' => $budget];
         $result = $this->strategy->score($package, $criteria);
 
-        $this->assertEquals(10, $result['score']);
-        $this->assertEquals('Slightly over budget (+10)', $result['justification']);
+        $this->assertEquals(20, $result['score']);
+        $this->assertEquals('Slightly over budget (+20)', $result['justification']);
     }
 
     /** @test */
-    public function it_handles_just_over_20_percent_boundary()
+    public function it_handles_just_over_25_percent_boundary()
     {
         $budget = 50000;
         $package = EventPackage::factory()->create([
-            'package_price' => ($budget * 1.2) + 1, // Just over 20%
+            'package_price' => ($budget * 1.25) + 1, // Just over 25%
         ]);
 
         $criteria = ['budget' => $budget];
@@ -191,8 +207,8 @@ class BudgetScoringStrategyTest extends TestCase
         $criteria = ['budget' => 1000000];
         $result = $this->strategy->score($package, $criteria);
 
-        $this->assertEquals(30, $result['score']);
-        $this->assertEquals('Within budget (+30)', $result['justification']);
+        $this->assertEquals(40, $result['score']);
+        $this->assertEquals('Within budget (+40)', $result['justification']);
     }
 
     /** @test */
@@ -205,8 +221,8 @@ class BudgetScoringStrategyTest extends TestCase
         $criteria = ['budget' => 100];
         $result = $this->strategy->score($package, $criteria);
 
-        $this->assertEquals(30, $result['score']);
-        $this->assertEquals('Within budget (+30)', $result['justification']);
+        $this->assertEquals(40, $result['score']);
+        $this->assertEquals('Within budget (+40)', $result['justification']);
     }
 }
 

@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Models\User;
+use App\Models\Client;
 use App\Models\BookingDetail;
 use Tests\TestCase;
 
@@ -16,20 +16,20 @@ class BookingDetailTest extends TestCase
         $booking = BookingDetail::factory()->create();
 
         $this->assertDatabaseHas('booking_details', [
-            'id' => $booking->id,
+            'booking_id' => $booking->booking_id,
         ]);
     }
 
     /**
      * Test booking relationships
      */
-    public function test_booking_detail_has_user_relationship(): void
+    public function test_booking_detail_has_client_relationship(): void
     {
-        $user = User::factory()->create();
-        $booking = BookingDetail::factory()->create(['user_id' => $user->id]);
+        $client = Client::factory()->create();
+        $booking = BookingDetail::factory()->create(['client_id' => $client->client_id]);
 
-        $this->assertTrue($booking->user()->exists());
-        $this->assertEquals($user->id, $booking->user->id);
+        $this->assertTrue($booking->client()->exists());
+        $this->assertEquals($client->client_id, $booking->client->client_id);
     }
 
     /**
@@ -37,7 +37,7 @@ class BookingDetailTest extends TestCase
      */
     public function test_booking_has_valid_status(): void
     {
-        $statuses = ['pending', 'approved', 'confirmed', 'completed', 'cancelled'];
+        $statuses = ['Pending', 'Approved', 'Completed', 'Cancelled'];
 
         foreach ($statuses as $status) {
             $booking = BookingDetail::factory()->create(['booking_status' => $status]);

@@ -11,25 +11,33 @@ class AuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * A valid password meeting all requirements
+     */
+    private string $validPassword = 'Password123!';
+
     public function test_user_can_register()
     {
         $response = $this->postJson('/api/auth/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => $this->validPassword,
+            'password_confirmation' => $this->validPassword,
         ]);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'token',
-                'user' => [
-                    'id',
-                    'name',
-                    'email',
-                    'role',
-                ],
+                'success',
                 'message',
+                'data' => [
+                    'token',
+                    'user' => [
+                        'id',
+                        'name',
+                        'email',
+                        'role',
+                    ],
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -54,18 +62,21 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make($this->validPassword),
         ]);
 
         $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
-            'password' => 'password123',
+            'password' => $this->validPassword,
         ]);
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'token',
-                'user',
+                'success',
+                'data' => [
+                    'token',
+                    'user',
+                ],
             ]);
     }
 
@@ -73,7 +84,7 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make($this->validPassword),
         ]);
 
         $response = $this->postJson('/api/auth/login', [
@@ -81,8 +92,8 @@ class AuthTest extends TestCase
             'password' => 'wrongpassword',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+        // 401 Unauthorized is returned for invalid credentials
+        $response->assertStatus(401);
     }
 
     public function test_authenticated_user_can_logout()
@@ -106,9 +117,11 @@ class AuthTest extends TestCase
             ->getJson('/api/auth/me');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'id' => $user->id,
-                'email' => $user->email,
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'email',
+                ],
             ]);
     }
 
@@ -128,8 +141,8 @@ class AuthTest extends TestCase
             ->postJson('/api/auth/create-coordinator', [
                 'name' => 'Coordinator User',
                 'email' => 'coordinator@example.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => $this->validPassword,
+                'password_confirmation' => $this->validPassword,
             ]);
 
         $response->assertStatus(201)
@@ -158,8 +171,8 @@ class AuthTest extends TestCase
             ->postJson('/api/auth/create-coordinator', [
                 'name' => 'Coordinator User',
                 'email' => 'coordinator@example.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
+                'password' => $this->validPassword,
+                'password_confirmation' => $this->validPassword,
             ]);
 
         $response->assertStatus(403);

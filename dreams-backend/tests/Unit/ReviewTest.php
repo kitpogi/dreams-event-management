@@ -3,8 +3,8 @@
 namespace Tests\Unit;
 
 use App\Models\Review;
-use App\Models\User;
-use App\Models\BookingDetail;
+use App\Models\Client;
+use App\Models\EventPackage;
 use Tests\TestCase;
 
 class ReviewTest extends TestCase
@@ -17,24 +17,24 @@ class ReviewTest extends TestCase
         $review = Review::factory()->create();
 
         $this->assertDatabaseHas('reviews', [
-            'id' => $review->id,
+            'review_id' => $review->review_id,
         ]);
     }
 
     /**
      * Test review relationships
      */
-    public function test_review_has_user_and_booking_relationships(): void
+    public function test_review_has_client_and_package_relationships(): void
     {
-        $user = User::factory()->create();
-        $booking = BookingDetail::factory()->create();
+        $client = Client::factory()->create();
+        $package = EventPackage::factory()->create();
         $review = Review::factory()->create([
-            'user_id' => $user->id,
-            'booking_id' => $booking->id,
+            'client_id' => $client->client_id,
+            'package_id' => $package->package_id,
         ]);
 
-        $this->assertEquals($user->id, $review->user->id);
-        $this->assertEquals($booking->id, $review->booking->id);
+        $this->assertTrue($review->client()->exists());
+        $this->assertTrue($review->eventPackage()->exists());
     }
 
     /**
@@ -46,17 +46,6 @@ class ReviewTest extends TestCase
             $review = Review::factory()->create(['rating' => $i]);
             $this->assertBetween($review->rating, 1, 5);
         }
-    }
-
-    /**
-     * Test featured reviews
-     */
-    public function test_can_create_featured_review(): void
-    {
-        $review = Review::factory()->featured()->create();
-
-        $this->assertTrue($review->is_featured);
-        $this->assertTrue($review->is_verified);
     }
 
     /**

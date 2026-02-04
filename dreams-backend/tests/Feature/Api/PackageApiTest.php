@@ -19,9 +19,7 @@ class PackageApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [],
+                'data',
                 'meta' => [
                     'current_page',
                     'per_page',
@@ -38,14 +36,12 @@ class PackageApiTest extends TestCase
     {
         $package = EventPackage::factory()->create();
 
-        $response = $this->jsonApi('GET', "/api/packages/{$package->id}");
+        $response = $this->jsonApi('GET', "/api/packages/{$package->package_id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'success',
-                'message',
                 'data' => [
-                    'id',
+                    'package_id',
                     'package_name',
                     'package_price',
                     'package_description',
@@ -66,6 +62,7 @@ class PackageApiTest extends TestCase
             'package_price' => 500000,
             'package_category' => 'wedding',
             'capacity' => 200,
+            'package_inclusions' => 'Full catering, Photography, Decoration',
         ];
 
         $response = $this->jsonApi(
@@ -77,10 +74,8 @@ class PackageApiTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'success',
-                'message',
                 'data' => [
-                    'id',
+                    'package_id',
                     'package_name',
                     'package_price',
                 ],
@@ -100,6 +95,7 @@ class PackageApiTest extends TestCase
             'package_price' => 500000,
             'package_category' => 'wedding',
             'capacity' => 200,
+            'package_inclusions' => 'Full catering, Photography',
         ];
 
         $response = $this->jsonApi(
@@ -127,16 +123,16 @@ class PackageApiTest extends TestCase
 
         $response = $this->jsonApi(
             'PUT',
-            "/api/packages/{$package->id}",
+            "/api/packages/{$package->package_id}",
             $updateData,
             $this->getAuthHeader($admin)
         );
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['success', 'message', 'data']);
+            ->assertJsonStructure(['data']);
 
         $this->assertDatabaseHas('event_packages', [
-            'id' => $package->id,
+            'package_id' => $package->package_id,
             'package_name' => 'Updated Package Name',
         ]);
     }
@@ -151,7 +147,7 @@ class PackageApiTest extends TestCase
 
         $response = $this->jsonApi(
             'DELETE',
-            "/api/packages/{$package->id}",
+            "/api/packages/{$package->package_id}",
             [],
             $this->getAuthHeader($admin)
         );
@@ -159,7 +155,7 @@ class PackageApiTest extends TestCase
         $response->assertStatus(200);
 
         $this->assertDatabaseMissing('event_packages', [
-            'id' => $package->id,
+            'package_id' => $package->package_id,
         ]);
     }
 }
