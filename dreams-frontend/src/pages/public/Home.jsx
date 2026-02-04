@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Heart, Calendar, Award, Star, ArrowRight, CheckCircle, Users, TrendingUp, Play, Pause, MessageCircle, Lightbulb, Palette, PartyPopper, ThumbsUp } from 'lucide-react';
+import { Sparkles, Heart, Calendar, Award, Star, ArrowRight, CheckCircle, Users, TrendingUp, ChevronDown, Phone, MessageCircle, Lightbulb, Palette, PartyPopper, ThumbsUp } from 'lucide-react';
 import api from '../../api/axios';
 import { PackageCard, ParticlesBackground, AnimatedBackground, NewsletterSignup } from '../../components/features';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '../../components/ui';

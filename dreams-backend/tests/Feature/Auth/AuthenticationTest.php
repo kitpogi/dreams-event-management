@@ -125,7 +125,7 @@ class AuthenticationTest extends TestCase
      */
     public function test_unauthenticated_user_cannot_access_protected_route(): void
     {
-        $response = $this->jsonApi('GET', '/api/user/profile');
+        $response = $this->jsonApi('GET', '/api/auth/me');
 
         $response->assertStatus(401);
     }

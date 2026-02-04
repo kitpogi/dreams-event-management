@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Mail\PasswordResetMail;
 use App\Mail\EmailVerificationMail;
 use App\Exceptions\UnauthorizedException;
+use App\Exceptions\AuthenticationException;
 use App\Services\TokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -94,8 +95,9 @@ class AuthController extends Controller
         $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
 
         return $this->successResponse([
-            ...$tokens,
             'user' => $user,
+            'token' => $tokens['access_token'],
+            'refresh_token' => $tokens['refresh_token'],
         ], 'Registration successful! Please check your email to verify your account.', 201);
     }
 
@@ -130,9 +132,7 @@ class AuthController extends Controller
         // Check if account is locked
         if ($user && $user->isLocked()) {
             $minutesRemaining = now()->diffInMinutes($user->locked_until, false);
-            throw ValidationException::withMessages([
-                'email' => ["Account is locked. Please try again in {$minutesRemaining} minutes."],
-            ]);
+            throw new AuthenticationException("Account is locked. Please try again in {$minutesRemaining} minutes.");
         }
 
         // Check credentials
@@ -141,9 +141,7 @@ class AuthController extends Controller
                 $user->incrementFailedLoginAttempts();
             }
             
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+            throw new AuthenticationException('Invalid email or password.');
         }
 
         // Reset failed login attempts on successful login
@@ -153,8 +151,9 @@ class AuthController extends Controller
         $tokens = $this->tokenService->createTokens($user, $request->input('device_name'));
 
         return $this->successResponse([
-            ...$tokens,
             'user' => $user,
+            'token' => $tokens['access_token'],
+            'refresh_token' => $tokens['refresh_token'],
         ], 'Login successful');
     }
 
@@ -176,7 +175,13 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        // Revoke the current access token
+        // currentAccessToken() returns a TransientToken, we need to revoke via tokens relation
+        if ($request->user()) {
+            $request->user()->tokens()
+                ->where('name', 'access_token')
+                ->delete();
+        }
 
         return $this->successResponse(null, 'Logged out successfully');
     }
