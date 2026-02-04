@@ -22,3 +22,27 @@ Schedule::command('bookings:mark-completed')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/mark-completed.log'));
 
+// Schedule password expiration check to run daily at midnight
+// Marks users' passwords as expired if they haven't been changed within the expiration period
+Schedule::command('passwords:mark-expired')
+    ->daily()
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/password-expiration.log'));
+
+// Schedule API key expiration check to run daily
+// Deactivates API keys that have passed their expiration date
+Schedule::command('api-keys:deactivate-expired')
+    ->daily()
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping();
+
+// Schedule API key usage log cleanup to run weekly on Sundays
+// Removes logs older than 90 days to prevent database bloat
+Schedule::command('api-keys:cleanup-logs --days=90')
+    ->weekly()
+    ->sundays()
+    ->at('02:00')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/api-key-cleanup.log'));

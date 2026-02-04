@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\EventPreferenceController;
@@ -23,6 +24,14 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Log;
+
+// Health check endpoints (no auth required)
+Route::prefix('health')->group(function () {
+    Route::get('/', [HealthController::class, 'check']);
+    Route::get('/detailed', [HealthController::class, 'detailed']);
+    Route::get('/ready', [HealthController::class, 'ready']);
+    Route::get('/live', [HealthController::class, 'live']);
+});
 
 // Public routes with rate limiting
 Route::middleware('throttle:auth')->group(function () {
