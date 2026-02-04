@@ -4,6 +4,10 @@ namespace App\Http\Requests\Auth;
 
 use App\Http\Requests\BaseFormRequest;
 
+/**
+ * @property string $email
+ * @property string $password
+ */
 class LoginRequest extends BaseFormRequest
 {
     /**

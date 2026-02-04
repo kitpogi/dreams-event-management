@@ -5,6 +5,11 @@ namespace App\Http\Requests\Auth;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * @property string $email
+ * @property string $token
+ * @property string $password
+ */
 class ResetPasswordRequest extends BaseFormRequest
 {
     /**

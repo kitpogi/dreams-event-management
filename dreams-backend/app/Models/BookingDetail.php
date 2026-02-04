@@ -6,6 +6,32 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Review;
 
+/**
+ * @property int $booking_id
+ * @property int|null $client_id
+ * @property int|null $package_id
+ * @property int|null $coordinator_id
+ * @property string|null $event_date
+ * @property string|null $event_time
+ * @property string|null $event_duration
+ * @property string|null $event_end_time
+ * @property string|null $event_venue
+ * @property int|null $guest_count
+ * @property string|null $booking_status
+ * @property string|null $special_requests
+ * @property string|null $internal_notes
+ * @property string|null $event_type
+ * @property string|null $theme
+ * @property string|null $budget_range
+ * @property string|null $alternate_contact
+ * @property float|null $total_amount
+ * @property float|null $deposit_amount
+ * @property bool|null $payment_required
+ * @property string|null $payment_status
+ * @property string|null $mood_board
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class BookingDetail extends Model
 {
     use HasFactory;

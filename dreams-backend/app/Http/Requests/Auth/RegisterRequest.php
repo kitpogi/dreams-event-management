@@ -5,6 +5,12 @@ namespace App\Http\Requests\Auth;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property string|null $phone
+ */
 class RegisterRequest extends BaseFormRequest
 {
     /**
