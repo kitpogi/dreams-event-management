@@ -3,6 +3,10 @@
 namespace App\Http;
 
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\CheckPasswordExpired;
+use App\Http\Middleware\AuthenticateApiKey;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -26,6 +30,10 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => AdminMiddleware::class,
+        'permission' => CheckPermission::class,
+        'role' => CheckRole::class,
+        'password.expired' => CheckPasswordExpired::class,
+        'api.key' => AuthenticateApiKey::class,
     ];
 }
 

@@ -12,22 +12,22 @@
 
 - [x] **Enhance password security** ✅ COMPLETE
   - [x] Add password strength validation
-  - [ ] Implement password history (prevent reuse)
-  - [ ] Add password expiration policy
+  - [x] Implement password history (prevent reuse) ✅ (PasswordPolicyService + PasswordHistory model, configurable history count)
+  - [x] Add password expiration policy ✅ (CheckPasswordExpired middleware, configurable expiration days with warnings)
   - [x] Add account lockout after failed attempts
   - [x] Add two-factor authentication (2FA) ✅ (TOTP-based with QR code, backup codes, enable/disable/verify endpoints)
 
-- [x] **Improve authorization**
+- [x] **Improve authorization** ✅ COMPLETE
   - [x] Create Policy classes for all resources (Booking, Package, Contact, Review, Payment, Venue, Portfolio, Testimonial - 8 policies)
   - [x] Add role-based permissions (RBAC) (Implemented in policies)
   - [x] Add resource-level permissions (Implemented in policies)
   - [x] Add permission caching ✅ (PermissionCacheService + CachesPermissions trait with 5-min TTL, applied to all 8 policies)
-  - [ ] Add middleware for granular permissions
+  - [x] Add middleware for granular permissions ✅ (CheckPermission + CheckRole middleware with permission matrix)
 
 - [ ] **API Security**
-  - [ ] Add API key authentication for external services
+  - [x] Add API key authentication for external services ✅ (ApiKey model + AuthenticateApiKey middleware with rate limiting, IP whitelist, usage logging)
   - [ ] Implement request signing
-  - [ ] Add IP whitelisting for admin endpoints
+  - [x] Add IP whitelisting for admin endpoints ✅ (Implemented in API key allowed_ips feature)
   - [ ] Add CSRF protection for state-changing operations
   - [ ] Implement request validation middleware
 
@@ -592,7 +592,7 @@
 - ✅ Standardized API responses
 - ✅ Comprehensive error handling
 - ✅ FormRequest validation (20 FormRequest classes)
-- ✅ Password security (strength validation + lockout)
+- ✅ Password security (strength validation + lockout + history + expiration)
 - ✅ Core booking and package management
 - ✅ Eager loading optimization
 - ✅ Query result caching
@@ -606,17 +606,20 @@
 - ✅ Feature tests for API endpoints, Auth flows, Booking flows
 - ✅ Test infrastructure (factories, helpers, traits)
 - ✅ Permission caching (PermissionCacheService + CachesPermissions trait, all 8 policies)
+- ✅ Granular permissions middleware (CheckPermission + CheckRole)
+- ✅ API key authentication (ApiKey model + AuthenticateApiKey middleware)
+- ✅ IP whitelisting for API keys
 
-**In Progress (⏳ ~5 items):**
+**In Progress (⏳ ~3 items):**
 
 - Documentation (Swagger done, code docs partial)
 - CI/CD testing integration
+- Run migrations for new tables
 
-**Not Started / Remaining (❌ ~139 items / 69.5%):**
+**Not Started / Remaining (❌ ~130 items / 65%):**
 
 - Repository Pattern
 - DTOs implementation
-- Password history & expiration
 - File upload encryption
 - Encryption key rotation
 - Advanced caching (Redis)
@@ -629,11 +632,11 @@
 **Key Focus Areas:**
 
 1. ✅ Basic API structure and endpoints
-2. ✅ Authentication and authorization (COMPLETE - refresh tokens, 2FA, policies, permission caching)
+2. ✅ Authentication and authorization (COMPLETE - refresh tokens, 2FA, policies, permission caching, granular permissions)
 3. ✅ Core booking and package management
 4. ✅ Error handling and API standardization
 5. ✅ Testing coverage (100% pass rate - 179/179 tests)
-6. ✅ Security hardening (2FA, encryption, lockout, policies, caching)
+6. ✅ Security hardening (2FA, encryption, lockout, policies, API keys, password policy)
 7. ⏳ Performance optimization
 8. ⏳ Monitoring and logging
 9. ⏳ Advanced features
@@ -663,6 +666,26 @@
 
 4. ✅ Permission caching for improved authorization performance
    - PermissionCacheService with 5-minute TTL
+   - CachesPermissions trait for policies
+   - Applied to all 8 policies
+
+5. ✅ Granular permissions middleware
+   - CheckPermission middleware with permission matrix (resource.action format)
+   - CheckRole middleware for role-based access control
+   - Registered in Kernel: 'permission', 'role'
+
+6. ✅ Password history & expiration
+   - PasswordPolicyService with configurable settings
+   - PasswordHistory model to track previous passwords
+   - CheckPasswordExpired middleware to enforce password changes
+   - Config file: config/password.php
+
+7. ✅ API key authentication for external services
+   - ApiKey model with secure key/secret generation
+   - AuthenticateApiKey middleware with rate limiting
+   - IP whitelist support
+   - Usage logging and statistics
+   - ApiKeyService for key management
    - CachesPermissions trait for policies
    - Applied to all 8 policies (Booking, Package, Review, Venue, Contact, Payment, Portfolio, Testimonial)
    - Cache tag support for Redis/Memcached
