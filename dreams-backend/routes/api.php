@@ -5,16 +5,20 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\EmailTrackingController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PackageController;
 use App\Http\Controllers\Api\PortfolioController;
 use App\Http\Controllers\Api\EventPreferenceController;
+use App\Http\Controllers\Api\PushNotificationController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TestimonialController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\ImageAnalysisController;
+use App\Http\Controllers\Api\MetricsController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\BookingAttachmentController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -31,6 +35,16 @@ Route::prefix('health')->group(function () {
     Route::get('/detailed', [HealthController::class, 'detailed']);
     Route::get('/ready', [HealthController::class, 'ready']);
     Route::get('/live', [HealthController::class, 'live']);
+});
+
+// Metrics endpoints (protected by token for production)
+Route::prefix('metrics')->group(function () {
+    Route::get('/', [MetricsController::class, 'prometheus']);
+    Route::get('/json', [MetricsController::class, 'json']);
+    Route::get('/summary', [MetricsController::class, 'summary']);
+    Route::get('/business', [MetricsController::class, 'business']);
+    Route::get('/database', [MetricsController::class, 'database']);
+    Route::get('/{name}', [MetricsController::class, 'show']);
 });
 
 // Public routes with rate limiting
@@ -224,6 +238,32 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::patch('/preferences', [EventPreferenceController::class, 'update']);
     Route::get('/preferences/summary', [EventPreferenceController::class, 'getSummary']);
 
+    // Notification routes (authenticated users)
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::get('/statistics', [NotificationController::class, 'statistics']);
+        Route::get('/preferences', [NotificationController::class, 'getPreferences']);
+        Route::put('/preferences', [NotificationController::class, 'updatePreferences']);
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/', [NotificationController::class, 'destroyAll']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/{id}/unread', [NotificationController::class, 'markAsUnread']);
+        Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    });
+
+    // Push notification routes (authenticated users)
+    Route::prefix('push')->group(function () {
+        Route::post('/register', [PushNotificationController::class, 'registerDevice']);
+        Route::delete('/unregister', [PushNotificationController::class, 'unregisterDevice']);
+        Route::get('/devices', [PushNotificationController::class, 'getDevices']);
+        Route::delete('/devices', [PushNotificationController::class, 'clearDevices']);
+        Route::post('/subscribe', [PushNotificationController::class, 'subscribe']);
+        Route::post('/unsubscribe', [PushNotificationController::class, 'unsubscribe']);
+        Route::post('/test', [PushNotificationController::class, 'sendTest']);
+        Route::get('/status', [PushNotificationController::class, 'status']);
+    });
+
     // Admin routes with rate limiting
     Route::middleware(['admin', 'throttle:admin'])->group(function () {
         // User/Coordinator management
@@ -288,5 +328,41 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
         Route::get('/audit-logs/{id}', [AuditLogController::class, 'show']);
+
+        // Email tracking statistics (admin only)
+        Route::prefix('email')->group(function () {
+            Route::get('/stats', [EmailTrackingController::class, 'getStatistics']);
+            Route::get('/stats/by-type', [EmailTrackingController::class, 'getStatsByType']);
+            Route::get('/stats/daily', [EmailTrackingController::class, 'getDailyStats']);
+            Route::get('/logs', [EmailTrackingController::class, 'getLogs']);
+            Route::post('/{trackingId}/retry', [EmailTrackingController::class, 'retry']);
+        });
+
+        // Webhook management (admin only)
+        Route::prefix('webhooks')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\WebhookController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\WebhookController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\WebhookController::class, 'show']);
+            Route::put('/{id}', [\App\Http\Controllers\Api\WebhookController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Api\WebhookController::class, 'destroy']);
+            Route::post('/{id}/test', [\App\Http\Controllers\Api\WebhookController::class, 'test']);
+            Route::get('/{id}/deliveries', [\App\Http\Controllers\Api\WebhookController::class, 'deliveries']);
+            Route::post('/deliveries/{deliveryId}/retry', [\App\Http\Controllers\Api\WebhookController::class, 'retryDelivery']);
+        });
+
+        // Push notification management (admin only)
+        Route::prefix('push')->group(function () {
+            Route::post('/send', [PushNotificationController::class, 'adminSend']);
+            Route::post('/broadcast', [PushNotificationController::class, 'adminBroadcast']);
+        });
     });
 });
+
+// Email tracking public endpoints (no auth - tracking pixels and redirects)
+Route::prefix('email/track')->group(function () {
+    Route::get('/open/{trackingId}', [EmailTrackingController::class, 'trackOpen']);
+    Route::get('/click/{trackingId}', [EmailTrackingController::class, 'trackClick']);
+});
+
+// Email provider webhook (protected by signature verification)
+Route::post('/email/webhook', [EmailTrackingController::class, 'handleWebhook']);

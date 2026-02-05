@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Review;
+use App\Traits\HasFiltering;
 
 /**
  * @property int $booking_id
@@ -35,11 +36,60 @@ use App\Models\Review;
 class BookingDetail extends Model
 {
     use HasFactory;
+    use HasFiltering;
 
     protected $table = 'booking_details';
     protected $primaryKey = 'booking_id';
     public $incrementing = true;
     protected $keyType = 'int';
+
+    /**
+     * Fields that can be filtered via query parameters.
+     */
+    protected array $filterable = [
+        'booking_status',
+        'payment_status',
+        'event_type',
+        'client_id',
+        'package_id',
+        'coordinator_id',
+        'event_venue',
+        'theme',
+        'budget_range',
+    ];
+
+    /**
+     * Fields that can be sorted via query parameters.
+     */
+    protected array $sortable = [
+        'created_at',
+        'event_date',
+        'total_amount',
+        'guest_count',
+        'booking_status',
+    ];
+
+    /**
+     * Fields that are searchable via 'search' or 'q' parameter.
+     */
+    protected array $searchable = [
+        'event_venue',
+        'event_type',
+        'theme',
+        'special_requests',
+        'client.first_name',
+        'client.last_name',
+        'client.email',
+    ];
+
+    /**
+     * Date fields that support range filtering.
+     */
+    protected array $dateFilters = [
+        'created_at',
+        'updated_at',
+        'event_date',
+    ];
 
     protected $fillable = [
         'client_id',

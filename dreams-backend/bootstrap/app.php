@@ -11,12 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         \App\Providers\EncryptionServiceProvider::class,
         \App\Providers\QueryLogServiceProvider::class,
         \App\Providers\RepositoryServiceProvider::class,
+        \App\Providers\ServiceBindingsProvider::class,
     ])
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
+        channels: __DIR__ . '/../routes/channels.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -34,8 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'cache.headers' => \App\Http\Middleware\CacheHeaders::class,
             'compress' => \App\Http\Middleware\CompressResponse::class,
             'api.version' => \App\Http\Middleware\ApiVersion::class,
+            'scan.virus' => \App\Http\Middleware\ScanUploadedFiles::class,
         ]);
-        
+
         // Apply XSS protection to all API routes
         $middleware->api(prepend: [
             \App\Http\Middleware\XssProtectionMiddleware::class,
@@ -115,4 +117,3 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
     })->create();
-

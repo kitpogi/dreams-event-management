@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use App\Models\Review;
 use App\Services\Cache\RecommendationCacheService;
+use App\Traits\HasFiltering;
 
 /**
  * @property int $package_id
@@ -24,11 +25,40 @@ use App\Services\Cache\RecommendationCacheService;
 class EventPackage extends Model
 {
     use HasFactory;
+    use HasFiltering;
 
     protected $table = 'event_packages';
     protected $primaryKey = 'package_id';
     public $incrementing = true;
     protected $keyType = 'int';
+
+    /**
+     * Fields that can be filtered via query parameters.
+     */
+    protected array $filterable = [
+        'package_category',
+        'venue_id',
+    ];
+
+    /**
+     * Fields that can be sorted via query parameters.
+     */
+    protected array $sortable = [
+        'package_name',
+        'package_price',
+        'capacity',
+        'created_at',
+    ];
+
+    /**
+     * Fields that are searchable via 'search' or 'q' parameter.
+     */
+    protected array $searchable = [
+        'package_name',
+        'package_description',
+        'package_category',
+        'package_inclusions',
+    ];
 
     protected $fillable = [
         'package_name',

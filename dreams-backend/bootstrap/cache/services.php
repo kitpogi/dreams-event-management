@@ -41,6 +41,7 @@
     37 => 'App\\Providers\\EncryptionServiceProvider',
     38 => 'App\\Providers\\QueryLogServiceProvider',
     39 => 'App\\Providers\\RepositoryServiceProvider',
+    40 => 'App\\Providers\\ServiceBindingsProvider',
   ),
   'eager' => 
   array (
@@ -67,6 +68,7 @@
     20 => 'App\\Providers\\EncryptionServiceProvider',
     21 => 'App\\Providers\\QueryLogServiceProvider',
     22 => 'App\\Providers\\RepositoryServiceProvider',
+    23 => 'App\\Providers\\ServiceBindingsProvider',
   ),
   'deferred' => 
   array (
