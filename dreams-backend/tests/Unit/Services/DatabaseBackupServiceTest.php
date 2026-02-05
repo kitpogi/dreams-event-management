@@ -79,6 +79,11 @@ class DatabaseBackupServiceTest extends TestCase
     /** @test */
     public function it_lists_backups()
     {
+        // Clear any existing backups first
+        foreach ($this->service->listBackups() as $backup) {
+            $this->service->deleteBackup($backup['id']);
+        }
+        
         $this->service->backup();
         $this->service->backup();
         
