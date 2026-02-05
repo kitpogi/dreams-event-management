@@ -41,16 +41,22 @@ const NewsletterSignup = ({ className = '' }) => {
   };
 
   return (
-    <section className={`w-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] py-16 md:py-20 ${className}`}>
-      <div className="max-w-4xl mx-auto px-4">
+    <section className={`w-full bg-gray-50 dark:bg-gradient-to-br dark:from-[#0a0a1a] dark:via-[#1a1a3a] dark:to-[#0a0a1a] pt-12 pb-20 relative overflow-hidden ${className}`}>
+      {/* Background orbs - only visible in dark mode */}
+      <div className="absolute inset-0 pointer-events-none hidden dark:block">
+        <div className="absolute bottom-10 left-[30%] w-48 h-48 bg-[#5A45F2] opacity-10 rounded-full blur-[80px]" />
+        <div className="absolute top-10 right-[30%] w-64 h-64 bg-[#7ee5ff] opacity-10 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] shadow-lg shadow-[#5A45F2]/30 mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Stay Updated with Our Latest Events
           </h2>
-          <p className="text-white/90 text-lg max-w-2xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
             Subscribe to our newsletter and be the first to know about new packages, special offers, and event planning tips.
           </p>
         </div>
@@ -65,13 +71,13 @@ const NewsletterSignup = ({ className = '' }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading || success}
-                className="w-full h-12 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
+                className="w-full h-12 bg-white dark:bg-white/10 dark:backdrop-blur-sm border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/60 focus:bg-white dark:focus:bg-white/20"
               />
             </div>
             <Button
               type="submit"
               disabled={loading || success}
-              className="h-12 px-8 bg-white text-[#5A45F2] hover:bg-white/90 font-bold whitespace-nowrap"
+              className="h-12 px-8 bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white hover:shadow-lg hover:shadow-[#5A45F2]/30 font-bold whitespace-nowrap rounded-xl"
             >
               {loading ? (
                 <>
@@ -93,17 +99,17 @@ const NewsletterSignup = ({ className = '' }) => {
           </div>
 
           {error && (
-            <p className="mt-3 text-sm text-red-200 text-center">{error}</p>
+            <p className="mt-3 text-sm text-red-500 dark:text-red-200 text-center">{error}</p>
           )}
 
           {success && (
-            <p className="mt-3 text-sm text-white/90 text-center">
+            <p className="mt-3 text-sm text-green-600 dark:text-white/90 text-center">
               Thank you for subscribing! Check your email for confirmation.
             </p>
           )}
         </form>
 
-        <p className="text-center text-white/70 text-sm mt-6">
+        <p className="text-center text-gray-500 dark:text-gray-400 text-sm mt-6">
           We respect your privacy. Unsubscribe at any time.
         </p>
       </div>
@@ -112,4 +118,3 @@ const NewsletterSignup = ({ className = '' }) => {
 };
 
 export default NewsletterSignup;
-

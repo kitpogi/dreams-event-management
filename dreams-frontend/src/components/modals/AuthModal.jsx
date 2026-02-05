@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState(initialMode); // 'login' or 'register'
+  const [hoveredMode, setHoveredMode] = useState(null);
   const [loginFormData, setLoginFormData] = useState({
     email: '',
     password: '',
@@ -350,21 +351,25 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
 
             {/* Segmented Buttons */}
             <div className="flex mb-4">
-              <div className="flex h-10 flex-1 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800/80 p-1 border border-gray-200 dark:border-gray-700/50">
+              <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800/80 p-1 border border-gray-200 dark:border-gray-700/50">
                 <button
+                  onMouseEnter={() => setHoveredMode('login')}
+                  onMouseLeave={() => setHoveredMode(null)}
                   onClick={() => setMode('login')}
-                  className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-semibold leading-normal transition-all duration-200 ${mode === 'login'
-                    ? 'bg-white dark:bg-gradient-to-r dark:from-primary/80 dark:to-purple-600/80 shadow-md text-gray-900 dark:text-white'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-bold leading-normal transition-all duration-300 transform active:scale-95 ${(hoveredMode === 'login') || (mode === 'login' && !hoveredMode)
+                      ? 'bg-white dark:bg-gradient-to-r dark:from-[#5A45F2] dark:to-[#7c3aed] shadow-md text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <span className="truncate">Login</span>
                 </button>
                 <button
+                  onMouseEnter={() => setHoveredMode('register')}
+                  onMouseLeave={() => setHoveredMode(null)}
                   onClick={() => setMode('register')}
-                  className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-semibold leading-normal transition-all duration-200 ${mode === 'register'
-                    ? 'bg-white dark:bg-gradient-to-r dark:from-primary/80 dark:to-purple-600/80 shadow-md text-gray-900 dark:text-white'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-bold leading-normal transition-all duration-300 transform active:scale-95 ${(hoveredMode === 'register') || (mode === 'register' && !hoveredMode)
+                      ? 'bg-white dark:bg-gradient-to-r dark:from-[#5A45F2] dark:to-[#7c3aed] shadow-md text-gray-900 dark:text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <span className="truncate">Sign Up</span>

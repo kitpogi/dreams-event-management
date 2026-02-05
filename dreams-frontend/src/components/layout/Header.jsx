@@ -13,8 +13,9 @@ import {
 import { Menu, X, User, LogOut, LayoutDashboard, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart } from 'lucide-react';
 import { NotificationCenter } from '../features';
 import { ensureAbsoluteUrl } from '../../utils/imageUtils';
+import logo from '../../assets/logo.png';
 
-const Navbar = () => {
+const Header = () => {
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { darkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
@@ -24,18 +25,41 @@ const Navbar = () => {
   const [authMode, setAuthMode] = useState('login');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState(null);
 
   // Get the correct dashboard path based on user role
   const dashboardPath = isAdmin ? '/admin/dashboard' : '/dashboard';
 
-  // Handle scroll effect
+  const [activeSection, setActiveSection] = useState('main-header');
+
+  // Unified scroll handler for transparency and scroll spy
   useEffect(() => {
     const handleScroll = () => {
+      // transparency effect
       setScrolled(window.scrollY > 20);
+
+      // scroll spy effect for home page
+      if (location.pathname === '/') {
+        const sections = navLinks.map(link => link.sectionId);
+        const currentSection = sections.find(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            // Buffer of 150px for better detection
+            return rect.top <= 150 && rect.bottom >= 150;
+          }
+          return false;
+        });
+
+        if (currentSection) {
+          setActiveSection(currentSection);
+        }
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [location.pathname]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,49 +83,69 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
+  const scrollToSection = (sectionId) => {
+    if (location.pathname === '/') {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+        setMobileMenuOpen(false);
+      }
+    } else {
+      navigate('/#' + sectionId);
+    }
+  };
+
   const navLinks = [
-    { to: '/', label: 'Home', icon: Home },
-    { to: '/services', label: 'Services', icon: Package },
-    { to: '/portfolio', label: 'Portfolio', icon: Image },
-    { to: '/reviews', label: 'Reviews', icon: Star },
-    { to: '/set-an-event', label: 'Set An Event', icon: Calendar },
+    { to: '/', label: 'Home', icon: Home, sectionId: 'hero' },
+    { to: '/services', label: 'Services', icon: Package, sectionId: 'services' },
+    { to: '/portfolio', label: 'Portfolio', icon: Image, sectionId: 'portfolio' },
+    { to: '/reviews', label: 'Reviews', icon: Star, sectionId: 'reviews' },
+    { to: '/set-an-event', label: 'Set An Event', icon: Calendar, sectionId: 'contact' },
   ];
 
   return (
     <>
-      <nav
-        id="main-navigation"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-          ? darkMode
-            ? 'bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-800'
-            : 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200'
-          : darkMode
-            ? 'bg-gray-900 border-b border-gray-800'
-            : 'bg-[#FFF7F0] border-b border-[#e7dbcf]'
+      <header
+        id="main-header"
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
+          ? isActive('/')
+            ? 'bg-transparent backdrop-blur-md py-1'
+            : darkMode
+              ? 'bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-800 py-0'
+              : 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200 py-0'
+          : 'bg-transparent border-transparent py-2'
           }`}
-        role="navigation"
-        aria-label="Main navigation"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Main Navbar */}
-          <div className="flex items-center justify-between h-20">
+        <div className="w-full px-8 md:px-20">
+          {/* Main Header Content */}
+          <div className="flex justify-between items-center h-16 md:h-20">
             {/* Logo/Brand */}
             <Link
               to="/"
-              className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 rounded-lg p-2 -ml-2"
+              className="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 rounded-lg p-2 -ml-2"
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
-                <div className="relative w-10 h-10 bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6 text-white" />
+                <div className="relative w-14 h-14 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <img
+                    src={logo}
+                    alt="D'Dreams Events Logo"
+                    className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.1)] brightness-110 contrast-110 transition-all"
+                  />
                 </div>
               </div>
               <div className="hidden sm:block">
-                <h1 className={`font-serif text-xl md:text-2xl font-bold group-hover:text-[#5A45F2] transition-colors ${darkMode ? 'text-white' : 'text-gray-900'
+                <h1 className={`font-serif text-xl md:text-2xl font-bold group-hover:text-[#5A45F2] transition-colors ${isActive('/') || darkMode ? 'text-white' : 'text-gray-900'
                   }`}>
                   D&apos;Dreams Events
                 </h1>
-                <p className={`text-[10px] md:text-xs italic -mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'
+                <p className={`text-[10px] md:text-xs italic -mt-1 ${isActive('/') || darkMode ? 'text-white/70' : 'text-gray-600'
                   }`}>
                   "We make your dream events happen."
                 </p>
@@ -109,30 +153,41 @@ const Navbar = () => {
             </Link>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-2" aria-label="Desktop navigation">
               {navLinks.map((link) => {
                 const Icon = link.icon;
-                const active = isActive(link.to);
+                const active = isActive('/')
+                  ? activeSection === link.sectionId
+                  : isActive(link.to);
+
                 return (
-                  <Link
+                  <button
                     key={link.to}
-                    to={link.to}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${active
-                      ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20'
-                      : darkMode
-                        ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
-                        : 'text-gray-700 hover:text-[#5A45F2] hover:bg-gray-100'
+                    onClick={() => {
+                      if (isActive('/') && link.sectionId) {
+                        scrollToSection(link.sectionId);
+                      } else {
+                        navigate(link.to);
+                      }
+                    }}
+                    className={`relative flex items-center gap-0 hover:gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 group ${active
+                      ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20 shadow-sm'
+                      : (isActive('/') || darkMode)
+                        ? 'text-white/70 hover:text-white hover:bg-white/10'
+                        : 'text-gray-500 hover:text-[#5A45F2] hover:bg-gray-100'
                       }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{link.label}</span>
+                    <Icon className={`w-5 h-5 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 transition-all duration-300 ease-in-out whitespace-nowrap">
+                      {link.label}
+                    </span>
                     {active && (
-                      <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#5A45F2] rounded-full"></span>
+                      <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-[#5A45F2] rounded-full shadow-[0_0_8px_rgba(90,69,242,0.6)] animate-pulse"></span>
                     )}
-                  </Link>
+                  </button>
                 );
               })}
-            </div>
+            </nav>
 
             {/* Right Side - Dark Mode Toggle, Auth/User Menu */}
             <div className="flex items-center gap-3">
@@ -249,31 +304,38 @@ const Navbar = () => {
                   </div>
                 </>
               ) : (
-                <div className="hidden sm:flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-4">
                   <button
+                    onMouseEnter={() => setHoveredBtn('login')}
+                    onMouseLeave={() => setHoveredBtn(null)}
                     onClick={() => {
                       setAuthMode('login');
                       setShowAuthModal(true);
                     }}
-                    className={`group flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${darkMode
-                      ? 'text-[#7ee5ff] border-2 border-[#7ee5ff] hover:bg-[#7ee5ff]/10 hover:shadow-lg hover:shadow-[#7ee5ff]/20'
-                      : 'text-[#5A45F2] border-2 border-[#5A45F2] hover:bg-[#5A45F2]/10 hover:shadow-lg hover:shadow-[#5A45F2]/20'
+                    className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 transform hover:scale-105 focus:outline-none ${hoveredBtn === 'login'
+                      ? 'bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white shadow-lg shadow-[#5A45F2]/20'
+                      : isActive('/') || darkMode
+                        ? 'text-white/90 hover:text-white hover:bg-white/10'
+                        : 'text-gray-600 hover:text-[#5A45F2] hover:bg-[#5A45F2]/10'
                       }`}
-                    aria-label="Open login modal"
                   >
-                    <User className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    <span>Login</span>
+                    Sign In
                   </button>
                   <button
+                    onMouseEnter={() => setHoveredBtn('register')}
+                    onMouseLeave={() => setHoveredBtn(null)}
                     onClick={() => {
                       setAuthMode('register');
                       setShowAuthModal(true);
                     }}
-                    className="group flex items-center gap-2 px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white rounded-lg hover:from-[#4a37d8] hover:to-[#6d28d9] transition-all shadow-lg hover:shadow-xl hover:shadow-[#5A45F2]/30 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2"
-                    aria-label="Open sign up modal"
+                    className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 ${hoveredBtn === 'login'
+                      ? isActive('/') || darkMode
+                        ? 'text-white/90 hover:bg-white/10'
+                        : 'text-gray-600 hover:bg-[#5A45F2]/10'
+                      : 'bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white shadow-lg shadow-[#5A45F2]/20'
+                      }`}
                   >
-                    <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                    <span>Sign Up</span>
+                    Get Started
                   </button>
                 </div>
               )}
@@ -304,16 +366,25 @@ const Navbar = () => {
                       Menu
                     </SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6 space-y-1">
+                  <nav className="mt-6 space-y-1" aria-label="Mobile navigation">
                     {navLinks.map((link) => {
                       const Icon = link.icon;
-                      const active = isActive(link.to);
+                      const active = isActive('/')
+                        ? activeSection === link.sectionId
+                        : isActive(link.to);
+
                       return (
-                        <Link
+                        <button
                           key={link.to}
-                          to={link.to}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${active
+                          onClick={() => {
+                            if (isActive('/') && link.sectionId) {
+                              scrollToSection(link.sectionId);
+                            } else {
+                              navigate(link.to);
+                              setMobileMenuOpen(false);
+                            }
+                          }}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${active
                             ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20 border-l-4 border-[#5A45F2]'
                             : darkMode
                               ? 'text-gray-300 hover:text-[#5A45F2] hover:bg-gray-800'
@@ -322,7 +393,7 @@ const Navbar = () => {
                         >
                           <Icon className="w-5 h-5" />
                           <span>{link.label}</span>
-                        </Link>
+                        </button>
                       );
                     })}
 
@@ -397,17 +468,17 @@ const Navbar = () => {
                         </button>
                       </div>
                     )}
-                  </div>
+                  </nav>
                 </SheetContent>
               </Sheet>
             </div>
           </div>
         </div>
 
-      </nav>
+      </header>
 
-      {/* Spacer to prevent content from going under fixed navbar */}
-      <div className="h-20"></div>
+      {/* Spacer to prevent content from going under fixed navbar - Hidden on Home for immersion */}
+      {!isActive('/') && <div className="h-16 md:h-20"></div>}
 
       {/* Auth Modal */}
       <AuthModal
@@ -430,4 +501,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default Header;

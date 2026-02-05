@@ -1,7 +1,7 @@
 import { SidebarProvider, useSidebar } from '../../context/SidebarContext';
 import { PageTransition, SkipLinks, KeyboardShortcuts, ScreenReaderAnnouncements } from '../features';
 import ClientSidebar from './ClientSidebar';
-import Navbar from './Navbar';
+import Header from './Header';
 import BottomNavigation from './BottomNavigation';
 
 const ClientLayoutContent = ({ children }) => {
@@ -12,7 +12,7 @@ const ClientLayoutContent = ({ children }) => {
             <SkipLinks />
             <KeyboardShortcuts />
             <ScreenReaderAnnouncements />
-            <Navbar />
+            <Header />
             <div className="flex flex-1 pt-20 lg:pt-0">
                 <ClientSidebar />
                 <main
