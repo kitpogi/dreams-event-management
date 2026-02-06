@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { AnimatedBackground } from '../../components/features';
+import { LoadingSpinner } from '../../components/ui';
 import api from '../../api/axios';
 
 const Login = () => {
@@ -125,15 +126,12 @@ const Login = () => {
         toast.success('Successfully signed in with Google!');
 
         const userData = responseData.user;
-        // Small delay to allow React state to update
-        setTimeout(() => {
-          if (userData.role === 'admin' || userData.role === 'coordinator') {
-            navigate('/admin/dashboard', { replace: true });
-          } else {
-            const redirectTo = from || '/dashboard';
-            navigate(redirectTo, { replace: true });
-          }
-        }, 100);
+        if (userData.role === 'admin' || userData.role === 'coordinator') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          const redirectTo = from || '/dashboard';
+          navigate(redirectTo, { replace: true });
+        }
       }
     } catch (error) {
       console.error('Google sign-in error:', error);
@@ -186,15 +184,12 @@ const Login = () => {
               toast.success('Successfully signed in with Google!');
 
               const userData = responseData.user;
-              // Small delay to allow React state to update
-              setTimeout(() => {
-                if (userData.role === 'admin' || userData.role === 'coordinator') {
-                  navigate('/admin/dashboard', { replace: true });
-                } else {
-                  const redirectTo = from || '/dashboard';
-                  navigate(redirectTo, { replace: true });
-                }
-              }, 100);
+              if (userData.role === 'admin' || userData.role === 'coordinator') {
+                navigate('/admin/dashboard', { replace: true });
+              } else {
+                const redirectTo = from || '/dashboard';
+                navigate(redirectTo, { replace: true });
+              }
             }
           } catch (error) {
             console.error('Google sign-in error:', error);
@@ -258,15 +253,12 @@ const Login = () => {
         toast.success('Successfully signed in with Facebook!');
 
         const userData = responseData.user;
-        // Small delay to allow React state to update
-        setTimeout(() => {
-          if (userData.role === 'admin' || userData.role === 'coordinator') {
-            navigate('/admin/dashboard', { replace: true });
-          } else {
-            const redirectTo = from || '/dashboard';
-            navigate(redirectTo, { replace: true });
-          }
-        }, 100);
+        if (userData.role === 'admin' || userData.role === 'coordinator') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          const redirectTo = from || '/dashboard';
+          navigate(redirectTo, { replace: true });
+        }
       }
     } catch (error) {
       console.error('Facebook sign-in error:', error);
@@ -304,18 +296,16 @@ const Login = () => {
         formRef.current.reset();
       }
 
-      // Small delay to ensure form clears before redirect
-      setTimeout(() => {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        // Coordinators and admins go to admin dashboard
-        if (userData.role === 'admin' || userData.role === 'coordinator') {
-          navigate('/admin/dashboard', { replace: true });
-        } else {
-          // Redirect to the page they came from, or dashboard if no 'from' state
-          const redirectTo = from || '/dashboard';
-          navigate(redirectTo, { replace: true });
-        }
-      }, 100);
+      // Navigate immediately — state is already updated by login()
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      // Coordinators and admins go to admin dashboard
+      if (userData.role === 'admin' || userData.role === 'coordinator') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        // Redirect to the page they came from, or dashboard if no 'from' state
+        const redirectTo = from || '/dashboard';
+        navigate(redirectTo, { replace: true });
+      }
     } else {
       setError(result.message);
       // Clear password field on error for security
@@ -338,7 +328,7 @@ const Login = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background-light dark:bg-background-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary dark:border-primary"></div>
+        <LoadingSpinner variant="page" size="lg" />
       </div>
     );
   }
@@ -500,7 +490,7 @@ const Login = () => {
                   className="flex items-center justify-center flex-1 h-11 sm:h-12 px-3 sm:px-4 gap-2 sm:gap-3 bg-white dark:bg-gray-800/40 border border-gray-300 dark:border-gray-700/60 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {socialLoading ? (
-                    <div className="w-5 h-5 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                    <LoadingSpinner size="sm" />
                   ) : (
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path d="M21.9999 12.2273C21.9999 11.4545 21.9317 10.7273 21.7953 10H12.2272V14.1818H17.7681C17.5453 15.6045 16.7272 16.8182 15.4544 17.6364V20.2727H19.2317C20.9999 18.6818 21.9999 15.8182 21.9999 12.2273Z" fill="#4285F4"></path>
@@ -518,7 +508,7 @@ const Login = () => {
                   className="flex items-center justify-center flex-1 h-11 sm:h-12 px-3 sm:px-4 gap-2 sm:gap-3 bg-white dark:bg-gray-800/40 border border-gray-300 dark:border-gray-700/60 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {socialLoading ? (
-                    <div className="w-5 h-5 border-2 border-gray-300 border-t-[#1877F2] rounded-full animate-spin"></div>
+                    <LoadingSpinner size="sm" />
                   ) : (
                     <svg className="w-5 h-5 flex-shrink-0 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"></path>

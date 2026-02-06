@@ -15,6 +15,7 @@ const BookingConfirmation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const isDashboard = location.pathname.startsWith('/dashboard');
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState([]);
@@ -256,9 +257,9 @@ const BookingConfirmation = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] py-12">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 space-y-6">
+      <div className={`${isDashboard ? 'py-6 px-4 lg:px-6' : 'min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] py-12'}`}>
+        <div className={`${isDashboard ? 'max-w-5xl' : 'container mx-auto px-4 max-w-4xl'}`}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 space-y-6">
             <Skeleton className="h-12 w-64" />
             <Skeleton className="h-32 w-full" />
             <Skeleton className="h-24 w-full" />
@@ -270,13 +271,16 @@ const BookingConfirmation = () => {
 
   if (!booking) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] flex items-center justify-center py-12">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 text-center">
+      <div className={`${isDashboard ? 'py-6 px-4 lg:px-6' : 'min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] py-12'} flex items-center justify-center`}>
+        <div className={`${isDashboard ? 'max-w-5xl w-full' : 'container mx-auto px-4 max-w-4xl'}`}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Booking Not Found</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">The booking you're looking for doesn't exist or has been removed.</p>
-            <Link to="/dashboard">
-              <Button>Go to Dashboard</Button>
+            <Link to={isDashboard ? '/dashboard/bookings' : '/dashboard'}>
+              <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {isDashboard ? 'Back to Bookings' : 'Go to Dashboard'}
+              </Button>
             </Link>
           </div>
         </div>
@@ -285,49 +289,67 @@ const BookingConfirmation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className={`${isDashboard ? 'py-6 px-4 lg:px-6' : 'min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] py-12'}`}>
+      <div className={`${isDashboard ? 'max-w-5xl' : 'container mx-auto px-4 max-w-4xl'}`}>
+
+        {/* Dashboard Breadcrumb / Back Navigation */}
+        {isDashboard && (
+          <div className="mb-6">
+            <button
+              onClick={() => navigate('/dashboard/bookings')}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Bookings
+            </button>
+          </div>
+        )}
+
         {/* Success Header */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400" />
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 mb-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="w-9 h-9 text-green-600 dark:text-green-400" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Booking Confirmed!
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Your booking has been successfully created. We'll contact you soon to finalize the details.
-            </p>
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                Booking #{booking.id || booking.booking_id}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Your booking has been successfully created. We'll contact you soon to finalize the details.
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button onClick={handleDownload} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
+          <div className="flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-gray-200 dark:border-gray-700">
+            <Button onClick={handleDownload} variant="outline" size="sm" className="rounded-lg">
+              <Download className="w-4 h-4 mr-1.5" />
               Download PDF
             </Button>
-            <Button onClick={handleShare} variant="outline">
-              <Share2 className="w-4 h-4 mr-2" />
+            <Button onClick={handleShare} variant="outline" size="sm" className="rounded-lg">
+              <Share2 className="w-4 h-4 mr-1.5" />
               Share
             </Button>
-            <Link to="/dashboard">
-              <Button variant="outline">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                View All Bookings
-              </Button>
-            </Link>
+            {!isDashboard && (
+              <Link to="/dashboard" className="ml-auto">
+                <Button variant="outline" size="sm" className="rounded-lg">
+                  <ArrowLeft className="w-4 h-4 mr-1.5" />
+                  View All Bookings
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
         {/* Booking Status Tracker */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Booking Status</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5">Booking Status</h2>
           <BookingStatusTracker status={booking.status || 'pending'} />
         </div>
 
         {/* Booking Details */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Booking Details</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 mb-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-5">Booking Details</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Booking ID */}
@@ -433,7 +455,7 @@ const BookingConfirmation = () => {
         </div>
 
         {/* Mood Board / Inspiration Photos */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
             <ImageIcon className="w-6 h-6 text-[#a413ec]" />
             Mood Board & Inspiration Photos
@@ -506,7 +528,7 @@ const BookingConfirmation = () => {
 
         {/* Payment Section */}
         {booking?.payment_required !== false && (
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 md:p-8 mb-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <DollarSign className="w-6 h-6 text-[#a413ec]" />
@@ -542,11 +564,11 @@ const BookingConfirmation = () => {
               <div className="mb-6">
                 <Button
                   onClick={() => setShowPaymentModal(true)}
-                  className="w-full md:w-auto"
+                  className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-200 rounded-lg px-6"
                   size="lg"
                 >
                   <CreditCard className="w-5 h-5 mr-2" />
-                  Pay Now
+                  Pay Now — {formatPrice(remainingBalance)}
                 </Button>
               </div>
             )}
@@ -649,7 +671,7 @@ const BookingConfirmation = () => {
         </Dialog>
 
         {/* Next Steps */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-3xl p-6">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
             What's Next?
           </h3>
@@ -673,17 +695,17 @@ const BookingConfirmation = () => {
           </ul>
         </div>
 
-        {/* Back Button */}
-        <div className="mt-6 text-center">
-          <Link to="/packages">
-            <Button variant="outline" className="mr-3">
+        {/* Bottom Navigation */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link to={isDashboard ? '/dashboard/packages' : '/packages'}>
+            <Button variant="outline" className="rounded-lg">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Browse More Packages
             </Button>
           </Link>
-          <Link to="/dashboard">
-            <Button>
-              Go to Dashboard
+          <Link to={isDashboard ? '/dashboard/bookings' : '/dashboard'}>
+            <Button className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
+              {isDashboard ? 'All Bookings' : 'Go to Dashboard'}
             </Button>
           </Link>
         </div>

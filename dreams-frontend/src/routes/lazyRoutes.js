@@ -27,6 +27,7 @@ export const ClientDashboard = lazy(() => import('../pages/Dashboard/client/Clie
 export const ClientBookings = lazy(() => import('../pages/Dashboard/client/ClientBookings'));
 export const ClientRecommendations = lazy(() => import('../pages/Dashboard/client/ClientRecommendations'));
 export const ClientPackages = lazy(() => import('../pages/Dashboard/client/ClientPackages'));
+export const ClientPackageDetails = lazy(() => import('../pages/Dashboard/client/ClientPackageDetails'));
 export const ClientReviews = lazy(() => import('../pages/Dashboard/client/ClientReviews'));
 export const ClientPayments = lazy(() => import('../pages/Dashboard/client/ClientPayments'));
 export const SubmitTestimonial = lazy(() => import('../pages/Dashboard/client/SubmitTestimonial'));

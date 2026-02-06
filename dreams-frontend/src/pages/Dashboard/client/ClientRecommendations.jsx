@@ -13,6 +13,7 @@ import {
     Badge
 } from '../../../components/ui';
 import { PackageComparison, AnimatedBackground, PullToRefresh } from '../../../components/features';
+import { ContactFormModal } from '../../../components/modals';
 import { useToast } from '../../../hooks/use-toast';
 import {
     Sparkles,
@@ -34,7 +35,25 @@ import {
     Package,
     TrendingUp,
     Bookmark,
-    BookmarkCheck
+    BookmarkCheck,
+    Brain,
+    Zap,
+    RefreshCw,
+    Info,
+    ChevronRight,
+    ChevronLeft,
+    PartyPopper,
+    Briefcase,
+    Cake,
+    Crown,
+    Gem,
+    HelpCircle,
+    Camera,
+    UtensilsCrossed,
+    Music,
+    Flower2,
+    MapPin,
+    Check
 } from 'lucide-react';
 
 const ClientRecommendations = () => {
@@ -69,6 +88,18 @@ const ClientRecommendations = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [savedRecommendations, setSavedRecommendations] = useState([]);
+    const [useAI, setUseAI] = useState(true);
+    const [aiEnhanced, setAiEnhanced] = useState(false);
+    const [personalizedRecs, setPersonalizedRecs] = useState([]);
+    const [personalizedLoading, setPersonalizedLoading] = useState(false);
+    const [enrichedFields, setEnrichedFields] = useState([]);
+    const [showPersonalized, setShowPersonalized] = useState(false);
+    const [formStep, setFormStep] = useState(1);
+    const [selectedPreferences, setSelectedPreferences] = useState([]);
+    const [fallbackInfo, setFallbackInfo] = useState(null);
+    const [availableCategories, setAvailableCategories] = useState([]);
+    const [showContactModal, setShowContactModal] = useState(false);
+    const totalSteps = 3;
 
     // Determine initial tab from URL params
     const getInitialTab = () => {
@@ -82,6 +113,42 @@ const ClientRecommendations = () => {
     // Theme suggestions
     const themeSuggestions = ['elegant', 'modern', 'rustic', 'vintage', 'classic', 'romantic', 'minimalist', 'luxury', 'outdoor', 'indoor'];
 
+    // Event type options with icons and descriptions
+    const eventTypes = [
+        { value: 'wedding', label: 'Wedding', emoji: '💍', description: 'Celebrate your love story', Icon: Heart },
+        { value: 'birthday', label: 'Birthday', emoji: '🎂', description: 'Make it unforgettable', Icon: Cake },
+        { value: 'corporate', label: 'Corporate', emoji: '💼', description: 'Professional & polished', Icon: Briefcase },
+        { value: 'debut', label: 'Debut', emoji: '👑', description: 'A grand entrance to adulthood', Icon: Crown },
+        { value: 'anniversary', label: 'Anniversary', emoji: '🥂', description: 'Celebrate milestones', Icon: Gem },
+        { value: 'pageant', label: 'Pageant', emoji: '🌟', description: 'Shine on stage', Icon: Star },
+        { value: 'other', label: 'Other', emoji: '🎉', description: 'Something unique', Icon: PartyPopper },
+    ];
+
+    // Guest count presets
+    const guestPresets = [50, 100, 150, 200, 300, 500];
+
+    // Budget presets
+    const budgetPresets = [
+        { label: '₱30K', value: '30,000' },
+        { label: '₱50K', value: '50,000' },
+        { label: '₱80K', value: '80,000' },
+        { label: '₱100K', value: '100,000' },
+        { label: '₱150K', value: '150,000' },
+        { label: '₱200K+', value: '200,000' },
+    ];
+
+    // Preference options with icons
+    const preferenceOptions = [
+        { value: 'photography', label: 'Photography', Icon: Camera },
+        { value: 'catering', label: 'Catering', Icon: UtensilsCrossed },
+        { value: 'live band', label: 'Live Band', Icon: Music },
+        { value: 'floral arrangement', label: 'Florals', Icon: Flower2 },
+        { value: 'outdoor venue', label: 'Outdoor', Icon: MapPin },
+        { value: 'indoor venue', label: 'Indoor', Icon: MapPin },
+        { value: 'decoration', label: 'Decor', Icon: Palette },
+        { value: 'sound system', label: 'Sound System', Icon: Music },
+    ];
+
     // Load saved recommendations from localStorage
     useEffect(() => {
         try {
@@ -93,6 +160,31 @@ const ClientRecommendations = () => {
             console.error('Error loading saved recommendations:', error);
         }
     }, []);
+
+    // Auto-fetch personalized recommendations for authenticated users
+    useEffect(() => {
+        if (isAuthenticated && !submitted) {
+            fetchPersonalizedRecommendations();
+        }
+    }, [isAuthenticated]);
+
+    const fetchPersonalizedRecommendations = async () => {
+        setPersonalizedLoading(true);
+        try {
+            const response = await api.get('/recommendations/personalized');
+            const recs = response.data.data || [];
+            if (recs.length > 0) {
+                setPersonalizedRecs(recs);
+                setShowPersonalized(true);
+                setEnrichedFields(response.data.enriched_fields || []);
+            }
+        } catch (error) {
+            // Silently fail — personalized is a nice-to-have
+            console.debug('Personalized recommendations not available:', error.response?.status);
+        } finally {
+            setPersonalizedLoading(false);
+        }
+    };
 
     // Save/unsave recommendation
     const handleSaveForLater = (pkg) => {
@@ -291,19 +383,45 @@ const ClientRecommendations = () => {
 
     // Calculate form completion percentage
     const getFormProgress = () => {
-        const requiredFields = ['type', 'guests'];
-        const optionalFields = ['budget', 'theme', 'preferences'];
-        const totalFields = requiredFields.length + optionalFields.length;
-        let filledFields = 0;
+        let filled = 0;
+        let total = 5;
+        if (formData.type) filled++;
+        if (formData.guests) filled++;
+        if (formData.budget) filled++;
+        if (formData.theme) filled++;
+        if (selectedPreferences.length > 0 || formData.preferences) filled++;
+        return Math.round((filled / total) * 100);
+    };
 
-        requiredFields.forEach(field => {
-            if (formData[field]) filledFields++;
-        });
-        optionalFields.forEach(field => {
-            if (formData[field]) filledFields++;
-        });
+    // Toggle a preference chip
+    const togglePreference = (pref) => {
+        setSelectedPreferences(prev =>
+            prev.includes(pref)
+                ? prev.filter(p => p !== pref)
+                : [...prev, pref]
+        );
+    };
 
-        return Math.round((filledFields / totalFields) * 100);
+    // Step navigation
+    const canProceedStep1 = formData.type !== '';
+    const canProceedStep2 = formData.guests !== '';
+
+    const nextStep = () => {
+        if (formStep === 1 && !canProceedStep1) {
+            setTouchedFields({ ...touchedFields, type: true });
+            setFormErrors({ ...formErrors, type: 'Please select an event type' });
+            return;
+        }
+        if (formStep === 2 && !canProceedStep2) {
+            setTouchedFields({ ...touchedFields, guests: true });
+            setFormErrors({ ...formErrors, guests: 'Please enter number of guests' });
+            return;
+        }
+        if (formStep < totalSteps) setFormStep(formStep + 1);
+    };
+
+    const prevStep = () => {
+        if (formStep > 1) setFormStep(formStep - 1);
     };
 
     const handleChange = (e) => {
@@ -397,9 +515,10 @@ const ClientRecommendations = () => {
         setSubmitted(false);
 
         try {
-            const preferencesArray = formData.preferences
+            const textPrefs = formData.preferences
                 ? formData.preferences.split(',').map(p => p.trim()).filter(p => p)
                 : [];
+            const preferencesArray = [...new Set([...selectedPreferences, ...textPrefs])];
 
             const response = await api.post('/recommend', {
                 type: formData.type || null,
@@ -407,18 +526,41 @@ const ClientRecommendations = () => {
                 guests: formData.guests ? parseInt(formData.guests) : null,
                 theme: formData.theme || null,
                 preferences: preferencesArray,
+                use_ai: useAI,
             });
 
             const recs = response.data.data || [];
+            const fallbackUsed = response.data.fallback_used || false;
+            const exactMatch = response.data.exact_match || false;
+            const requestedType = response.data.requested_type || formData.type;
+            const categories = response.data.available_categories || [];
+
+            setFallbackInfo({
+                fallbackUsed,
+                exactMatch,
+                requestedType,
+                message: response.data.message,
+            });
+            setAvailableCategories(categories);
+
             setRecommendations(recs);
             setSubmitted(true);
+            setAiEnhanced(response.data.ai_enhanced || false);
             setActiveTab('results');
             handleTabChange('results');
 
-            toast({
-                title: 'Success!',
-                description: `Found ${recs.length} recommended packages for you!`,
-            });
+            if (fallbackUsed && requestedType) {
+                toast({
+                    title: `No ${requestedType} packages available`,
+                    description: 'Showing alternative packages that might interest you.',
+                    variant: 'warning',
+                });
+            } else {
+                toast({
+                    title: 'Success!',
+                    description: `Found ${recs.length} recommended packages for you!`,
+                });
+            }
         } catch (error) {
             console.error('Error fetching recommendations:', error);
             toast({
@@ -460,7 +602,7 @@ const ClientRecommendations = () => {
         if (pkg.package_image) {
             return pkg.package_image;
         }
-        return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%239ca3af' text-anchor='middle' dy='.3em'%3EPackage Image%3C/text%3E%3C/svg%3E";
+        return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%239ca3af' text-anchor='middle' dy='.3em'%3EPackage Image%3C/text%3E%3C/svg%3E"; 
     };
 
     const handleRefresh = async () => {
@@ -500,8 +642,108 @@ const ClientRecommendations = () => {
                                     <CheckCircle2 className="w-6 h-6" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-base font-medium text-green-800 dark:text-green-200">Success!</p>
-                                    <p className="text-sm text-green-700 dark:text-green-300">Found {recommendations.length} recommended packages for you.</p>
+                                    <p className="text-base font-medium text-green-800 dark:text-green-200">
+                                        {aiEnhanced ? 'AI-Enhanced Results!' : 'Success!'}
+                                    </p>
+                                    <p className="text-sm text-green-700 dark:text-green-300">
+                                        Found {recommendations.length} recommended packages for you.
+                                        {aiEnhanced && ' Results include AI semantic analysis.'}
+                                    </p>
+                                </div>
+                                {aiEnhanced && (
+                                    <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 gap-1">
+                                        <Brain className="w-3 h-3" />
+                                        AI
+                                    </Badge>
+                                )}
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Personalized Recommendations Section */}
+                    {showPersonalized && personalizedRecs.length > 0 && !submitted && (
+                        <Card className="mb-6 p-6 bg-gradient-to-r from-violet-50 via-purple-50 to-indigo-50 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-indigo-900/20 border-violet-200 dark:border-violet-800">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg">
+                                        <Zap className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Personalized For You</h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Based on your booking history & preferences
+                                            {enrichedFields.length > 0 && (
+                                                <span className="ml-1 text-violet-600 dark:text-violet-400">
+                                                    · Auto-filled: {enrichedFields.join(', ')}
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 gap-1">
+                                        <Brain className="w-3 h-3" />
+                                        AI-Powered
+                                    </Badge>
+                                    <button
+                                        onClick={fetchPersonalizedRecommendations}
+                                        className="p-2 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors"
+                                        title="Refresh"
+                                    >
+                                        <RefreshCw className={`w-4 h-4 text-violet-600 dark:text-violet-400 ${personalizedLoading ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {personalizedRecs.slice(0, 3).map((pkg) => {
+                                    const packageId = pkg.id || pkg.package_id;
+                                    const matchScore = formatMatchScore(pkg.score || pkg.match_score);
+                                    return (
+                                        <div key={packageId} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all group">
+                                            <div className="relative">
+                                                <img
+                                                    src={getPackageImage(pkg)}
+                                                    alt={pkg.name || pkg.package_name}
+                                                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                                                />
+                                                <div className="absolute top-2 right-2">
+                                                    <div className={`px-2 py-0.5 rounded-full text-white text-xs font-bold ${getMatchScoreColor(pkg.score || pkg.match_score)}`}>
+                                                        {matchScore}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="p-3">
+                                                <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">{pkg.name || pkg.package_name}</h4>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatPrice(pkg.price || pkg.package_price)}</p>
+                                                {pkg.ai_insight && (
+                                                    <p className="text-xs text-violet-600 dark:text-violet-400 mt-1 flex items-start gap-1">
+                                                        <Brain className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                                        <span className="line-clamp-2">{pkg.ai_insight}</span>
+                                                    </p>
+                                                )}
+                                                <Link to={`/dashboard/packages/${packageId}`}>
+                                                    <Button size="sm" className="w-full mt-2 bg-violet-600 hover:bg-violet-700 text-white text-xs h-8">
+                                                        View Details
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Loading Personalized */}
+                    {personalizedLoading && !submitted && (
+                        <Card className="mb-6 p-6 border-violet-200 dark:border-violet-800">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                                    <Brain className="w-5 h-5 text-white animate-pulse" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Finding personalized picks...</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Analyzing your preferences with AI</p>
                                 </div>
                             </div>
                         </Card>
@@ -531,186 +773,423 @@ const ClientRecommendations = () => {
                             {/* Form Tab */}
                             <TabsContent value="form" className="mt-0">
                                 <div className="space-y-6">
-                                    {/* Form Progress Indicator */}
-                                    <div className="mb-6">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Progress</span>
-                                            <span className="text-sm font-bold text-purple-600 dark:text-purple-400">{getFormProgress()}%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                                            <div
-                                                className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2.5 rounded-full transition-all duration-500"
-                                                style={{ width: `${getFormProgress()}%` }}
-                                            ></div>
-                                        </div>
+                                    {/* Step Indicator */}
+                                    <div className="flex items-center justify-between mb-2">
+                                        {[
+                                            { step: 1, label: 'Event Type' },
+                                            { step: 2, label: 'Details' },
+                                            { step: 3, label: 'Style & Submit' },
+                                        ].map(({ step, label }, idx) => (
+                                            <React.Fragment key={step}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (step < formStep) setFormStep(step);
+                                                        if (step === 2 && canProceedStep1) setFormStep(step);
+                                                        if (step === 3 && canProceedStep1 && canProceedStep2) setFormStep(step);
+                                                    }}
+                                                    className="flex flex-col items-center gap-1.5 group"
+                                                >
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                                                        formStep === step
+                                                            ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-200 dark:shadow-purple-900/30 scale-110'
+                                                            : formStep > step
+                                                                ? 'bg-green-500 text-white'
+                                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                                                    }`}>
+                                                        {formStep > step ? <Check className="w-5 h-5" /> : step}
+                                                    </div>
+                                                    <span className={`text-xs font-medium hidden sm:block transition-colors ${
+                                                        formStep === step ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'
+                                                    }`}>{label}</span>
+                                                </button>
+                                                {idx < 2 && (
+                                                    <div className={`flex-1 h-0.5 mx-2 rounded transition-colors duration-300 ${
+                                                        formStep > step ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
+                                                    }`} />
+                                                )}
+                                            </React.Fragment>
+                                        ))}
                                     </div>
 
                                     <form onSubmit={handleSubmit} className="space-y-6">
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                            {/* Event Type */}
-                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm">
-                                                <label htmlFor="event-type-select" className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                                    <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                    <span>Event Type</span>
-                                                    <span className="text-red-500">*</span>
-                                                </label>
-                                                <select
-                                                    id="event-type-select"
-                                                    name="type"
-                                                    value={formData.type}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    className={`w-full px-4 py-3 border-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 ${touchedFields.type && formErrors.type
-                                                            ? 'border-red-500'
-                                                            : formData.type
-                                                                ? 'border-green-500'
-                                                                : 'border-gray-300 dark:border-gray-600'
-                                                        }`}
-                                                >
-                                                    <option value="">Select event type...</option>
-                                                    <option value="wedding">Wedding</option>
-                                                    <option value="birthday">Birthday</option>
-                                                    <option value="corporate">Corporate</option>
-                                                    <option value="anniversary">Anniversary</option>
-                                                    <option value="debut">Debut</option>
-                                                    <option value="pageant">Pageant</option>
-                                                    <option value="other">Other</option>
-                                                </select>
-                                                {touchedFields.type && formErrors.type && (
-                                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{formErrors.type}</p>
-                                                )}
-                                            </div>
-
-                                            {/* Number of Guests */}
-                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm">
-                                                <label htmlFor="guests-input" className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                                    <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                    <span>Number of Guests</span>
-                                                    <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    id="guests-input"
-                                                    type="number"
-                                                    name="guests"
-                                                    value={formData.guests}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    min="1"
-                                                    placeholder="e.g., 50, 100, 200"
-                                                    className={`w-full px-4 py-3 border-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 ${touchedFields.guests && formErrors.guests
-                                                            ? 'border-red-500'
-                                                            : formData.guests
-                                                                ? 'border-green-500'
-                                                                : 'border-gray-300 dark:border-gray-600'
-                                                        }`}
-                                                />
-                                                {touchedFields.guests && formErrors.guests && (
-                                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{formErrors.guests}</p>
-                                                )}
-                                            </div>
-
-                                            {/* Budget */}
-                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm">
-                                                <label htmlFor="budget-input" className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                                    <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                    <span>Budget</span>
-                                                </label>
-                                                <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₱</span>
-                                                    <input
-                                                        id="budget-input"
-                                                        type="text"
-                                                        name="budget"
-                                                        value={formData.budget}
-                                                        onChange={handleChange}
-                                                        onBlur={handleBlur}
-                                                        placeholder="e.g., 50,000 or 100,000"
-                                                        className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 ${touchedFields.budget && formErrors.budget
-                                                                ? 'border-red-500'
-                                                                : formData.budget
-                                                                    ? 'border-green-500'
-                                                                    : 'border-gray-300 dark:border-gray-600'
-                                                            }`}
-                                                    />
+                                        {/* ── Step 1: Event Type ── */}
+                                        {formStep === 1 && (
+                                            <div className="space-y-6 animate-in fade-in duration-300">
+                                                <div className="text-center mb-2">
+                                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">What event are you planning?</h2>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Select the type that best describes your event</p>
                                                 </div>
-                                                {touchedFields.budget && formErrors.budget ? (
-                                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{formErrors.budget}</p>
-                                                ) : (
-                                                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Numbers will be formatted with commas automatically</p>
-                                                )}
-                                            </div>
 
-                                            {/* Theme */}
-                                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm">
-                                                <label htmlFor="theme-input" className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                                    <Palette className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                    <span>Theme or Style</span>
-                                                </label>
-                                                <input
-                                                    id="theme-input"
-                                                    type="text"
-                                                    name="theme"
-                                                    value={formData.theme}
-                                                    onChange={handleChange}
-                                                    placeholder="e.g., elegant, modern, rustic"
-                                                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                />
-                                                <div className="flex flex-wrap gap-2 mt-3">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Quick select:</span>
-                                                    {themeSuggestions.map((theme) => (
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                    {eventTypes.map(({ value, label, emoji, description, Icon }) => (
                                                         <button
-                                                            key={theme}
+                                                            key={value}
                                                             type="button"
                                                             onClick={() => {
-                                                                setFormData({ ...formData, theme });
-                                                                setTouchedFields({ ...touchedFields, theme: true });
+                                                                setFormData({ ...formData, type: value });
+                                                                setFormErrors({ ...formErrors, type: '' });
+                                                                setTouchedFields({ ...touchedFields, type: true });
                                                             }}
-                                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${formData.theme === theme
-                                                                    ? 'bg-purple-600 text-white'
-                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/20'
-                                                                }`}
+                                                            className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 group hover:shadow-md ${
+                                                                formData.type === value
+                                                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-md shadow-purple-100 dark:shadow-purple-900/20 ring-2 ring-purple-500/20'
+                                                                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-700'
+                                                            }`}
                                                         >
-                                                            {theme}
+                                                            {formData.type === value && (
+                                                                <div className="absolute top-2 right-2">
+                                                                    <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
+                                                                        <Check className="w-3 h-3 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            <span className="text-3xl">{emoji}</span>
+                                                            <span className={`text-sm font-bold ${
+                                                                formData.type === value ? 'text-purple-700 dark:text-purple-300' : 'text-gray-900 dark:text-white'
+                                                            }`}>{label}</span>
+                                                            <span className="text-[11px] text-gray-500 dark:text-gray-400 text-center leading-tight">{description}</span>
                                                         </button>
                                                     ))}
                                                 </div>
-                                            </div>
-                                        </div>
 
-                                        {/* Preferences */}
-                                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-sm">
-                                            <label className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                                <Heart className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                <span>Additional Preferences</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="preferences"
-                                                value={formData.preferences}
-                                                onChange={handleChange}
-                                                placeholder="e.g., outdoor venue, photography included, catering service"
-                                                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            />
-                                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Separate multiple preferences with commas</p>
-                                        </div>
-
-                                        {/* Submit Button */}
-                                        <div className="pt-4">
-                                            <Button
-                                                type="submit"
-                                                disabled={loading}
-                                                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-                                            >
-                                                {loading ? (
-                                                    <>Loading...</>
-                                                ) : (
-                                                    <>
-                                                        <Sparkles className="w-5 h-5 mr-2" />
-                                                        Get Recommendations
-                                                    </>
+                                                {touchedFields.type && formErrors.type && (
+                                                    <p className="text-sm text-red-600 dark:text-red-400 text-center">{formErrors.type}</p>
                                                 )}
-                                            </Button>
-                                        </div>
+
+                                                <div className="flex justify-end pt-2">
+                                                    <Button
+                                                        type="button"
+                                                        onClick={nextStep}
+                                                        disabled={!canProceedStep1}
+                                                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-3 gap-2 disabled:opacity-40"
+                                                    >
+                                                        Continue
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Step 2: Guests + Budget ── */}
+                                        {formStep === 2 && (
+                                            <div className="space-y-6 animate-in fade-in duration-300">
+                                                <div className="text-center mb-2">
+                                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Guest count & budget</h2>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Help us narrow down the perfect packages for your {formData.type || 'event'}</p>
+                                                </div>
+
+                                                {/* Guest Count */}
+                                                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                    <label className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
+                                                        <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                                            <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                                        </div>
+                                                        <span>How many guests?</span>
+                                                        <span className="text-red-500 text-sm">*</span>
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {guestPresets.map((count) => (
+                                                            <button
+                                                                key={count}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFormData({ ...formData, guests: String(count) });
+                                                                    setFormErrors({ ...formErrors, guests: '' });
+                                                                    setTouchedFields({ ...touchedFields, guests: true });
+                                                                }}
+                                                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                                                    formData.guests === String(count)
+                                                                        ? 'bg-purple-600 text-white shadow-md shadow-purple-200 dark:shadow-purple-900/30'
+                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300'
+                                                                }`}
+                                                            >
+                                                                {count}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            name="guests"
+                                                            value={formData.guests}
+                                                            onChange={handleChange}
+                                                            onBlur={handleBlur}
+                                                            min="1"
+                                                            placeholder="Or enter a custom number..."
+                                                            className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
+                                                                touchedFields.guests && formErrors.guests
+                                                                    ? 'border-red-400'
+                                                                    : formData.guests
+                                                                        ? 'border-purple-300 dark:border-purple-700'
+                                                                        : 'border-gray-200 dark:border-gray-600'
+                                                            }`}
+                                                        />
+                                                        {formData.guests && (
+                                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">guests</span>
+                                                        )}
+                                                    </div>
+                                                    {touchedFields.guests && formErrors.guests && (
+                                                        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{formErrors.guests}</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Budget */}
+                                                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                    <label className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
+                                                        <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                                            <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                                        </div>
+                                                        <span>What's your budget?</span>
+                                                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-normal">Optional</span>
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {budgetPresets.map(({ label, value }) => (
+                                                            <button
+                                                                key={value}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFormData({ ...formData, budget: value });
+                                                                    setTouchedFields({ ...touchedFields, budget: true });
+                                                                }}
+                                                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                                                    formData.budget === value
+                                                                        ? 'bg-green-600 text-white shadow-md shadow-green-200 dark:shadow-green-900/30'
+                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300'
+                                                                }`}
+                                                            >
+                                                                {label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <div className="relative">
+                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₱</span>
+                                                        <input
+                                                            type="text"
+                                                            name="budget"
+                                                            value={formData.budget}
+                                                            onChange={handleChange}
+                                                            onBlur={handleBlur}
+                                                            placeholder="Or enter a custom amount..."
+                                                            className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
+                                                                touchedFields.budget && formErrors.budget
+                                                                    ? 'border-red-400'
+                                                                    : formData.budget
+                                                                        ? 'border-green-300 dark:border-green-700'
+                                                                        : 'border-gray-200 dark:border-gray-600'
+                                                            }`}
+                                                        />
+                                                    </div>
+                                                    {touchedFields.budget && formErrors.budget && (
+                                                        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{formErrors.budget}</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex justify-between pt-2">
+                                                    <Button
+                                                        type="button"
+                                                        onClick={prevStep}
+                                                        variant="outline"
+                                                        className="px-6 py-3 gap-2"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                        Back
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={nextStep}
+                                                        disabled={!canProceedStep2}
+                                                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-3 gap-2 disabled:opacity-40"
+                                                    >
+                                                        Continue
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Step 3: Theme + Preferences + Submit ── */}
+                                        {formStep === 3 && (
+                                            <div className="space-y-6 animate-in fade-in duration-300">
+                                                <div className="text-center mb-2">
+                                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Style & preferences</h2>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">These help our AI find the perfect vibe for you</p>
+                                                </div>
+
+                                                {/* Theme */}
+                                                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                    <label className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-4">
+                                                        <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                                                            <Palette className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                                                        </div>
+                                                        <span>Theme or Style</span>
+                                                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-normal">Optional</span>
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-2 mb-4">
+                                                        {themeSuggestions.map((theme) => (
+                                                            <button
+                                                                key={theme}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFormData({ ...formData, theme: formData.theme === theme ? '' : theme });
+                                                                    setTouchedFields({ ...touchedFields, theme: true });
+                                                                }}
+                                                                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
+                                                                    formData.theme === theme
+                                                                        ? 'bg-pink-600 text-white shadow-md shadow-pink-200 dark:shadow-pink-900/30'
+                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-pink-100 dark:hover:bg-pink-900/20 hover:text-pink-700 dark:hover:text-pink-300'
+                                                                }`}
+                                                            >
+                                                                {theme}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        name="theme"
+                                                        value={formData.theme}
+                                                        onChange={handleChange}
+                                                        placeholder="Or type your own theme..."
+                                                        className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-colors"
+                                                    />
+                                                </div>
+
+                                                {/* Preferences Chips */}
+                                                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                                    <label className="flex items-center gap-3 text-base font-bold text-gray-900 dark:text-white mb-1">
+                                                        <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                                                            <Heart className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                                        </div>
+                                                        <span>What do you need?</span>
+                                                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-normal">Select all that apply</span>
+                                                    </label>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 ml-12">Select the services and features you'd like included</p>
+
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                                                        {preferenceOptions.map(({ value, label, Icon }) => {
+                                                            const isActive = selectedPreferences.includes(value);
+                                                            return (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => togglePreference(value)}
+                                                                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                                                                        isActive
+                                                                            ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-300 shadow-sm'
+                                                                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-orange-300 dark:hover:border-orange-700'
+                                                                    }`}
+                                                                >
+                                                                    {isActive ? (
+                                                                        <Check className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                                                    ) : (
+                                                                        <Icon className="w-4 h-4 flex-shrink-0" />
+                                                                    )}
+                                                                    <span className="truncate">{label}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <input
+                                                        type="text"
+                                                        name="preferences"
+                                                        value={formData.preferences}
+                                                        onChange={handleChange}
+                                                        placeholder="Other preferences (comma separated)..."
+                                                        className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+                                                    />
+                                                </div>
+
+                                                {/* AI Enhancement Toggle */}
+                                                <div className="flex items-center justify-between bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800 rounded-2xl p-5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                                                            <Brain className="w-5 h-5 text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">AI-Enhanced Matching</p>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">Uses AI to understand your theme & preferences semantically</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setUseAI(!useAI)}
+                                                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                                                            useAI ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                        }`}
+                                                    >
+                                                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                                                            useAI ? 'translate-x-6' : 'translate-x-1'
+                                                        }`} />
+                                                    </button>
+                                                </div>
+
+                                                {/* Summary */}
+                                                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
+                                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                                        Your search summary
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                                            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Event</p>
+                                                            <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 capitalize">{formData.type || '—'}</p>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                                            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Guests</p>
+                                                            <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{formData.guests || '—'}</p>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                                            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Budget</p>
+                                                            <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{formData.budget ? `₱${formData.budget}` : '—'}</p>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                                                            <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-semibold">Theme</p>
+                                                            <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 capitalize">{formData.theme || '—'}</p>
+                                                        </div>
+                                                    </div>
+                                                    {selectedPreferences.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1.5 mt-3">
+                                                            {selectedPreferences.map(pref => (
+                                                                <Badge key={pref} className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 capitalize text-xs">
+                                                                    {pref}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Navigation */}
+                                                <div className="flex justify-between pt-2">
+                                                    <Button
+                                                        type="button"
+                                                        onClick={prevStep}
+                                                        variant="outline"
+                                                        className="px-6 py-3 gap-2"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                        Back
+                                                    </Button>
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={loading}
+                                                        className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-10 py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all gap-2"
+                                                    >
+                                                        {loading ? (
+                                                            <span className="flex items-center gap-2">
+                                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                                Finding packages...
+                                                            </span>
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles className="w-5 h-5" />
+                                                                Get Recommendations
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </form>
                                 </div>
                             </TabsContent>
@@ -778,6 +1257,71 @@ const ClientRecommendations = () => {
                                             )}
                                         </div>
 
+                                        {/* Fallback / No Exact Match Banner */}
+                                        {fallbackInfo?.fallbackUsed && fallbackInfo?.requestedType && (
+                                            <Card className="border-2 border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 p-5">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="flex-shrink-0">
+                                                        <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800/40 flex items-center justify-center">
+                                                            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="text-base font-bold text-amber-800 dark:text-amber-300 mb-1">
+                                                            No {fallbackInfo.requestedType} Packages Available
+                                                        </h3>
+                                                        <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                                                            We don't currently have pre-built packages for <strong className="capitalize">{fallbackInfo.requestedType}</strong> events. 
+                                                            Below are alternative packages that you might customize.
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => setShowContactModal(true)}
+                                                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                            >
+                                                                Request Custom Package
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleTabChange('form')}
+                                                            >
+                                                                Modify Search
+                                                            </Button>
+                                                            {availableCategories.length > 0 && (
+                                                                <span className="text-xs text-amber-600 dark:text-amber-400 self-center">
+                                                                    Available: <span className="font-medium capitalize">{availableCategories.join(', ')}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        )}
+
+                                        {/* Don't Like Banner */}
+                                        {!fallbackInfo?.fallbackUsed && submitted && recommendations.length > 0 && (
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                    <HelpCircle className="w-4 h-4 text-gray-500" />
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                        <span className="font-medium text-gray-900 dark:text-white">Don't see what you're looking for?</span>{' '}
+                                                        We can customize any package.
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => setShowContactModal(true)}
+                                                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                    >
+                                                        Contact Us
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Comparison Button */}
                                         {selectedForComparison.length > 0 && (
                                             <div className="flex justify-end">
@@ -834,6 +1378,16 @@ const ClientRecommendations = () => {
                                                                 )}
                                                             </div>
 
+                                                            {/* AI Insight */}
+                                                            {pkg.ai_insight && (
+                                                                <div className="mb-4 p-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-lg">
+                                                                    <div className="flex items-start gap-2">
+                                                                        <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400 mt-0.5 flex-shrink-0" />
+                                                                        <p className="text-xs text-violet-700 dark:text-violet-300 leading-relaxed">{pkg.ai_insight}</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             <div className="space-y-2 mb-4">
                                                                 <div className="flex gap-2">
                                                                     <Button
@@ -844,7 +1398,7 @@ const ClientRecommendations = () => {
                                                                     >
                                                                         {isSelected ? 'Remove from Compare' : 'Compare'}
                                                                     </Button>
-                                                                    <Link to={`/packages/${packageId}`}>
+                                                                    <Link to={`/dashboard/packages/${packageId}`}>
                                                                         <Button size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
                                                                             View Details
                                                                         </Button>
@@ -922,6 +1476,27 @@ const ClientRecommendations = () => {
                     />
                 </div>
             </div>
+
+            {/* Contact Form Modal - stays within dashboard */}
+            <ContactFormModal
+                isOpen={showContactModal}
+                onClose={() => setShowContactModal(false)}
+                onSuccess={() => {
+                    setShowContactModal(false);
+                    toast({
+                        title: 'Inquiry Sent!',
+                        description: 'We\'ll get back to you soon about your custom package.',
+                    });
+                }}
+                initialData={{
+                    event_type: formData.type || fallbackInfo?.requestedType || '',
+                    budget: formData.budget ? parseFloat(formData.budget.replace(/,/g, '')) : '',
+                    estimated_guests: formData.guests || '',
+                    message: fallbackInfo?.fallbackUsed
+                        ? `I'm looking for a ${fallbackInfo.requestedType || ''} package but none are currently available. I'd like to request a custom package.`
+                        : 'I\'d like to discuss custom package options.',
+                }}
+            />
         </PullToRefresh>
     );
 };

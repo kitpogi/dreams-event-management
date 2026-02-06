@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
-import { FormModal, Button } from '../ui';
+import { FormModal, Button, LoadingSpinner } from '../ui';
 
 const BulkDeleteConfirmModal = ({ isOpen, onClose, inquiries, onConfirm, loading }) => {
   const [confirmText, setConfirmText] = useState('');
@@ -107,7 +107,7 @@ const BulkDeleteConfirmModal = ({ isOpen, onClose, inquiries, onConfirm, loading
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                <LoadingSpinner size="sm" />
                 Deleting...
               </span>
             ) : (

@@ -1,9 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MapPin, Users, Calendar, Star, ArrowRight, Sparkles, Eye, Scale } from 'lucide-react';
 import { Button, OptimizedImage, FavoriteButton } from '../ui';
 import { formatAssetUrl } from '../../lib/utils';
 
 const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 'grid' }) => {
+  const location = useLocation();
+  const isDashboard = location.pathname.startsWith('/dashboard');
+  const packageUrl = isDashboard
+    ? `/dashboard/packages/${pkg.package_id || pkg.id}`
+    : `/packages/${pkg.package_id || pkg.id}`;
   // Get image URL - handle various data structures
   const imageUrl = (() => {
     // Try images array first
@@ -56,7 +61,7 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
     <div className={`group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-700 hover:border-[#5A45F2]/50 dark:hover:border-[#5A45F2]/60 transition-all duration-300 overflow-hidden h-full flex ${isListView ? 'flex-row' : 'flex-col'}`}>
       {/* Image Section */}
       <Link
-        to={`/packages/${pkg.package_id || pkg.id}`}
+        to={packageUrl}
         className={`relative overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex-shrink-0 ${isListView ? 'w-72 h-64 min-h-[256px]' : 'w-full h-64'
           }`}
       >
@@ -135,7 +140,7 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
         </div>
 
         {/* Package Name */}
-        <Link to={`/packages/${pkg.package_id || pkg.id}`} className="group/title">
+        <Link to={packageUrl} className="group/title">
           <h3 className={`text-lg font-bold line-clamp-2 group-hover/title:text-[#5A45F2] dark:group-hover/title:text-[#7c3aed] transition-colors duration-200 ${isListView
             ? 'text-gray-900 dark:text-white font-extrabold drop-shadow-sm'
             : 'text-gray-900 dark:text-white'
@@ -229,7 +234,7 @@ const PackageCard = ({ package: pkg, onQuickView, onAddToComparison, viewMode = 
 
           {/* Primary Actions Row */}
           <div className="flex gap-2">
-            <Link to={`/packages/${pkg.package_id || pkg.id}`} className="flex-1">
+            <Link to={packageUrl} className="flex-1">
               <button className="w-full h-10 flex items-center justify-center gap-2 px-4 bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white rounded-lg font-medium text-sm shadow-sm hover:shadow-md hover:shadow-[#5A45F2]/20 transition-all duration-200 hover:-translate-y-0.5">
                 <span>View Details</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />

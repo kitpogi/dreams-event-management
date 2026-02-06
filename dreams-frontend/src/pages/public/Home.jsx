@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, Heart, Calendar, Award, Star, ArrowRight, CheckCircle, Users, ChevronLeft, ChevronRight, Phone, MessageCircle, Lightbulb, Palette, PartyPopper, ShoppingCart, Play } from 'lucide-react';
 import api from '../../api/axios';
+import { LoadingSpinner } from '../../components/ui';
 import { ParticlesBackground, AnimatedBackground, NewsletterSignup } from '../../components/features';
 import { useScrollAnimation } from '../../hooks/useScrollAnimation';
 import { useCounterAnimation } from '../../hooks/useCounterAnimation';
@@ -487,9 +488,7 @@ const Home = () => {
           </div>
 
           {reviewsLoading ? (
-            <div className="flex justify-center py-20">
-              <div className="w-16 h-16 border-4 border-[#5A45F2] border-t-transparent rounded-full animate-spin" />
-            </div>
+            <LoadingSpinner variant="section" size="lg" />
           ) : featuredReviews.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -637,7 +636,7 @@ const Home = () => {
             </div>
             <textarea className="w-full px-5 py-4 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-[#5A45F2] dark:focus:border-[#7ee5ff] focus:ring-2 focus:ring-[#5A45F2]/20 dark:focus:ring-[#7ee5ff]/20 outline-none transition-all resize-none mb-6" name="message" rows="4" value={formData.message} onChange={handleChange} placeholder="Tell us about your dream event..." required />
             <button type="submit" disabled={submitting} className="w-full py-4 bg-gradient-to-r from-[#5A45F2] to-[#7c3aed] text-white font-bold rounded-xl shadow-lg shadow-[#5A45F2]/30 hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              {submitting ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending...</> : <>Send Message <ArrowRight className="w-5 h-5" /></>}
+              {submitting ? <><LoadingSpinner size="sm" className="text-white" /> Sending...</> : <>Send Message <ArrowRight className="w-5 h-5" /></>}
             </button>
           </form>
         </div>

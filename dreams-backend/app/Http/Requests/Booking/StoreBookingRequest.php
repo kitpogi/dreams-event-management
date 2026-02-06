@@ -28,7 +28,7 @@ class StoreBookingRequest extends BaseFormRequest
                 'required',
                 'date',
                 'date_format:Y-m-d',
-                'after:today',
+                'after_or_equal:today',
                 function ($attribute, $value, $fail) {
                     try {
                         $today = Carbon::now(config('app.timezone'))->startOfDay();
@@ -87,7 +87,7 @@ class StoreBookingRequest extends BaseFormRequest
             'event_date.required' => 'Event date is required.',
             'event_date.date' => 'Please provide a valid date.',
             'event_date.date_format' => 'Date must be in YYYY-MM-DD format.',
-            'event_date.after' => 'Event date must be in the future.',
+            'event_date.after_or_equal' => 'Event date must be today or in the future.',
             'event_time.regex' => 'Time must be in HH:MM format (24-hour).',
             'guest_count.integer' => 'Number of guests must be a whole number.',
             'guest_count.min' => 'Number of guests must be at least 1.',

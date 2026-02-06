@@ -84,6 +84,9 @@ Route::middleware('throttle:public')->group(function () {
 // Public recommendation route with rate limiting
 Route::middleware('throttle:sensitive')->post('/recommend', [RecommendationController::class, 'recommend']);
 
+// Personalized recommendations (requires authentication)
+Route::middleware(['auth:sanctum', 'throttle:api'])->get('/recommendations/personalized', [RecommendationController::class, 'personalized']);
+
 // Payment webhook (public, but protected by signature verification)
 Route::post('/payments/webhook', [PaymentController::class, 'webhook']);
 

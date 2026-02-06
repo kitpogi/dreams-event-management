@@ -93,7 +93,7 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
   const formatDateForAPI = (date) => {
     if (!date) return '';
     if (date instanceof Date) {
-      return date.toISOString().split('T')[0];
+      return format(date, 'yyyy-MM-dd');
     }
     return date;
   };
@@ -191,9 +191,15 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
       if (!formData.event_date) {
         newErrors.event_date = 'Event date is required';
         isValid = false;
-      } else if (formData.event_date instanceof Date && formData.event_date < new Date()) {
-        newErrors.event_date = 'Event date must be in the future';
-        isValid = false;
+      } else if (formData.event_date instanceof Date) {
+        // Create today at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (formData.event_date < today) {
+          newErrors.event_date = 'Event date must be in the future';
+          isValid = false;
+        }
       } else if (formData.event_date && isDateAvailable === false) {
         newErrors.event_date = 'This date is not available. Please select another date.';
         isValid = false;

@@ -6,7 +6,11 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const location = useLocation();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary dark:border-primary"></div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {

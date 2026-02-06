@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import api from '../../api/axios';
 import { bookingService } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
-import { Button } from '../../components/ui';
+import { Button, LoadingSpinner } from '../../components/ui';
 import { User, Mail, Phone, Calendar, Clock, MapPin, Users, CheckCircle2, AlertCircle, Star, Package, ArrowLeft, ArrowRight, Check, Sparkles, Info, Filter, SortAsc, SortDesc, HelpCircle, MessageCircle } from 'lucide-react';
 import { getEventTheme } from '../../constants/eventThemes';
 import { validateField, validateForm } from '../../utils/eventFormValidation';
@@ -56,6 +56,8 @@ const SetAnEvent = () => {
   const [submittingBooking, setSubmittingBooking] = useState(false);
   const [sortBy, setSortBy] = useState(savedData?.sortBy || 'match-score'); // 'match-score', 'price-low', 'price-high'
   const [priceFilter, setPriceFilter] = useState(savedData?.priceFilter || 'all'); // 'all', 'within-budget', 'over-budget'
+  const [fallbackInfo, setFallbackInfo] = useState(savedData?.fallbackInfo || null); // Info about fallback when no exact matches
+  const [availableCategories, setAvailableCategories] = useState([]); // Available package categories
 
   // Get current theme based on event type (after formData is initialized)
   const theme = getEventTheme(formData.event_type);
@@ -101,12 +103,13 @@ const SetAnEvent = () => {
         specialRequests,
         sortBy,
         priceFilter,
+        fallbackInfo,
       };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     } catch (error) {
       console.error('Error saving form data:', error);
     }
-  }, [currentStep, formData, formErrors, touched, recommendations, filteredRecommendations, selectedPackage, specialRequests, sortBy, priceFilter]);
+  }, [currentStep, formData, formErrors, touched, recommendations, filteredRecommendations, selectedPackage, specialRequests, sortBy, priceFilter, fallbackInfo]);
 
   // Clear saved data after successful booking
   const clearSavedData = () => {
@@ -248,26 +251,34 @@ const SetAnEvent = () => {
 
       // Store recommendations and move to Step 2
       const recs = response.data.data || [];
+      const fallbackUsed = response.data.fallback_used || false;
+      const exactMatch = response.data.exact_match || false;
+      const requestedType = response.data.requested_type || formData.event_type;
+      const categories = response.data.available_categories || [];
 
-      // Filter packages to only show those matching the selected event type
-      const filteredRecs = formData.event_type
-        ? recs.filter(pkg => {
-          const packageCategory = (pkg.category || pkg.package_category || '').toLowerCase();
-          const eventType = formData.event_type.toLowerCase();
-          return packageCategory === eventType;
-        })
-        : recs;
+      // Store fallback info for UI display
+      setFallbackInfo({
+        fallbackUsed,
+        exactMatch,
+        requestedType,
+        message: response.data.message,
+      });
+      setAvailableCategories(categories);
 
-      setRecommendations(filteredRecs);
-      setFilteredRecommendations(filteredRecs);
+      // If using fallback, don't filter - show all recommendations
+      // If exact match found, keep all results (they're already filtered by backend)
+      setRecommendations(recs);
+      setFilteredRecommendations(recs);
       setCurrentStep(2);
 
-      if (filteredRecs.length === 0) {
-        toast.warning('No packages found for your event type. Showing all available packages.');
-        setRecommendations(recs);
-        setFilteredRecommendations(recs);
-      } else {
+      if (fallbackUsed && requestedType) {
+        toast.warning(`No ${requestedType} packages available yet. Showing alternative options.`);
+      } else if (recs.length === 0) {
+        toast.warning('No packages found. Please contact us for custom options.');
+      } else if (exactMatch) {
         toast.success('We found some perfect matches for you!');
+      } else {
+        toast.success('Here are our recommended packages!');
       }
     } catch (error) {
       console.error('Error submitting event:', error);
@@ -823,10 +834,7 @@ const SetAnEvent = () => {
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <LoadingSpinner size="sm" />
                         Finding Perfect Matches...
                       </span>
                     ) : (
@@ -856,6 +864,98 @@ const SetAnEvent = () => {
                 We've found the top packages tailored to your needs. Each package is scored based on how well it matches your preferences.
               </p>
             </div>
+
+            {/* Fallback / No Exact Match Banner */}
+            {fallbackInfo?.fallbackUsed && fallbackInfo?.requestedType && (
+              <div className="mb-6 rounded-xl border-2 border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 p-6 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-800/40 flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-amber-800 dark:text-amber-300 mb-2">
+                      No {fallbackInfo.requestedType} Packages Available Yet
+                    </h3>
+                    <p className="text-amber-700 dark:text-amber-400 mb-4">
+                      We don't currently have pre-built packages for <strong className="capitalize">{fallbackInfo.requestedType}</strong> events. 
+                      But don't worry! Here's what you can do:
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-700">
+                        <MessageCircle className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm">Contact Us for a Custom Package</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">We can create a personalized package tailored specifically for your {fallbackInfo.requestedType} event.</p>
+                          <Link to="/contact-us" className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+                            Request Custom Package <ArrowRight className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-700">
+                        <Package className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm">Browse Alternative Packages</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            View our available packages below—they can often be adapted for different event types.
+                            {availableCategories.length > 0 && (
+                              <span className="block mt-1">
+                                Available categories: <span className="font-medium capitalize">{availableCategories.join(', ')}</span>
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-700">
+                        <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white text-sm">Change Your Event Type</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Go back and select a different event type to see matching packages.</p>
+                          <button 
+                            onClick={() => setCurrentStep(1)}
+                            className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Back to Step 1
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Don't Like Any Package Banner */}
+            {recommendations.length > 0 && !fallbackInfo?.fallbackUsed && (
+              <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 flex-1">
+                    <HelpCircle className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="font-medium text-gray-900 dark:text-white">Don't see what you're looking for?</span>{' '}
+                      We can customize any package or create something unique for you.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link 
+                      to="/contact-us"
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r ${theme.primary} text-white hover:opacity-90 transition-opacity`}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Contact Us
+                    </Link>
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Modify Search
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {recommendations.length > 0 ? (
               <>
@@ -1352,10 +1452,7 @@ const SetAnEvent = () => {
                       >
                         {submittingBooking ? (
                           <>
-                            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                            <LoadingSpinner size="sm" />
                             Processing...
                           </>
                         ) : (

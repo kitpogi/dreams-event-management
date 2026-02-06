@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { LoadingSpinner } from '../../components/ui';
 import api from '../../api/axios';
 
 const FacebookCallback = () => {
@@ -106,7 +107,7 @@ const FacebookCallback = () => {
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Signing in with Facebook</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">Please wait while we complete your login...</p>
-            <div className="w-8 h-8 mx-auto border-4 border-gray-200 border-t-[#1877F2] rounded-full animate-spin"></div>
+            <LoadingSpinner size="md" />
           </>
         )}
       </div>

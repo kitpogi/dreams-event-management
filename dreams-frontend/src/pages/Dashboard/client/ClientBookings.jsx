@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -26,6 +26,7 @@ import InvoiceList from '../../../components/features/invoice/InvoiceList';
 
 const ClientBookings = () => {
     const { isAdmin } = useAuth();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -355,7 +356,7 @@ const ClientBookings = () => {
                                 <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
                                     Start by exploring our event packages and make your first booking!
                                 </p>
-                                <Link to="/packages">
+                                <Link to="/dashboard/packages">
                                     <Button className="bg-primary-600 hover:bg-primary-700 text-white">
                                         <Package className="w-4 h-4 mr-2" />
                                         Browse Packages
@@ -574,6 +575,7 @@ const ClientBookings = () => {
                                                             )}
                                                             <BookingActionsDropdown
                                                                 booking={row}
+                                                                onViewDetails={(b) => navigate(`/dashboard/bookings/${b.booking_id || b.id}`)}
                                                                 onPayNow={handlePayNow}
                                                                 onCancel={handleCancelClick}
                                                                 canShowPayButton={canShowPayButton}

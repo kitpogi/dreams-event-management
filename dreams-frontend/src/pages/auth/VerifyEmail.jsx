@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../api/axios';
+import { LoadingSpinner } from '../../components/ui';
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
@@ -66,8 +67,7 @@ const VerifyEmail = () => {
           <div className="flex flex-1 justify-center items-center p-4 sm:p-6 md:p-8">
             <div className="layout-content-container flex flex-row max-w-2xl w-full bg-white dark:bg-black/20 shadow-xl rounded-xl overflow-hidden p-8 sm:p-12">
               <div className="w-full text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-gray-600 dark:text-gray-400">Verifying your email address...</p>
+                <LoadingSpinner variant="section" size="lg" text="Verifying your email address..." />
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Skeleton } from './skeleton';
+import LoadingSpinner from './LoadingSpinner';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,13 +17,8 @@ export const LazyRoute = ({
   className 
 }) => {
   const defaultFallback = (
-    <div className={cn('min-h-screen p-4', className)}>
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
+    <div className={cn('min-h-screen', className)}>
+      <LoadingSpinner variant="page" size="lg" />
     </div>
   );
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\LogsAudit;
 use App\Services\ClientService;
+use App\Repositories\BookingRepository;
 use App\Models\EventPackage;
 use App\Models\BookingDetail;
 use App\Models\Client;
@@ -63,10 +64,12 @@ class BookingController extends Controller
     use LogsAudit;
 
     protected $clientService;
+    protected $bookingRepository;
 
-    public function __construct(ClientService $clientService)
+    public function __construct(ClientService $clientService, BookingRepository $bookingRepository)
     {
         $this->clientService = $clientService;
+        $this->bookingRepository = $bookingRepository;
     }
 
     public function index(Request $request)
@@ -77,36 +80,41 @@ class BookingController extends Controller
         $page = (int) $request->query('page', 1);
         $page = max(1, $page);
 
-        $query = BookingDetail::with(['eventPackage', 'client', 'coordinator', 'payments']);
+        $user = $request->user();
 
-        if ($request->user()->isAdmin()) {
-            // Admin can see all bookings
-            // If coordinator, show only assigned bookings
-            if ($request->user()->isCoordinator()) {
-                $query->where('coordinator_id', $request->user()->id);
+        // Use repository based on user role
+        if ($user->isAdmin()) {
+            if ($user->isCoordinator()) {
+                // Coordinator sees only assigned bookings
+                $bookings = $this->bookingRepository->getByCoordinatorId($user->id, $perPage);
+                $statusCounts = $this->bookingRepository->getStatusCountsForCoordinator($user->id);
+            } else {
+                // Full admin sees all bookings
+                $bookings = $this->bookingRepository->getAllPaginated($perPage, $page);
+                $statusCounts = $this->bookingRepository->getStatusCounts();
             }
         } else {
             // Clients can only see their own bookings
-            $client = $this->clientService->getByUserEmail($request->user()->email);
+            $client = $this->clientService->getByUserEmail($user->email);
             if ($client) {
-                $query->where('client_id', $client->client_id);
+                $bookings = $this->bookingRepository->getByClientId($client->client_id, $perPage);
+                $statusCounts = $this->bookingRepository->getStatusCountsForClient($client->client_id);
             } else {
-                $query->whereNull('client_id');
+                // No client found, return empty result
+                return response()->json([
+                    'data' => [],
+                    'meta' => [
+                        'current_page' => 1,
+                        'per_page' => $perPage,
+                        'total' => 0,
+                        'last_page' => 1,
+                        'status_counts' => [],
+                    ],
+                ]);
             }
         }
 
-        // Clone query for pagination ordering
-        $paginatedQuery = (clone $query)->orderByDesc('created_at');
-
-        // Status counts for current scope (admin all, client own)
-        $statusCounts = (clone $query)
-            ->selectRaw('LOWER(booking_status) as status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status');
-
-        $bookings = $paginatedQuery->paginate($perPage, ['*'], 'page', $page);
-
-        // Use API Resource to format response (only loads relationships that are needed)
+        // Use API Resource to format response
         return response()->json([
             'data' => BookingResource::collection($bookings->items()),
             'meta' => [
@@ -145,7 +153,11 @@ class BookingController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $booking = BookingDetail::with(['eventPackage.venue', 'client', 'coordinator'])->findOrFail($id);
+        $booking = $this->bookingRepository->findWithRelations($id);
+        
+        if (!$booking) {
+            return response()->json(['message' => 'Booking not found'], 404);
+        }
 
         // Check authorization
         if ($request->user()->isAdmin()) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { X, MapPin, Users, Calendar, Star, ArrowRight, Sparkles } from 'lucide-react';
 import {
   Dialog,
@@ -12,6 +12,11 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 
 const QuickViewModal = ({ package: pkg, isOpen, onClose, onFavoriteToggle }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const location = useLocation();
+  const isDashboard = location.pathname.startsWith('/dashboard');
+  const packageUrl = isDashboard
+    ? `/dashboard/packages/${pkg.package_id || pkg.id}`
+    : `/packages/${pkg.package_id || pkg.id}`;
 
   const imageUrl = pkg.images && pkg.images.length > 0 
     ? pkg.images[0].image_url 
@@ -188,7 +193,7 @@ const QuickViewModal = ({ package: pkg, isOpen, onClose, onFavoriteToggle }) => 
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Link to={`/packages/${pkg.package_id || pkg.id}`} className="flex-1" onClick={onClose}>
+            <Link to={packageUrl} className="flex-1" onClick={onClose}>
               <Button className="w-full group">
                 <span>View Full Details</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

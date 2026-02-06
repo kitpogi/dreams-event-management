@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Sparkles, RefreshCw, FileText } from 'lucide-react';
-import { FormModal, Button } from '../ui';
+import { FormModal, Button, LoadingSpinner } from '../ui';
 import { contactService } from '../../api/services/contactService';
 import { generateResponse, generateSubject, getAvailableTemplates } from '../../utils/responseGenerator';
 
@@ -360,7 +360,7 @@ const ContactInquiryReplyModal = ({ isOpen, onClose, inquiry }) => {
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                <LoadingSpinner size="sm" />
                 Sending...
               </span>
             ) : (

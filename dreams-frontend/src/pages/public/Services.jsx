@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { LoadingSpinner } from '../../components/ui';
 import { formatAssetUrl } from '../../lib/utils';
 
 const Services = () => {
@@ -24,8 +25,8 @@ const Services = () => {
 
   if (loading) {
     return (
-      <div className="w-full bg-[#f7f6f8] dark:bg-gray-900 min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#a413ec]"></div>
+      <div className="w-full bg-[#f7f6f8] dark:bg-gray-900 min-h-screen">
+        <LoadingSpinner variant="page" size="lg" />
       </div>
     );
   }

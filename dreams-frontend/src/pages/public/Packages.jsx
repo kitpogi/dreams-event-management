@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/axios';
 import { PackageCard, PackageSearchAutocomplete, QuickViewModal, PackageComparison, PullToRefresh } from '../../components/features';
-import { Card, Button, Input, Badge, Label } from '../../components/ui';
+import { Card, Button, Input, Badge, Label, LoadingSpinner } from '../../components/ui';
 import { useToast } from '../../hooks/use-toast';
 import { Grid3x3, List, Scale } from 'lucide-react';
 import {
@@ -637,10 +637,7 @@ const Packages = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">Loading packages...</p>
-        </div>
+        <LoadingSpinner variant="section" size="lg" text="Loading packages..." />
       ) : packages.length > 0 ? (
         <>
           <div className={viewMode === 'grid' 

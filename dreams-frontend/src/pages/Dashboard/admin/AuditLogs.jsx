@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
+import { LoadingSpinner } from "../../../components/ui";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -220,12 +221,7 @@ const AuditLogs = () => {
       {/* Logs Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700 transition-colors duration-300">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 dark:border-indigo-400"></div>
-            <p className="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">
-              Loading audit logs...
-            </p>
-          </div>
+          <LoadingSpinner variant="section" size="md" text="Loading audit logs..." />
         ) : logs.length === 0 ? (
           <div className="p-8 text-center">
             <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />

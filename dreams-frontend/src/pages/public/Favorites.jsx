@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, Package, Trash2, ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
 import { PackageCard, PullToRefresh } from '../../components/features';
-import { Button } from '../../components/ui';
+import { Button, LoadingSpinner } from '../../components/ui';
 import { useFavorites } from '../../components/ui/FavoriteButton';
 import { useToast } from '../../hooks/use-toast';
 
@@ -116,10 +116,7 @@ const Favorites = () => {
 
       {/* Content */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your favorites...</p>
-        </div>
+        <LoadingSpinner variant="section" size="lg" text="Loading your favorites..." />
       ) : favoritePackages.length === 0 ? (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">

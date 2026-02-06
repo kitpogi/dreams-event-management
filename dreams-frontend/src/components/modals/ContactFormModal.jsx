@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../api/axios';
-import { Button, FormModal } from '../ui';
+import { Button, FormModal, LoadingSpinner } from '../ui';
 import { STORAGE_KEY } from '../../constants/eventFormConstants';
 import { cn } from '../../lib/utils';
 
@@ -415,7 +415,7 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Select the services you'd like to include in your custom package:</p>
                 {fetchingServices ? (
                   <div className="py-4 flex justify-center">
-                    <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                    <LoadingSpinner size="sm" />
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -487,7 +487,7 @@ const ContactFormModal = ({ isOpen, onClose, onSuccess, initialData = {} }) => {
             >
               {loading ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <LoadingSpinner size="sm" />
                   <span>Sending...</span>
                 </div>
               ) : (

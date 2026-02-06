@@ -45,6 +45,18 @@ function App() {
                 }
               />
               <Route
+                path="/dashboard/packages/:id"
+                element={
+                  <ClientLayout>
+                    <ErrorBoundary showContact>
+                      <ProtectedRoute>
+                        <LazyRoute component={LazyRoutes.ClientPackageDetails} />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  </ClientLayout>
+                }
+              />
+              <Route
                 path="/dashboard/payments"
                 element={
                   <ClientLayout>
@@ -63,6 +75,18 @@ function App() {
                     <ErrorBoundary showContact>
                       <ProtectedRoute>
                         <LazyRoute component={LazyRoutes.ClientBookings} />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  </ClientLayout>
+                }
+              />
+              <Route
+                path="/dashboard/bookings/:bookingId"
+                element={
+                  <ClientLayout>
+                    <ErrorBoundary showContact>
+                      <ProtectedRoute>
+                        <LazyRoute component={LazyRoutes.BookingConfirmation} />
                       </ProtectedRoute>
                     </ErrorBoundary>
                   </ClientLayout>

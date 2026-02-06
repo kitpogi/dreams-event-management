@@ -61,7 +61,7 @@
   - [x] Create Repository interfaces ✅ (RepositoryInterface, BookingRepositoryInterface, PackageRepositoryInterface, UserRepositoryInterface)
   - [x] Implement Repository classes for all models ✅ (BaseRepository + 12 model-specific repositories)
   - [x] RepositoryServiceProvider for DI bindings ✅ (Singleton registration for all repositories)
-  - [ ] Move database queries from controllers to repositories (Controllers still use models directly)
+  - [x] Move database queries from controllers to repositories ✅ (BookingController refactored to use BookingRepository)
   - [x] Add query scopes to repositories ✅ (BaseRepository enhanced with active(), createdBetween(), search(), limit(), criteria system)
 
 - [x] **Service Layer Enhancement** ✅ PARTIAL

@@ -4,6 +4,7 @@ import { getPaymentStatus } from '../../api/services/paymentService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '../../components/ui';
 import { toast } from 'react-toastify';
 
 export default function PaymentConfirmation() {
@@ -49,7 +50,7 @@ export default function PaymentConfirmation() {
       case 'cancelled':
         return <XCircle className="h-12 w-12 text-red-500" />;
       default:
-        return <Loader2 className="h-12 w-12 animate-spin text-yellow-500" />;
+        return <LoadingSpinner size="xl" />;
     }
   };
 
@@ -87,7 +88,7 @@ export default function PaymentConfirmation() {
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <LoadingSpinner size="md" />
           </CardContent>
         </Card>
       </div>

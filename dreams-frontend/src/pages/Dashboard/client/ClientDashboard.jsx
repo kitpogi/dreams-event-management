@@ -5,7 +5,6 @@ import { useAuth } from '../../../context/AuthContext';
 import {
   Card,
   Button,
-  LoadingSpinner,
   SkeletonStatCard,
   SkeletonList
 } from '../../../components/ui';
@@ -642,6 +641,7 @@ const ClientDashboard = () => {
                             )}
                             <BookingActionsDropdown
                               booking={booking}
+                              onViewDetails={(b) => navigate(`/dashboard/bookings/${b.booking_id || b.id}`)}
                               onPayNow={handlePayNow}
                               onCancel={handleCancelClick}
                               canShowPayButton={canShowPayButton}

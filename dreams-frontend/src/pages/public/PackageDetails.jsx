@@ -631,10 +631,7 @@ const PackageDetails = () => {
                     </header>
 
                     {reviewsLoading ? (
-                      <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#a413ec]"></div>
-                        <p className="mt-4 text-sm text-gray-500">Loading reviews...</p>
-                      </div>
+                      <LoadingSpinner variant="section" size="md" text="Loading reviews..." />
                     ) : reviews.length > 0 ? (
                       <div className="space-y-4">
                         {reviews.map((review) => (

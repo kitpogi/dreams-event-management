@@ -21,5 +21,20 @@ return [
         'webhook_secret' => env('PAYMONGO_WEBHOOK_SECRET'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Services
+    |--------------------------------------------------------------------------
+    */
+
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-1.5-flash-latest'),
+        'base_url' => 'https://generativelanguage.googleapis.com/v1beta/models/',
+        'timeout' => 30,
+        'temperature' => 0.3,
+        'max_tokens' => 1024,
+    ],
+
 ];
 

@@ -37,10 +37,10 @@ export const SidebarProvider = ({ children }) => {
     setIsCollapsed(prev => !prev);
   };
 
-  // Sidebar width constants (matching Tailwind: w-20 = 5rem, w-72 = 18rem)
+  // Sidebar width constants (matching Tailwind: w-20 = 5rem, w-64 = 16rem)
   // On mobile, sidebar is hidden in Sheet, so no margin needed
   // On desktop, apply margin based on collapsed state
-  const sidebarWidth = isCollapsed ? '5rem' : '18rem';
+  const sidebarWidth = isCollapsed ? '5rem' : '16rem';
   const mainContentMargin = isMobile ? '0' : sidebarWidth;
   const mainContentWidth = isMobile ? '100%' : `calc(100% - ${sidebarWidth})`;
 

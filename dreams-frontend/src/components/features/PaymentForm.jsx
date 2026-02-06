@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Loader2, CreditCard, Smartphone, QrCode, Building2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { LoadingSpinner } from '../ui';
 import { toast } from 'react-toastify';
 import { cn } from '../../lib/utils';
 
@@ -202,8 +203,7 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
           ) : (
             <div className="text-center py-12 bg-card/50 backdrop-blur-sm rounded-xl border border-border/50">
               <div className="relative inline-block">
-                <Loader2 className="h-16 w-16 animate-spin text-primary opacity-20" />
-                <Smartphone className="h-8 w-8 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
+                <LoadingSpinner size="xl" />
               </div>
               <p className="mt-6 text-lg font-medium">Redirecting to Secure Page...</p>
               <p className="text-sm text-muted-foreground mt-2">Please do not close this window</p>
@@ -361,7 +361,7 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
             className="flex-[2] order-1 md:order-2 h-12 rounded-xl shadow-lg shadow-primary/20 font-bold text-lg"
           >
             {loading ? (
-              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Preparing...</>
+              <><LoadingSpinner size="sm" /> Preparing...</>
             ) : (
               `Pay ${formatCurrency(getPaymentAmount())}`
             )}

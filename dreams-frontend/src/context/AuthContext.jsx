@@ -13,18 +13,27 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  // Start as false if we already have cached user/token — no blocking wait
+  const [loading, setLoading] = useState(() => {
+    return !(localStorage.getItem('token') && localStorage.getItem('user'));
+  });
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
     if (storedToken && userData) {
-      setToken(storedToken);
-      setUser(JSON.parse(userData));
-      // Fetch current user to verify token is still valid
+      // User/token already restored via useState initializers above.
+      // Verify token validity in the background (non-blocking).
       fetchCurrentUser();
     } else {
       setLoading(false);
@@ -99,6 +108,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       setToken(newToken);
       setUser(userData);
+      // Immediately mark as not-loading so ProtectedRoute renders instantly
+      setLoading(false);
 
       return { success: true };
     } catch (error) {
