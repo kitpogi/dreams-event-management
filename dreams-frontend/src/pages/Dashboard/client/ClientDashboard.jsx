@@ -132,26 +132,29 @@ const ClientDashboard = () => {
   };
 
   const getPaymentInfo = (booking) => {
-    const payments = bookingPayments[booking.booking_id || booking.id] || [];
-    const totalPaid = payments
-      .filter((p) => p.status === 'paid')
-      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const payments = bookingPayments[booking.booking_id || booking.id];
 
-    // Try multiple possible paths for package price (same logic as getPackagePrice)
-    // Laravel may serialize relationships as snake_case (event_package) or camelCase (eventPackage)
-    const packagePrice = booking?.eventPackage?.package_price ||
-      booking?.event_package?.package_price ||
-      booking?.eventPackage?.price ||
-      booking?.event_package?.price ||
-      booking?.package?.package_price ||
-      booking?.package?.price ||
-      booking?.package_price ||
-      booking?.price ||
-      null;
+    let totalPaid = 0;
+    if (payments) {
+      totalPaid = payments
+        .filter((p) => p.status === 'paid')
+        .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    } else {
+      // Use pre-calculated value from API
+      totalPaid = parseFloat(booking?.total_paid || 0);
+    }
+
+    // Try multiple possible paths for package price
+    const packagePrice = getPackagePrice(booking);
 
     // Use total_amount first, then package price, then 0
     const totalAmount = parseFloat(booking?.total_amount || packagePrice || 0);
-    const remainingBalance = Math.max(0, totalAmount - totalPaid);
+
+    // Use remaining_balance from API or calculate it
+    const remainingBalance = payments
+      ? Math.max(0, totalAmount - totalPaid)
+      : parseFloat(booking?.remaining_balance ?? Math.max(0, totalAmount - totalPaid));
+
     const paymentStatus = booking?.payment_status || 'unpaid';
 
     return { totalPaid, totalAmount, remainingBalance, paymentStatus };

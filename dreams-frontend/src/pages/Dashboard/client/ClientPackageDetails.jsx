@@ -605,6 +605,7 @@ const ClientPackageDetails = () => {
                 <BookingFormModal
                     isOpen={showBookingModal}
                     onClose={() => setShowBookingModal(false)}
+                    packageId={packageData.package_id || id}
                     packageData={packageData}
                     onSuccess={handleBookingSuccess}
                 />

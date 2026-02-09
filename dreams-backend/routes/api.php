@@ -211,6 +211,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Payment routes
     Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
     Route::post('/payments/attach-method', [PaymentController::class, 'attachPaymentMethod']);
+    Route::post('/payments/process-ewallet', [PaymentController::class, 'processEwalletPayment']);
     Route::get('/payments/{id}/status', [PaymentController::class, 'getPaymentStatus']);
     Route::get('/bookings/{bookingId}/payments', [PaymentController::class, 'getBookingPayments']);
     Route::post('/bookings/{bookingId}/payment-link', [PaymentController::class, 'createPaymentLink']);

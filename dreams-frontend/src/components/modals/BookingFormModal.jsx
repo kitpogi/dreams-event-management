@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { packageService, bookingService } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
@@ -41,7 +41,9 @@ const BUDGET_RANGES = [
 const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageData: propPackageData, onSuccess }) => {
   const { packageId: routePackageId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const isDashboard = location.pathname.startsWith('/dashboard');
 
   const [currentStep, setCurrentStep] = useState(1);
   const [packageData, setPackageData] = useState(propPackageData || null);
@@ -58,14 +60,15 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
     special_requests: '',
   });
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propPackageData);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [isDateAvailable, setIsDateAvailable] = useState(null);
   const [availableDates, setAvailableDates] = useState([]);
 
-  const finalPackageId = propPackageId || routePackageId;
+  // Derive package ID from props, route params, or the packageData object itself
+  const finalPackageId = propPackageId || routePackageId || propPackageData?.package_id || packageData?.package_id;
 
   useEffect(() => {
     if (isOpen && finalPackageId && !propPackageData) {
@@ -191,18 +194,23 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
       if (!formData.event_date) {
         newErrors.event_date = 'Event date is required';
         isValid = false;
-      } else if (formData.event_date instanceof Date) {
-        // Create today at midnight for comparison
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+      } else {
+        if (formData.event_date instanceof Date) {
+          // Create today at midnight for comparison
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
 
-        if (formData.event_date < today) {
-          newErrors.event_date = 'Event date must be in the future';
+          if (formData.event_date < today) {
+            newErrors.event_date = 'Event date must be in the future';
+            isValid = false;
+          }
+        }
+
+        // Always check date availability regardless of date type
+        if (isDateAvailable === false) {
+          newErrors.event_date = 'This date is not available. Please select another date.';
           isValid = false;
         }
-      } else if (formData.event_date && isDateAvailable === false) {
-        newErrors.event_date = 'This date is not available. Please select another date.';
-        isValid = false;
       }
 
       if (!formData.event_time) {
@@ -243,7 +251,18 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep(currentStep)) return;
+    // Validate all steps before submitting, not just the current one
+    for (let step = 1; step <= STEPS.length; step++) {
+      if (!validateStep(step)) {
+        setCurrentStep(step);
+        return;
+      }
+    }
+
+    if (!finalPackageId) {
+      toast.error('Package information is missing. Please try again.');
+      return;
+    }
 
     if (!isAuthenticated) {
       toast.info('Please login to complete your booking');
@@ -255,7 +274,7 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
 
     try {
       const payload = {
-        package_id: finalPackageId,
+        package_id: parseInt(finalPackageId, 10),
         event_date: formatDateForAPI(formData.event_date),
         event_time: formData.event_time,
         event_duration: formData.event_duration || null,
@@ -277,7 +296,10 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
       onClose();
 
       if (bookingId) {
-        navigate(`/booking-confirmation/${bookingId}`, { state: { showPayment: true } });
+        const confirmPath = isDashboard
+          ? `/dashboard/bookings/${bookingId}`
+          : `/booking-confirmation/${bookingId}`;
+        navigate(confirmPath, { state: { showPayment: true } });
       } else if (onSuccess) {
         onSuccess();
       } else {
@@ -290,12 +312,22 @@ const BookingFormModal = ({ isOpen, onClose, packageId: propPackageId, packageDa
           Object.entries(apiErrors).map(([key, val]) => [key, Array.isArray(val) ? val.join(', ') : String(val)])
         );
         setErrors(prev => ({ ...prev, ...mapped }));
-        // Also show toast for general error
-        toast.error('Please check the form for errors.');
+
+        // Show specific error messages in toasts
+        Object.values(mapped).forEach(msg => {
+          toast.error(msg);
+        });
       } else {
         toast.error(error.response?.data?.message || 'Failed to create booking');
       }
-      console.error('Booking error:', error.response?.data);
+      console.error('Booking submission failed:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        payload: {
+          ...formData,
+          package_id: finalPackageId
+        }
+      });
     } finally {
       setSubmitting(false);
     }

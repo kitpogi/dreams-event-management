@@ -10,6 +10,8 @@ import {
     Heart,
     ChevronLeft,
     ChevronRight,
+    PanelLeft,
+    PanelRight,
     Home,
     Search,
     Plus,
@@ -169,9 +171,9 @@ const DashboardHeader = () => {
                                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                             >
                                 {isCollapsed ? (
-                                    <ChevronRight className="w-5 h-5" />
+                                    <PanelRight className="w-5 h-5" />
                                 ) : (
-                                    <ChevronLeft className="w-5 h-5" />
+                                    <PanelLeft className="w-5 h-5" />
                                 )}
                             </button>
                         )}
@@ -285,7 +287,9 @@ const DashboardHeader = () => {
                                             {user?.name?.charAt(0).toUpperCase() || 'U'}
                                         </span>
                                     )}
-                                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-sm">
+                                        <span className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></span>
+                                    </span>
                                 </div>
                                 <ChevronRight className={`w-4 h-4 transition-transform duration-200 hidden sm:block ${showDropdown ? 'rotate-90' : ''} ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                             </button>

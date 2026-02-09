@@ -41,6 +41,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Apply XSS protection to all API routes
         $middleware->api(prepend: [
             \App\Http\Middleware\XssProtectionMiddleware::class,
+            \App\Http\Middleware\CompressResponse::class,
+            \App\Http\Middleware\CacheHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

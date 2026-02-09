@@ -71,13 +71,12 @@ class ImageService
                 $image->scaleDown(null, $maxHeight);
             }
 
-            // Generate unique filename
-            $extension = $file->getClientOriginalExtension();
-            $filename = uniqid() . '_' . time() . '.' . $extension;
+            // Generate unique filename - always use .webp for better performance
+            $filename = uniqid() . '_' . time() . '.webp';
             $path = $directory . '/' . $filename;
 
-            // Encode and save
-            $encoded = $image->encode();
+            // Encode to webp with specified quality
+            $encoded = $image->toWebp($quality);
             Storage::disk('public')->put($path, (string) $encoded);
 
             return $path;
@@ -105,7 +104,7 @@ class ImageService
 
         try {
             $fullPath = Storage::disk('public')->path($imagePath);
-            
+
             if (!file_exists($fullPath)) {
                 return $imagePath;
             }
@@ -113,11 +112,11 @@ class ImageService
             $image = $this->manager->read($fullPath);
             $image->cover($width, $height);
 
-            // Generate thumbnail path
+            // Generate thumbnail path - always use .webp
             $pathInfo = pathinfo($imagePath);
-            $thumbnailPath = $pathInfo['dirname'] . '/thumbs/' . $pathInfo['filename'] . '_thumb.' . $pathInfo['extension'];
+            $thumbnailPath = $pathInfo['dirname'] . '/thumbs/' . $pathInfo['filename'] . '_thumb.webp';
 
-            $encoded = $image->encode();
+            $encoded = $image->toWebp(75); // Lower quality for thumbnails
             Storage::disk('public')->put($thumbnailPath, (string) $encoded);
 
             return $thumbnailPath;
@@ -141,7 +140,7 @@ class ImageService
         // Try to delete thumbnail
         $pathInfo = pathinfo($imagePath);
         $thumbnailPath = $pathInfo['dirname'] . '/thumbs/' . $pathInfo['filename'] . '_thumb.' . $pathInfo['extension'];
-        
+
         if (Storage::disk('public')->exists($thumbnailPath)) {
             Storage::disk('public')->delete($thumbnailPath);
         }

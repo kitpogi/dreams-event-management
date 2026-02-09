@@ -110,6 +110,46 @@ class PaymentService
     }
 
     /**
+     * Create a payment method server-side (for e-wallets like GCash, Maya, DOB).
+     */
+    public function createPaymentMethod(string $type, array $billing = []): array
+    {
+        try {
+            $attributes = ['type' => $type];
+
+            if (!empty($billing)) {
+                $attributes['billing'] = $billing;
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . base64_encode($this->secretKey . ':'),
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . '/payment_methods', [
+                        'data' => [
+                            'attributes' => $attributes,
+                        ],
+                    ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'payment_method_id' => $data['data']['id'],
+                    'type' => $data['data']['attributes']['type'],
+                ];
+            }
+
+            throw new Exception('Failed to create payment method: ' . $response->body());
+        } catch (Exception $e) {
+            Log::error('Payment method creation failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Retrieve payment intent status.
      */
     public function getPaymentIntent(string $paymentIntentId): array
@@ -138,8 +178,61 @@ class PaymentService
     }
 
     /**
-     * Verify webhook signature.
+     * Sync payment status with PayMongo.
      */
+    public function syncPaymentStatus(Payment $payment): bool
+    {
+        if (empty($payment->payment_intent_id)) {
+            return false;
+        }
+
+        $result = $this->getPaymentIntent($payment->payment_intent_id);
+        if (!$result['success']) {
+            return false;
+        }
+
+        $paymentIntent = $result['payment_intent'];
+        $status = $paymentIntent['attributes']['status'];
+        $hasChanged = false;
+
+        if ($status === 'succeeded') {
+            if ($payment->status !== 'paid') {
+                $payment->status = 'paid';
+                $payment->paid_at = now();
+                $hasChanged = true;
+            }
+
+            // Always ensure booking status is synced if payment is succeeded
+            if ($payment->booking) {
+                // Persist payment status if changed so sum() is correct in updateBookingPaymentStatus
+                if ($hasChanged) {
+                    $payment->save();
+                    $hasChanged = false;
+                }
+                $this->updateBookingPaymentStatus($payment->booking);
+            }
+        } elseif (($status === 'awaiting_payment_method' || $status === 'processing') && $payment->status !== 'pending') {
+            // Note: In our system 'pending' covers both awaiting_payment_method and backend-processing for simplicity of UI
+            $payment->status = 'pending';
+            $hasChanged = true;
+        }
+
+        // Always try to extract payment method if current one is unknown
+        if (empty($payment->payment_method) || $payment->payment_method === 'Unknown') {
+            $extractedMethod = $this->extractPaymentMethod($paymentIntent['attributes']);
+            if ($extractedMethod) {
+                $payment->payment_method = $extractedMethod;
+                $hasChanged = true;
+            }
+        }
+
+        if ($hasChanged) {
+            $payment->save();
+        }
+
+        return $hasChanged;
+    }
+
     /**
      * Verify webhook signature.
      */
@@ -242,7 +335,7 @@ class PaymentService
     /**
      * Extract payment method from payment intent attributes.
      */
-    protected function extractPaymentMethod(array $attributes): ?string
+    public function extractPaymentMethod(array $attributes): ?string
     {
         $paymentMethod = $attributes['payment_method'] ?? null;
 
@@ -266,7 +359,7 @@ class PaymentService
     /**
      * Update booking payment status based on payments.
      */
-    protected function updateBookingPaymentStatus(BookingDetail $booking): void
+    public function updateBookingPaymentStatus(BookingDetail $booking): void
     {
         $totalPaid = Payment::where('booking_id', $booking->booking_id)
             ->where('status', 'paid')
@@ -275,16 +368,17 @@ class PaymentService
         $totalAmount = $booking->total_amount ?? 0;
         $depositAmount = $booking->deposit_amount ?? ($totalAmount * 0.30);
 
-        if ($totalPaid >= $totalAmount) {
+        if ($totalPaid >= (float) $totalAmount - 0.01) {
             $booking->payment_status = 'paid';
-        } elseif ($totalPaid > 0) {
+        } elseif ($totalPaid > 0.01) {
             $booking->payment_status = 'partial';
         } else {
             $booking->payment_status = 'unpaid';
         }
 
         // Automatically Approve booking if deposit is met and it's still Pending
-        if ($booking->booking_status === 'Pending' && $totalPaid >= $depositAmount) {
+        $currentBookingStatus = strtolower($booking->booking_status ?? '');
+        if ($currentBookingStatus === 'pending' && $totalPaid >= (float) $depositAmount - 0.01) {
             $booking->booking_status = 'Approved';
             Log::info("Booking #{$booking->booking_id} automatically approved due to payment.");
         }

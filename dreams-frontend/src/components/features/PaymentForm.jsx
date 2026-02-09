@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { createPaymentIntent, attachPaymentMethod } from '../../api/services/paymentService';
+import { createPaymentIntent, attachPaymentMethod, processEwalletPayment } from '../../api/services/paymentService';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Loader2, CreditCard, Smartphone, QrCode, Building2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Loader2, CreditCard, Smartphone, Building2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { LoadingSpinner } from '../ui';
 import { toast } from 'react-toastify';
 import { cn } from '../../lib/utils';
@@ -12,10 +12,12 @@ import { cn } from '../../lib/utils';
 const PAYMENT_METHODS = [
   { value: 'card', label: 'Credit Card', icon: CreditCard, color: 'text-blue-500', bg: 'bg-blue-500/10' },
   { value: 'gcash', label: 'GCash', icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-600/10' },
-  { value: 'maya', label: 'Maya', icon: Smartphone, color: 'text-green-500', bg: 'bg-green-500/10' },
-  { value: 'qr_ph', label: 'QR Ph', icon: QrCode, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  { value: 'bank_transfer', label: 'Bank Transfer', icon: Building2, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+  { value: 'paymaya', label: 'Maya', icon: Smartphone, color: 'text-green-500', bg: 'bg-green-500/10' },
+  { value: 'dob', label: 'Online Banking', icon: Building2, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
 ];
+
+// PayMongo public key for SDK initialization
+const PAYMONGO_PUBLIC_KEY = import.meta.env.VITE_PAYMONGO_PUBLIC_KEY;
 
 export default function PaymentForm({ bookingId, amount, booking, onSuccess, onCancel }) {
   const [loading, setLoading] = useState(false);
@@ -30,31 +32,31 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
   const paymentStatus = booking?.payment_status || 'unpaid';
   const totalAmount = parseFloat(booking?.total_amount || amount || 0);
   const depositAmount = parseFloat(booking?.deposit_amount || (totalAmount * 0.30));
-  const totalPaid = booking?.total_paid || 0;
+  const totalPaid = parseFloat(booking?.total_paid || 0);
   const remainingBalance = Math.max(0, totalAmount - totalPaid);
 
   // Determine available payment options
-  const canPayDeposit = bookingStatus === 'pending' && paymentStatus !== 'paid';
-  const canPayRemaining = (bookingStatus === 'approved' || bookingStatus === 'confirmed') && remainingBalance > 0;
-  const canPayFull = paymentStatus !== 'paid' && totalAmount > 0;
+  const canPayDeposit = (bookingStatus === 'pending' || bookingStatus === 'unpaid') && paymentStatus === 'unpaid';
+  const canPayRemaining = (bookingStatus === 'approved' || bookingStatus === 'confirmed' || bookingStatus === 'pending') && remainingBalance > 0 && paymentStatus === 'partial';
+  const canPayFull = paymentStatus === 'unpaid' && totalAmount > 0;
 
   // Determine default payment amount based on type
   const getPaymentAmount = () => {
-    if (paymentType === 'deposit') return depositAmount;
+    if (paymentType === 'deposit' && canPayDeposit) return depositAmount;
     if (paymentType === 'remaining') return remainingBalance;
-    if (paymentType === 'full') return totalAmount;
+    if (paymentType === 'full') return remainingBalance; // If they pay "Full", it should be the remaining balance
     return remainingBalance > 0 ? remainingBalance : depositAmount;
   };
 
   useEffect(() => {
-    if (bookingStatus === 'pending' && paymentStatus === 'unpaid') {
+    if (canPayDeposit) {
       setPaymentType('deposit');
     } else if (remainingBalance > 0) {
       setPaymentType('remaining');
     } else {
       setPaymentType('full');
     }
-  }, [bookingStatus, paymentStatus, remainingBalance]);
+  }, [bookingStatus, paymentStatus, remainingBalance, canPayDeposit]);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -96,20 +98,31 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
     }
   };
 
-  const initializePayMongo = (clientKey, intentId) => {
+  const initializePayMongo = async (intentClientKey, intentId) => {
     if (typeof window.Paymongo === 'undefined') {
       toast.error('PayMongo SDK not loaded. Please refresh the page.');
       setStep('method'); // Reset step so user can try again
       return;
     }
 
+    if (!PAYMONGO_PUBLIC_KEY) {
+      toast.error('Payment configuration error. Please contact support.');
+      console.error('VITE_PAYMONGO_PUBLIC_KEY is not set in environment variables. Restart the Vite dev server after updating .env.');
+      setStep('method');
+      return;
+    }
+
+    // Debug: log key prefix to verify env var is loaded (never log full key)
+    console.log('PayMongo key loaded:', PAYMONGO_PUBLIC_KEY ? `${PAYMONGO_PUBLIC_KEY.substring(0, 12)}...` : 'EMPTY');
+
     try {
-      const paymongo = window.Paymongo(clientKey);
+      const paymongo = window.Paymongo(PAYMONGO_PUBLIC_KEY);
 
       if (paymentMethod === 'card') {
         // --- CREDIT CARD FLOW ---
         const paymentForm = paymongo.paymentForm({
           intentId: intentId,
+          clientKey: intentClientKey,
           onSuccess: async (payment) => {
             try {
               await attachPaymentMethod(intentId, payment.paymentMethodId);
@@ -131,48 +144,43 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
         if (formContainer) paymentForm.mount('#paymongo-payment-form');
 
       } else {
-        // --- E-WALLET FLOW (GCash, Maya, etc.) ---
-        // Create the payment method first based on the selected type
-        paymongo.createPaymentMethod({
-          type: paymentMethod === 'maya' ? 'paymaya' : paymentMethod, // PayMongo uses 'paymaya' internally
-          billing: {
-            name: booking?.client?.client_fname ? `${booking.client.client_fname} ${booking.client.client_lname}` : 'Event Client',
-            email: booking?.client?.client_email || null,
-          }
-        }).then(async (result) => {
-          const paymentMethodId = result.id;
+        // --- E-WALLET / OTHER FLOW (GCash, Maya, Online Banking, etc.) ---
+        // Process entirely on the backend to avoid PayMongo JS SDK issues with e-wallets
+        const billingName = booking?.client?.client_fname
+          ? `${booking.client.client_fname} ${booking.client.client_lname}`
+          : 'Event Client';
+        const billingEmail = booking?.client?.client_email || null;
 
-          try {
-            // Attach it to the intent
-            const attachResult = await attachPaymentMethod(intentId, paymentMethodId);
+        try {
+          const result = await processEwalletPayment(
+            intentId,
+            paymentMethod,
+            billingName,
+            billingEmail
+          );
 
-            if (attachResult.success) {
-              const status = attachResult.data.status;
+          if (result.success) {
+            const status = result.data.status;
 
-              if (status === 'awaiting_next_action') {
-                // REDIRECT TO GCASH/MAYA
-                const redirectUrl = attachResult.data.payment_intent.attributes.next_action.redirect.url;
-                window.location.href = redirectUrl;
-              } else if (status === 'succeeded') {
-                toast.success('Payment successful!');
-                if (onSuccess) onSuccess(attachResult.data);
-              } else {
-                toast.info(`Payment status: ${status}`);
-              }
+            if (status === 'awaiting_next_action') {
+              // REDIRECT TO GCASH/MAYA/DOB authorization page
+              const redirectUrl = result.data.payment_intent.attributes.next_action.redirect.url;
+              window.location.href = redirectUrl;
+            } else if (status === 'succeeded') {
+              toast.success('Payment successful!');
+              if (onSuccess) onSuccess(result.data);
             } else {
-              toast.error(attachResult.message || 'Failed to attach payment method');
-              setStep('method');
+              toast.info(`Payment status: ${status}`);
             }
-          } catch (error) {
-            console.error('Attachment error:', error);
-            toast.error(error.message || 'Failed to process redirect');
+          } else {
+            toast.error(result.message || 'Failed to process payment');
             setStep('method');
           }
-        }).catch((error) => {
-          console.error('Create Payment Method error:', error);
-          toast.error(error.message || 'Failed to initialize wallet payment');
+        } catch (error) {
+          console.error('E-wallet payment error:', error);
+          toast.error(error.message || 'Failed to process wallet payment');
           setStep('method');
-        });
+        }
       }
     } catch (error) {
       console.error('PayMongo initialization error:', error);
@@ -288,7 +296,7 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
                       <span className="text-sm font-bold">Pay in Full</span>
                       <CheckCircle2 className={cn("h-4 w-4 text-primary opacity-0 transition-opacity", paymentType === 'full' && "opacity-100")} />
                     </div>
-                    <span className="text-lg font-bold text-primary">{formatCurrency(totalAmount)}</span>
+                    <span className="text-lg font-bold text-primary">{formatCurrency(remainingBalance)}</span>
                     <span className="text-[10px] text-muted-foreground uppercase font-semibold">Total Event Cost</span>
                   </Label>
                 </div>

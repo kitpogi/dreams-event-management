@@ -37,6 +37,23 @@ export const attachPaymentMethod = async (paymentIntentId, paymentMethodId) => {
 };
 
 /**
+ * Process e-wallet payment (create method + attach on backend)
+ */
+export const processEwalletPayment = async (paymentIntentId, paymentMethodType, billingName = null, billingEmail = null) => {
+  try {
+    const response = await api.post('/payments/process-ewallet', {
+      payment_intent_id: paymentIntentId,
+      payment_method_type: paymentMethodType,
+      billing_name: billingName,
+      billing_email: billingEmail,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+/**
  * Get payment status
  */
 export const getPaymentStatus = async (paymentId) => {

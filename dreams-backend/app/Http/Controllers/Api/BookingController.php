@@ -154,7 +154,7 @@ class BookingController extends Controller
     public function show(Request $request, $id)
     {
         $booking = $this->bookingRepository->findWithRelations($id);
-        
+
         if (!$booking) {
             return response()->json(['message' => 'Booking not found'], 404);
         }
@@ -212,6 +212,7 @@ class BookingController extends Controller
      */
     public function store(\App\Http\Requests\Booking\StoreBookingRequest $request)
     {
+        Log::info('Booking request received', $request->all());
         // Validation handled by FormRequest
         $package = EventPackage::with('venue')->findOrFail($request->package_id);
 

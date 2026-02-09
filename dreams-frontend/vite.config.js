@@ -80,6 +80,9 @@ export default defineConfig(({ mode }) => {
             target: env.VITE_API_PROXY_TARGET || env.VITE_API_BASE_URL.replace('/api', ''),
             changeOrigin: true,
             secure: false,
+            headers: {
+              'ngrok-skip-browser-warning': 'true',
+            },
             ws: false, // WebSocket disabled for API proxy
           }
         }

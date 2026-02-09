@@ -23,6 +23,8 @@ class Payment extends Model
         'paid_at',
     ];
 
+    protected $appends = ['payment_method_display'];
+
     protected $casts = [
         'amount' => 'decimal:2',
         'metadata' => 'array',
@@ -66,14 +68,18 @@ class Payment extends Model
      */
     public function getPaymentMethodDisplayAttribute(): string
     {
-        return match($this->payment_method) {
+        return match ($this->payment_method) {
             'card' => 'Credit/Debit Card',
             'gcash' => 'GCash',
-            'maya' => 'Maya',
+            'maya', 'paymaya' => 'Maya',
             'qr_ph' => 'QR Ph',
+            'grab_pay' => 'GrabPay',
+            'billease' => 'BillEase',
             'bank_transfer' => 'Bank Transfer',
+            'dob_ubp' => 'UnionBank (Online Banking)',
+            'dob_bpi' => 'BPI (Online Banking)',
             'otc' => 'Over-the-Counter',
-            default => ucfirst($this->payment_method ?? 'Unknown'),
+            default => str_replace('_', ' ', ucfirst($this->payment_method ?? 'Unknown')),
         };
     }
 }

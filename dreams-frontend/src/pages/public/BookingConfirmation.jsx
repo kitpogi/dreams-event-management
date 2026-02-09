@@ -662,7 +662,8 @@ const BookingConfirmation = () => {
             <div className="mt-4">
               <PaymentForm
                 bookingId={booking?.booking_id || booking?.id || bookingId}
-                amount={remainingBalance || totalAmount}
+                booking={booking}
+                amount={totalAmount}
                 onSuccess={handlePaymentSuccess}
                 onCancel={handlePaymentCancel}
               />

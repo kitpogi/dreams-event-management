@@ -5,12 +5,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-'allowed_origins' => array_filter(array_map('trim', explode(
-    ',',
-    env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')
-))),
+    'allowed_origins' => array_filter(array_map('trim', explode(
+        ',',
+        env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')
+    ))),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '/^https:\/\/[a-z0-9-]+\.ngrok-free\.dev$/',
+    ],
 
     'allowed_headers' => ['*'],
 

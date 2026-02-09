@@ -43,7 +43,7 @@ class PaymentController extends Controller
 
         // Use bcmath or round to ensure precision (convert to string then back to float for precision)
         $amount = round((float) $validated['amount'], 2);
-        $paymentMethods = $validated['payment_methods'] ?? ['card', 'gcash', 'maya'];
+        $paymentMethods = $validated['payment_methods'] ?? ['card', 'gcash', 'paymaya'];
 
         $result = $this->paymentService->createPaymentIntent($booking, $amount, 'PHP', $paymentMethods);
 
@@ -118,6 +118,81 @@ class PaymentController extends Controller
     }
 
     /**
+     * Process e-wallet payment (create payment method + attach in one step).
+     * This avoids using the client-side PayMongo SDK which has issues with e-wallets.
+     */
+    public function processEwalletPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'payment_intent_id' => 'required|string',
+            'payment_method_type' => 'required|string|in:gcash,paymaya,dob,dob_ubp,dob_bpi,grab_pay,billease',
+            'billing_name' => 'nullable|string',
+            'billing_email' => 'nullable|email',
+        ]);
+
+        // Find the payment record
+        $payment = Payment::where('payment_intent_id', $validated['payment_intent_id'])->first();
+        if (!$payment) {
+            return $this->notFoundResponse('Payment record not found for this intent');
+        }
+
+        // Build billing info
+        $billing = [];
+        if (!empty($validated['billing_name'])) {
+            $billing['name'] = $validated['billing_name'];
+        }
+        if (!empty($validated['billing_email'])) {
+            $billing['email'] = $validated['billing_email'];
+        }
+
+        // Step 1: Create payment method server-side
+        $methodResult = $this->paymentService->createPaymentMethod(
+            $validated['payment_method_type'],
+            $billing
+        );
+
+        if (!$methodResult['success']) {
+            return $this->errorResponse(
+                'Failed to create payment method',
+                500,
+                ['error' => $methodResult['error'] ?? 'Unknown error']
+            );
+        }
+
+        // Step 2: Attach payment method to intent
+        $attachResult = $this->paymentService->attachPaymentMethod(
+            $validated['payment_intent_id'],
+            $methodResult['payment_method_id'],
+            $payment->id
+        );
+
+        if (!$attachResult['success']) {
+            return $this->errorResponse(
+                'Failed to attach payment method',
+                500,
+                ['error' => $attachResult['error'] ?? 'Unknown error']
+            );
+        }
+
+        // Update payment record
+        $payment->payment_method_id = $methodResult['payment_method_id'];
+        $payment->payment_method = $validated['payment_method_type'];
+        $payment->status = $attachResult['status'] === 'succeeded' ? 'paid' : 'processing';
+        if ($attachResult['status'] === 'succeeded') {
+            $payment->paid_at = now();
+        }
+        $payment->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $attachResult['status'],
+                'payment_intent' => $attachResult['payment_intent'],
+            ],
+        ]);
+    }
+
+    /**
      * Get payment status.
      */
     public function getPaymentStatus(Request $request, $paymentId)
@@ -137,21 +212,7 @@ class PaymentController extends Controller
 
         // Get latest status from PayMongo
         if ($payment->payment_intent_id) {
-            $result = $this->paymentService->getPaymentIntent($payment->payment_intent_id);
-            if ($result['success']) {
-                $paymentIntent = $result['payment_intent'];
-                $status = $paymentIntent['attributes']['status'];
-
-                // Update payment status if changed
-                if ($status === 'succeeded' && $payment->status !== 'paid') {
-                    $payment->status = 'paid';
-                    $payment->paid_at = now();
-                    $payment->save();
-                } elseif ($status === 'awaiting_payment_method' && $payment->status !== 'pending') {
-                    $payment->status = 'pending';
-                    $payment->save();
-                }
-            }
+            $this->paymentService->syncPaymentStatus($payment);
         }
 
         return $this->successResponse($payment->load('booking'), 'Payment method attached successfully');
@@ -179,9 +240,16 @@ class PaymentController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Proactively sync statuses for processing payments
+        foreach ($payments as $payment) {
+            if (($payment->status === 'processing' || $payment->status === 'pending') && $payment->payment_intent_id) {
+                $this->paymentService->syncPaymentStatus($payment);
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $payments,
+            'data' => $payments->fresh(),
         ]);
     }
 

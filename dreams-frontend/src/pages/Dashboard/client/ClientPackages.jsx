@@ -32,7 +32,7 @@ const ClientPackages = () => {
 
             {/* Packages Component */}
             <div className="mt-6">
-                <Packages />
+                <Packages hideHeader={true} compact={true} />
             </div>
         </div>
     );

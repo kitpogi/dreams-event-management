@@ -51,7 +51,7 @@ class StoreBookingRequest extends BaseFormRequest
             'event_time' => [
                 'nullable',
                 'string',
-                'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/',
+                'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/',
             ],
             'event_duration' => [
                 'nullable',
@@ -62,7 +62,7 @@ class StoreBookingRequest extends BaseFormRequest
             'event_end_time' => [
                 'nullable',
                 'string',
-                'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/',
+                'regex:/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/',
             ],
             'guest_count' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'number_of_guests' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -109,5 +109,29 @@ class StoreBookingRequest extends BaseFormRequest
                 'guest_count' => $this->number_of_guests,
             ]);
         }
+
+        // Convert potential empty strings to null for nullable fields
+        if ($this->event_time === '') {
+            $this->merge(['event_time' => null]);
+        }
+        if ($this->event_duration === '') {
+            $this->merge(['event_duration' => null]);
+        }
+        if ($this->event_end_time === '') {
+            $this->merge(['event_end_time' => null]);
+        }
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
+    {
+        \Illuminate\Support\Facades\Log::warning('Booking validation failed', [
+            'errors' => $validator->errors()->toArray(),
+            'input' => $this->all()
+        ]);
+
+        parent::failedValidation($validator);
     }
 }

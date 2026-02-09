@@ -186,7 +186,7 @@ export default function PaymentConfirmation() {
             </Button>
             {payment.booking && (
               <Button
-                onClick={() => navigate(`/bookings/${payment.booking.booking_id}`)}
+                onClick={() => navigate(`/dashboard/bookings/${payment.booking.booking_id}`)}
                 className="flex-1"
               >
                 View Booking

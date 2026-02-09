@@ -261,7 +261,7 @@ const Home = () => {
                   }`}
               >
                 <div
-                  className={`w-full h-full bg-cover bg-center transition-transform duration-[5000ms] ease-out ${index === currentBgIndex ? 'scale-110' : 'scale-100'}`}
+                  className={`w-full h-full bg-cover bg-center transition-transform [transition-duration:5000ms] ease-out ${index === currentBgIndex ? 'scale-110' : 'scale-100'}`}
                   style={{ backgroundImage: `url(${img})` }}
                 />
               </div>

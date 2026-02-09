@@ -41,7 +41,7 @@ class CreatePaymentIntentRequest extends BaseFormRequest
                 },
             ],
             'payment_methods' => ['sometimes', 'array'],
-            'payment_methods.*' => ['string', Rule::in(['card', 'gcash', 'maya', 'qr_ph', 'bank_transfer'])],
+            'payment_methods.*' => ['string', Rule::in(['card', 'gcash', 'paymaya', 'grab_pay', 'dob', 'billease'])],
         ];
     }
 

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from '../api/axios';
 import { useAuth } from './AuthContext';
 
-const NotificationContext = createContext();
+export const NotificationContext = createContext();
 
 export const useNotificationCounts = () => {
     const context = useContext(NotificationContext);
@@ -25,12 +25,13 @@ export const NotificationProvider = ({ children }) => {
     const isAdminUser = isAdmin || isCoordinator;
 
     const fetchCounts = useCallback(async () => {
-        if (!isAuthenticated || !isAdminUser) {
+        if (!isAuthenticated) {
             setCounts({
                 pendingBookings: 0,
                 newInquiries: 0,
                 upcomingEvents: 0,
                 unassignedBookings: 0,
+                pendingPayments: 0,
             });
             return;
         }
@@ -40,7 +41,7 @@ export const NotificationProvider = ({ children }) => {
             const now = new Date();
             const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-            // Fetch bookings
+            // Fetch bookings - controller handles filtering based on role
             const bookingsResponse = await api.get('/bookings');
             const bookings = bookingsResponse.data.data || bookingsResponse.data || [];
 
@@ -49,13 +50,13 @@ export const NotificationProvider = ({ children }) => {
                 (b) => (b.booking_status || b.status || '').toLowerCase() === 'pending'
             ).length;
 
-            // Count unassigned bookings (approved but no coordinator)
-            const unassignedBookings = bookings.filter(
+            // Count unassigned bookings (admin only)
+            const unassignedBookings = isAdminUser ? bookings.filter(
                 (b) =>
                     !b.coordinator_id &&
                     (b.booking_status || b.status || '').toLowerCase() !== 'cancelled' &&
                     (b.booking_status || b.status || '').toLowerCase() !== 'pending'
-            ).length;
+            ).length : 0;
 
             // Count upcoming events (within 7 days)
             const upcomingEvents = bookings.filter((b) => {
@@ -68,26 +69,33 @@ export const NotificationProvider = ({ children }) => {
                 );
             }).length;
 
-            // Fetch contact inquiries
-            let newInquiries = 0;
-            try {
-                const inquiriesResponse = await api.get('/contact-inquiries');
-                const data = inquiriesResponse.data.data || {};
+            // Count pending payments
+            const pendingPayments = bookings.filter(
+                (b) => (b.payment_status || '').toLowerCase() === 'pending' || (b.payment_status || '').toLowerCase() === 'partially_paid'
+            ).length;
 
-                if (data.new_inquiries && Array.isArray(data.new_inquiries)) {
-                    newInquiries = data.new_inquiries.length;
-                } else if (data.all_inquiries && Array.isArray(data.all_inquiries)) {
-                    newInquiries = data.all_inquiries.filter(
-                        (inq) => (inq.status || '').toLowerCase() === 'new' && !inq.is_old
-                    ).length;
-                } else if (Array.isArray(data)) {
-                    newInquiries = data.filter(
-                        (inq) => (inq.status || '').toLowerCase() === 'new'
-                    ).length;
-                }
-            } catch (error) {
-                if (error.response?.status !== 401) {
-                    console.error('Error fetching inquiries for count:', error);
+            // Fetch contact inquiries (admin only)
+            let newInquiries = 0;
+            if (isAdminUser) {
+                try {
+                    const inquiriesResponse = await api.get('/contact-inquiries');
+                    const data = inquiriesResponse.data.data || {};
+
+                    if (data.new_inquiries && Array.isArray(data.new_inquiries)) {
+                        newInquiries = data.new_inquiries.length;
+                    } else if (data.all_inquiries && Array.isArray(data.all_inquiries)) {
+                        newInquiries = data.all_inquiries.filter(
+                            (inq) => (inq.status || '').toLowerCase() === 'new' && !inq.is_old
+                        ).length;
+                    } else if (Array.isArray(data)) {
+                        newInquiries = data.filter(
+                            (inq) => (inq.status || '').toLowerCase() === 'new'
+                        ).length;
+                    }
+                } catch (error) {
+                    if (error.response?.status !== 401) {
+                        console.error('Error fetching inquiries for count:', error);
+                    }
                 }
             }
 
@@ -96,6 +104,7 @@ export const NotificationProvider = ({ children }) => {
                 newInquiries,
                 upcomingEvents,
                 unassignedBookings,
+                pendingPayments,
             });
         } catch (error) {
             if (error.response?.status !== 401) {
@@ -134,4 +143,4 @@ export const NotificationProvider = ({ children }) => {
     );
 };
 
-export default NotificationContext;
+export default NotificationProvider;

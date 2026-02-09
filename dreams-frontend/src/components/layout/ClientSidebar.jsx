@@ -13,6 +13,8 @@ import {
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useNotificationCounts } from '../../context/NotificationContext';
+import { Badge } from '../ui/badge';
 import { ensureAbsoluteUrl } from '../../utils/imageUtils';
 import logo from '../../assets/logo.png';
 
@@ -39,24 +41,22 @@ const menuItems = [
     }
 ];
 
-const MenuItem = ({ item, isActive, isCollapsed }) => {
+const MenuItem = ({ item, isActive, isCollapsed, badgeCount }) => {
     const Icon = item.icon;
     const { darkMode } = useTheme();
 
     return (
         <Link
             to={item.path}
-            className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 ${
-                isCollapsed ? 'justify-center' : ''
-            } ${
-                isActive
+            className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+                } ${isActive
                     ? darkMode
                         ? 'bg-gradient-to-r from-purple-600/20 to-indigo-600/20 text-purple-400'
                         : 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700'
                     : darkMode
                         ? 'text-gray-400 hover:text-white hover:bg-white/5'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+                }`}
             title={isCollapsed ? item.label : undefined}
         >
             {/* Active indicator bar */}
@@ -65,47 +65,62 @@ const MenuItem = ({ item, isActive, isCollapsed }) => {
             )}
 
             {/* Icon with animation */}
-            <span className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0 ${
-                isActive 
-                    ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30' 
-                    : darkMode
-                        ? 'bg-gray-800/50 text-gray-400 group-hover:text-purple-400 group-hover:bg-gray-800'
-                        : 'bg-gray-100 text-gray-500 group-hover:text-purple-600 group-hover:bg-purple-50'
-            }`}>
-                <Icon className={`w-[18px] h-[18px] transition-transform duration-200 ${
-                    !isCollapsed ? 'group-hover:scale-110' : ''
-                }`} />
+            <span className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0 ${isActive
+                ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30'
+                : darkMode
+                    ? 'bg-gray-800/50 text-gray-400 group-hover:text-purple-400 group-hover:bg-gray-800'
+                    : 'bg-gray-100 text-gray-500 group-hover:text-purple-600 group-hover:bg-purple-50'
+                }`}>
+                <Icon className={`w-[18px] h-[18px] transition-transform duration-200 ${!isCollapsed ? 'group-hover:scale-110' : ''
+                    }`} />
+
+                {/* Badge on icon when collapsed */}
+                {isCollapsed && badgeCount > 0 && (
+                    <Badge className="absolute -top-1.5 -right-1.5 h-4 min-w-[16px] px-1 flex items-center justify-center text-[9px] bg-red-500 hover:bg-red-500 text-white border-2 border-white dark:border-gray-900 animate-pulse">
+                        {badgeCount > 9 ? '9+' : badgeCount}
+                    </Badge>
+                )}
             </span>
-            
+
             {!isCollapsed && (
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                        <span className={`font-medium text-sm ${isActive ? 'font-semibold' : ''}`}>
-                            {item.label}
-                        </span>
-                        {item.badge && (
-                            <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-md animate-pulse ${
-                                item.badgeColor === 'amber' 
-                                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white' 
-                                    : 'bg-purple-500 text-white'
-                            }`}>
-                                {item.badge}
+                    <div className="flex items-center gap-2 justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className={`font-medium text-sm truncate ${isActive ? 'font-semibold' : ''}`}>
+                                {item.label}
                             </span>
+                            {item.badge && (
+                                <span className={`flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-md animate-pulse ${item.badgeColor === 'amber'
+                                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
+                                    : 'bg-purple-500 text-white'
+                                    }`}>
+                                    {item.badge}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Numeric badge when expanded */}
+                        {badgeCount > 0 && (
+                            <Badge className={`flex-shrink-0 h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-bold ${isActive
+                                ? 'bg-white/20 hover:bg-white/30 text-white'
+                                : 'bg-red-500 hover:bg-red-500 text-white animate-pulse'
+                                }`}>
+                                {badgeCount > 99 ? '99+' : badgeCount}
+                            </Badge>
                         )}
                     </div>
                 </div>
             )}
 
             {/* Arrow indicator for active */}
-            {!isCollapsed && isActive && (
-                <ChevronRight className="w-4 h-4 text-purple-500" />
+            {!isCollapsed && isActive && !badgeCount && (
+                <ChevronRight className="w-4 h-4 text-purple-500 flex-shrink-0" />
             )}
 
             {/* Enhanced Tooltip for collapsed state */}
             {isCollapsed && (
-                <div className={`absolute left-full ml-3 px-3 py-2.5 rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 translate-x-2 group-hover:translate-x-0 ${
-                    darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-                }`}>
+                <div className={`absolute left-full ml-3 px-3 py-2.5 rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-50 translate-x-2 group-hover:translate-x-0 ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
+                    }`}>
                     <div className="flex items-center gap-2">
                         <span className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                             {item.label}
@@ -115,6 +130,11 @@ const MenuItem = ({ item, isActive, isCollapsed }) => {
                                 {item.badge}
                             </span>
                         )}
+                        {badgeCount > 0 && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-red-500 text-white">
+                                {badgeCount}
+                            </span>
+                        )}
                     </div>
                     {item.description && (
                         <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -122,9 +142,8 @@ const MenuItem = ({ item, isActive, isCollapsed }) => {
                         </p>
                     )}
                     {/* Tooltip arrow */}
-                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 rotate-45 ${
-                        darkMode ? 'bg-gray-800 border-l border-b border-gray-700' : 'bg-white border-l border-b border-gray-200'
-                    }`} />
+                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 rotate-45 ${darkMode ? 'bg-gray-800 border-l border-b border-gray-700' : 'bg-white border-l border-b border-gray-200'
+                        }`} />
                 </div>
             )}
         </Link>
@@ -137,6 +156,18 @@ const ClientSidebar = () => {
     const { isCollapsed, toggleSidebar } = useSidebar();
     const { logout, user } = useAuth();
     const { darkMode } = useTheme();
+    const { counts } = useNotificationCounts();
+
+    const getBadgeCount = (path) => {
+        switch (path) {
+            case '/dashboard/bookings':
+                return counts.pendingBookings;
+            case '/dashboard/payments':
+                return counts.pendingPayments;
+            default:
+                return 0;
+        }
+    };
 
     const isActive = (path) => {
         if (path === '/dashboard') {
@@ -152,35 +183,34 @@ const ClientSidebar = () => {
 
     return (
         <aside
-            className={`hidden lg:flex flex-col fixed left-0 top-16 bottom-0 z-30 transition-all duration-300 ease-out ${
-                darkMode 
-                    ? 'bg-gray-900/80 backdrop-blur-2xl border-r border-gray-800/50' 
-                    : 'bg-white/80 backdrop-blur-2xl border-r border-gray-200/50'
-            } ${isCollapsed ? 'w-20' : 'w-64'}`}
+            className={`hidden lg:flex flex-col fixed left-0 top-16 bottom-0 z-30 transition-all duration-300 ease-out ${darkMode
+                ? 'bg-gray-900/80 backdrop-blur-2xl border-r border-gray-800/50'
+                : 'bg-white/80 backdrop-blur-2xl border-r border-gray-200/50'
+                } ${isCollapsed ? 'w-20' : 'w-64'}`}
         >
             {/* Logo/Brand */}
             <div className={`relative px-3 py-2.5 ${!isCollapsed ? 'border-b' : ''} ${darkMode ? 'border-gray-800/50' : 'border-gray-100'}`}>
                 {isCollapsed ? (
-                    <Link 
-                        to="/" 
+                    <Link
+                        to="/"
                         className="flex justify-center group"
                         title="D'Dreams - Back to Home"
                     >
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-500/20 overflow-hidden transition-transform group-hover:scale-105">
-                            <img src={logo} alt="Logo" className="w-6 h-6 object-contain" />
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-sm overflow-hidden transition-transform group-hover:scale-105">
+                            <span className="text-white font-bold text-lg">C</span>
                         </div>
                     </Link>
                 ) : (
-                    <Link to="/" className="flex items-center gap-2.5 group">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-500/20 overflow-hidden transition-transform group-hover:scale-105 flex-shrink-0">
-                            <img src={logo} alt="Logo" className="w-6 h-6 object-contain" />
+                    <Link to="/" className="flex items-center gap-3 group">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-500/20 overflow-hidden transition-transform group-hover:scale-105 flex-shrink-0">
+                            <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
                         </div>
-                        <div>
-                            <h2 className={`font-bold text-sm leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                                D'Dreams
+                        <div className="min-w-0">
+                            <h2 className={`font-bold text-base leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                                Client Panel
                             </h2>
-                            <p className={`text-[10px] leading-tight ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                                Event Planning
+                            <p className={`text-[11px] font-medium leading-tight mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                Dreams Events
                             </p>
                         </div>
                     </Link>
@@ -193,9 +223,8 @@ const ClientSidebar = () => {
                     <div key={section.id} className={index > 0 ? 'mt-4' : ''}>
                         {/* Section label */}
                         {!isCollapsed && (
-                            <p className={`px-3 mb-1.5 text-[9px] font-semibold uppercase tracking-wider ${
-                                darkMode ? 'text-gray-500' : 'text-gray-400'
-                            }`}>
+                            <p className={`px-3 mb-1.5 text-[9px] font-semibold uppercase tracking-wider ${darkMode ? 'text-gray-500' : 'text-gray-400'
+                                }`}>
                                 {section.label}
                             </p>
                         )}
@@ -204,7 +233,7 @@ const ClientSidebar = () => {
                         {isCollapsed && index > 0 && (
                             <div className={`mx-auto w-8 h-px mb-3 ${darkMode ? 'bg-gray-800' : 'bg-gray-200'}`} />
                         )}
-                        
+
                         {/* Section items */}
                         <div className="space-y-1">
                             {section.items.map((item) => (
@@ -213,6 +242,7 @@ const ClientSidebar = () => {
                                     item={item}
                                     isActive={isActive(item.path)}
                                     isCollapsed={isCollapsed}
+                                    badgeCount={getBadgeCount(item.path)}
                                 />
                             ))}
                         </div>
@@ -224,9 +254,8 @@ const ClientSidebar = () => {
             {/* User section */}
             <div className={`relative p-2.5 border-t ${darkMode ? 'border-gray-800/50 bg-gray-900/50' : 'border-gray-100 bg-gray-50/50'}`}>
                 {!isCollapsed ? (
-                    <div className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors ${
-                        darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-white'
-                    }`}>
+                    <div className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors ${darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-white'
+                        }`}>
                         {/* User avatar with online indicator */}
                         <div className="relative flex-shrink-0">
                             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center overflow-hidden">
@@ -242,10 +271,12 @@ const ClientSidebar = () => {
                                     </span>
                                 )}
                             </div>
-                            {/* Online indicator */}
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-gray-900 rounded-full" />
+                            {/* Online indicator with pulse */}
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full shadow-sm z-10">
+                                <span className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></span>
+                            </span>
                         </div>
-                        
+
                         {/* User info */}
                         <div className="flex-1 min-w-0">
                             <p className={`font-semibold text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -255,15 +286,14 @@ const ClientSidebar = () => {
                                 {user?.email}
                             </p>
                         </div>
-                        
+
                         {/* Logout button */}
                         <button
                             onClick={handleLogout}
-                            className={`p-2 rounded-lg transition-all hover:scale-105 ${
-                                darkMode 
-                                    ? 'text-gray-500 hover:text-red-400 hover:bg-red-500/10' 
-                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                            }`}
+                            className={`p-2 rounded-lg transition-all hover:scale-105 ${darkMode
+                                ? 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
+                                : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                                }`}
                             title="Sign out"
                         >
                             <LogOut className="w-4 h-4" />
@@ -286,17 +316,18 @@ const ClientSidebar = () => {
                                     </span>
                                 )}
                             </div>
-                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-gray-900 rounded-full" />
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full shadow-sm z-10">
+                                <span className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></span>
+                            </span>
                         </div>
-                        
+
                         {/* Collapsed logout */}
                         <button
                             onClick={handleLogout}
-                            className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 ${
-                                darkMode 
-                                    ? 'text-gray-500 hover:text-red-400 hover:bg-red-500/10' 
-                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
-                            }`}
+                            className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 ${darkMode
+                                ? 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
+                                : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                                }`}
                             title="Sign out"
                         >
                             <LogOut className="w-4 h-4" />
