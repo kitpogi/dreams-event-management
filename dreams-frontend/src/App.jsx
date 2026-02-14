@@ -141,9 +141,7 @@ function App() {
                 path="/payment/confirm/:paymentId"
                 element={
                   <MainLayout>
-                    <ProtectedRoute>
-                      <LazyRoute component={LazyRoutes.PaymentConfirmation} />
-                    </ProtectedRoute>
+                    <LazyRoute component={LazyRoutes.PaymentConfirmation} />
                   </MainLayout>
                 }
               />

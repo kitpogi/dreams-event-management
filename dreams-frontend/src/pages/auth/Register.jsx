@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from '../../components/ui';
+import { AnimatedBackground, ParticlesBackground } from '../../components/features';
 import api from '../../api/axios';
 
 const Register = () => {
@@ -73,7 +74,7 @@ const Register = () => {
         setToken(result.data.token);
         setUser(result.data.user);
         toast.success('Successfully signed up with Google!');
-        
+
         const userData = result.data.user;
         if (userData.role === 'admin' || userData.role === 'coordinator') {
           navigate('/admin/dashboard', { replace: true });
@@ -109,7 +110,7 @@ const Register = () => {
               headers: { Authorization: `Bearer ${response.access_token}` }
             });
             const userInfo = await userInfoResponse.json();
-            
+
             const result = await api.post('/auth/google', {
               id_token: response.access_token,
               email: userInfo.email,
@@ -122,7 +123,7 @@ const Register = () => {
               setToken(result.data.token);
               setUser(result.data.user);
               toast.success('Successfully signed up with Google!');
-              
+
               const userData = result.data.user;
               if (userData.role === 'admin' || userData.role === 'coordinator') {
                 navigate('/admin/dashboard', { replace: true });
@@ -148,7 +149,7 @@ const Register = () => {
 
   const handleFacebookLogin = () => {
     const appId = import.meta.env.VITE_FACEBOOK_APP_ID;
-    
+
     // Check if App ID is configured
     if (!appId || appId === 'undefined' || appId === 'YOUR_FACEBOOK_APP_ID') {
       setError('Facebook App ID is not configured. Please check your .env file.');
@@ -162,10 +163,10 @@ const Register = () => {
     // Use OAuth redirect flow instead of popup (works on HTTP)
     const redirectUri = encodeURIComponent(window.location.origin + '/auth/facebook/callback');
     const scope = 'email,public_profile';
-    
+
     // Store the return URL for after login
     sessionStorage.setItem('fb_auth_redirect', '/dashboard');
-    
+
     // Redirect to Facebook OAuth
     window.location.href = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
   };
@@ -182,7 +183,7 @@ const Register = () => {
         setToken(result.data.token);
         setUser(result.data.user);
         toast.success('Successfully signed up with Facebook!');
-        
+
         const userData = result.data.user;
         if (userData.role === 'admin' || userData.role === 'coordinator') {
           navigate('/admin/dashboard', { replace: true });
@@ -222,13 +223,13 @@ const Register = () => {
       password_confirmation: formData.password_confirmation,
       phone: formData.phone
     });
-    
+
     if (result.success) {
       // Show verification message
       if (result.message) {
         toast.success(result.message, { autoClose: 5000 });
       }
-      
+
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       // Coordinators and admins go to admin dashboard
       if (userData.role === 'admin' || userData.role === 'coordinator') {
@@ -255,16 +256,23 @@ const Register = () => {
   }
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
+    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-[#0a0a1a] font-display text-gray-200">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-20">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+        </div>
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
+      </div>
       <div className="layout-container flex h-full grow flex-col">
         <div className="flex flex-1 justify-center items-center p-4 sm:p-6 md:p-8 lg:p-10">
-          <div className="layout-content-container flex flex-row max-w-5xl w-full rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl dark:shadow-2xl transition-all duration-300 hover:shadow-2xl dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-            
+          <div className="layout-content-container flex flex-row max-w-5xl w-full rounded-2xl border border-white/10 bg-[#0f172a]/95 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:shadow-[0_0_50px_-12px_rgba(90,69,242,0.3)] overflow-hidden">
+
             {/* Left Panel: Image */}
             <div className="hidden lg:flex flex-1 w-1/2 relative overflow-hidden">
-              <div 
-                className="w-full h-full bg-center bg-no-repeat bg-cover relative" 
-                data-alt="A beautifully decorated event venue with elegant table settings and floral arrangements." 
+              <div
+                className="w-full h-full bg-center bg-no-repeat bg-cover relative"
+                data-alt="A beautifully decorated event venue with elegant table settings and floral arrangements."
                 style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDHcYGuFYsXX_YQOLQzDJp_BxXY58Z0-yPNSVZpQBY-LjP5AssE3dqEjgnR1IRedoHYSpLj-cl_4OOrGaprfoymH_rsVjpfFRLM_E24JmGYDj27fxhW3p1VVPk26F4FNMID5KMx6V570G6JVNbCEU0oRy83B2Ffvnb5P3MspByuOrRKtH4j7ANvGU38o8qces5tlSNR9qqhMZ33jHPkJgtaP0gUQ8o8Y4w2xPZWrSOXwI1PVenVoC4aa11UPhX-edRBlou4qmXxp04g")' }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-gray-900/20 dark:to-gray-900/40"></div>
@@ -273,33 +281,33 @@ const Register = () => {
 
             {/* Right Panel: Form */}
             <div className="flex flex-col flex-1 w-full lg:w-1/2 p-6 sm:p-8 md:p-10 lg:p-12 max-h-[90vh] overflow-y-auto">
-              
+
               {/* Heading */}
               <div className="flex flex-wrap justify-between gap-3 mb-8">
                 <div className="flex w-full flex-col gap-2">
-                  <h1 className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Create Account</h1>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base font-normal leading-relaxed">Sign up to start planning your dream event.</p>
+                  <h1 className="text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Create Account</h1>
+                  <p className="text-gray-300 text-sm sm:text-base font-normal leading-relaxed">Sign up to start planning your dream event.</p>
                 </div>
               </div>
 
               {/* Segmented Buttons */}
               <div className="flex mb-8">
-                <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800/60 p-1.5 border border-gray-200 dark:border-gray-700/50">
-                  <Link 
+                <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-gray-800/60 p-1.5 border border-white/5">
+                  <Link
                     to="/login"
-                    className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:dark:text-white text-sm font-medium leading-normal transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-gray-400 hover:text-white text-sm font-medium leading-normal transition-all duration-200 hover:bg-gray-800/50"
                   >
                     <span className="truncate">Login</span>
                   </Link>
-                  <label className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 bg-white dark:bg-gray-700 shadow-sm dark:shadow-md text-gray-900 dark:text-white text-sm font-semibold leading-normal transition-all duration-200">
+                  <label className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 bg-gray-700 shadow-md text-white text-sm font-semibold leading-normal transition-all duration-200">
                     <span className="truncate">Sign Up</span>
-                    <input 
-                      checked 
-                      readOnly 
-                      className="invisible w-0" 
-                      name="auth-toggle" 
-                      type="radio" 
-                      value="Sign Up" 
+                    <input
+                      checked
+                      readOnly
+                      className="invisible w-0"
+                      name="auth-toggle"
+                      type="radio"
+                      value="Sign Up"
                     />
                   </label>
                 </div>
@@ -319,14 +327,14 @@ const Register = () => {
 
               {/* Form Fields */}
               <form onSubmit={handleSubmit} className="flex flex-col gap-5 mb-6">
-                
+
                 {/* Name */}
                 <label className="flex flex-col w-full">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal pb-2.5">Full Name</p>
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Full Name</p>
                   <div className="flex w-full flex-1 items-stretch rounded-xl">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner" 
-                      placeholder="Enter your full name" 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner"
+                      placeholder="Enter your full name"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
@@ -337,11 +345,11 @@ const Register = () => {
 
                 {/* Email */}
                 <label className="flex flex-col w-full">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal pb-2.5">Email</p>
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Email</p>
                   <div className="flex w-full flex-1 items-stretch rounded-xl">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner" 
-                      placeholder="Enter your email address" 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner"
+                      placeholder="Enter your email address"
                       name="email"
                       type="email"
                       value={formData.email}
@@ -350,14 +358,14 @@ const Register = () => {
                     />
                   </div>
                 </label>
-                
-                 {/* Phone */}
-                 <label className="flex flex-col w-full">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal pb-2.5">Phone Number</p>
+
+                {/* Phone */}
+                <label className="flex flex-col w-full">
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Phone Number</p>
                   <div className="flex w-full flex-1 items-stretch rounded-xl">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner" 
-                      placeholder="Enter your phone number" 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner"
+                      placeholder="Enter your phone number"
                       name="phone"
                       type="tel"
                       value={formData.phone}
@@ -368,11 +376,11 @@ const Register = () => {
 
                 {/* Password */}
                 <label className="flex flex-col w-full">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal pb-2.5">Password</p>
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Password</p>
                   <div className="flex w-full flex-1 items-stretch rounded-xl relative">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 pr-12 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner" 
-                      placeholder="Create a password" 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 pr-12 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner"
+                      placeholder="Create a password"
                       type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
@@ -399,14 +407,14 @@ const Register = () => {
                   </div>
                 </label>
 
-                 {/* Confirm Password */}
-                 <label className="flex flex-col w-full">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal pb-2.5">Confirm Password</p>
+                {/* Confirm Password */}
+                <label className="flex flex-col w-full">
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Confirm Password</p>
                   <div className="flex w-full flex-1 items-stretch rounded-xl relative">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 pr-12 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner" 
-                      placeholder="Confirm your password" 
-                      type={showConfirmPassword ? "text" : "password"} 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 pr-12 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner"
+                      placeholder="Confirm your password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="password_confirmation"
                       value={formData.password_confirmation}
                       onChange={handleChange}
@@ -442,13 +450,13 @@ const Register = () => {
 
               {/* Social Logins */}
               <div className="flex items-center gap-2 sm:gap-4 mb-6">
-                <hr className="flex-grow border-gray-200 dark:border-gray-700/50"/>
+                <hr className="flex-grow border-gray-200 dark:border-gray-700/50" />
                 <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium whitespace-nowrap">Or continue with</p>
-                <hr className="flex-grow border-gray-200 dark:border-gray-700/50"/>
+                <hr className="flex-grow border-gray-200 dark:border-gray-700/50" />
               </div>
 
               <div className="flex flex-col xs:flex-row gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={handleGoogleClick}
                   disabled={socialLoading}
@@ -466,7 +474,7 @@ const Register = () => {
                   )}
                   <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200">Google</span>
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={handleFacebookLogin}
                   disabled={socialLoading}

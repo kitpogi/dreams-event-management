@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Package, Trash2, ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
-import { PackageCard, PullToRefresh } from '../../components/features';
+import { PackageCard, PullToRefresh, AnimatedBackground, ParticlesBackground } from '../../components/features';
 import { Button, LoadingSpinner } from '../../components/ui';
 import { useFavorites } from '../../components/ui/FavoriteButton';
 import { useToast } from '../../hooks/use-toast';
@@ -21,7 +21,7 @@ const Favorites = () => {
     try {
       setLoading(true);
       const packageFavorites = getFavoritesByType('package');
-      
+
       if (packageFavorites.length === 0) {
         setFavoritePackages([]);
         setLoading(false);
@@ -64,13 +64,13 @@ const Favorites = () => {
     const packageFavorites = getFavoritesByType('package');
     const allFavorites = favorites.filter(fav => fav.type !== 'package');
     localStorage.setItem('favorites', JSON.stringify(allFavorites));
-    
+
     setFavoritePackages([]);
     toast({
       title: 'Cleared favorites',
       description: 'All favorite packages have been removed.',
     });
-    
+
     // Trigger a reload by dispatching a storage event
     window.dispatchEvent(new Event('storage'));
   };
@@ -82,84 +82,91 @@ const Favorites = () => {
   };
 
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
-    <div className="container mx-auto px-4 max-w-7xl py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] text-white">
-              <Heart className="w-6 h-6 fill-current" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              My Favorites
-            </h1>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {packageFavorites.length === 0
-              ? 'You haven\'t favorited any packages yet.'
-              : `You have ${packageFavorites.length} favorite ${packageFavorites.length === 1 ? 'package' : 'packages'}.`
-            }
-          </p>
+    <PullToRefresh onRefresh={handleRefresh} className="min-h-screen bg-[#0a0a1a] relative overflow-hidden">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-20">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
         </div>
-        {packageFavorites.length > 0 && (
-          <Button
-            variant="outline"
-            onClick={handleRemoveAll}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear All
-          </Button>
-        )}
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
       </div>
-
-      {/* Content */}
-      {loading ? (
-        <LoadingSpinner variant="section" size="lg" text="Loading your favorites..." />
-      ) : favoritePackages.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
-            <Heart className="w-12 h-12 text-gray-400" />
+      <div className="relative z-10 container mx-auto px-4 max-w-7xl py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] text-white">
+                <Heart className="w-6 h-6 fill-current" />
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                My Favorites
+              </h1>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              {packageFavorites.length === 0
+                ? 'You haven\'t favorited any packages yet.'
+                : `You have ${packageFavorites.length} favorite ${packageFavorites.length === 1 ? 'package' : 'packages'}.`
+              }
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            No Favorites Yet
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-            Start exploring our packages and click the heart icon to save your favorites for later.
-          </p>
-          <Link to="/packages">
-            <Button className="group">
-              <Package className="w-4 h-4 mr-2" />
-              <span>Browse Packages</span>
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+          {packageFavorites.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleRemoveAll}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear All
             </Button>
-          </Link>
+          )}
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {favoritePackages.map((pkg) => (
-              <PackageCard 
-                key={pkg.package_id || pkg.id} 
-                package={pkg}
-                viewMode="grid"
-              />
-            ))}
-          </div>
-          
-          {/* Back to Packages Link */}
-          <div className="mt-8 text-center">
+
+        {/* Content */}
+        {loading ? (
+          <LoadingSpinner variant="section" size="lg" text="Loading your favorites..." />
+        ) : favoritePackages.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
+              <Heart className="w-12 h-12 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              No Favorites Yet
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+              Start exploring our packages and click the heart icon to save your favorites for later.
+            </p>
             <Link to="/packages">
-              <Button variant="outline" className="group">
-                <ArrowRight className="w-4 h-4 mr-2 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                <span>Browse More Packages</span>
+              <Button className="group">
+                <Package className="w-4 h-4 mr-2" />
+                <span>Browse Packages</span>
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
-        </>
-      )}
-    </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {favoritePackages.map((pkg) => (
+                <PackageCard
+                  key={pkg.package_id || pkg.id}
+                  package={pkg}
+                  viewMode="grid"
+                />
+              ))}
+            </div>
+
+            {/* Back to Packages Link */}
+            <div className="mt-8 text-center">
+              <Link to="/packages">
+                <Button variant="outline" className="group">
+                  <ArrowRight className="w-4 h-4 mr-2 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                  <span>Browse More Packages</span>
+                </Button>
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
     </PullToRefresh>
   );
 };

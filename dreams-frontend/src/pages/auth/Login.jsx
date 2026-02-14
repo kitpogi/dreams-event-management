@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-import { AnimatedBackground } from '../../components/features';
+import { AnimatedBackground, ParticlesBackground } from '../../components/features';
 import { LoadingSpinner } from '../../components/ui';
 import api from '../../api/axios';
 
@@ -338,19 +338,17 @@ const Login = () => {
   }
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
-      {/* Animated Background */}
-      <AnimatedBackground
-        type="gradient"
-        colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
-        speed={0.3}
-        direction="diagonal"
-        blur={true}
-        className="opacity-20 dark:opacity-20"
-      />
+    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-[#0a0a1a] font-display text-gray-200">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-20">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+        </div>
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
+      </div>
       <div className="layout-container flex h-full grow flex-col relative z-10">
         <div className="flex flex-1 justify-center items-center p-4 sm:p-6 md:p-8 lg:p-10">
-          <div className="layout-content-container flex flex-row max-w-5xl w-full rounded-2xl border border-gray-200 dark:border-white/10 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-xl shadow-xl dark:shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 hover:shadow-2xl overflow-hidden">
+          <div className="layout-content-container flex flex-row max-w-5xl w-full rounded-2xl border border-white/10 bg-[#0f172a]/95 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:shadow-[0_0_50px_-12px_rgba(90,69,242,0.3)] overflow-hidden">
 
             {/* Left Panel: Image */}
             <div className="hidden lg:flex flex-1 w-1/2 relative overflow-hidden">
@@ -369,15 +367,15 @@ const Login = () => {
               {/* Heading */}
               <div className="flex flex-wrap justify-between gap-3 mb-8">
                 <div className="flex w-full flex-col gap-2">
-                  <h1 className="text-gray-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Welcome Back</h1>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base font-normal leading-relaxed">Login to continue managing your events.</p>
+                  <h1 className="text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Welcome Back</h1>
+                  <p className="text-gray-300 text-sm sm:text-base font-normal leading-relaxed">Login to continue managing your events.</p>
                 </div>
               </div>
 
               {/* Segmented Buttons */}
               <div className="flex mb-8">
-                <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800/40 p-1.5 border border-gray-200 dark:border-white/5">
-                  <label className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 bg-white dark:bg-gray-700/80 shadow-sm dark:shadow-md text-gray-900 dark:text-white text-sm font-semibold leading-normal transition-all duration-200">
+                <div className="flex h-11 flex-1 items-center justify-center rounded-xl bg-gray-800/40 p-1.5 border border-white/5">
+                  <label className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 bg-gray-700/80 shadow-md text-white text-sm font-semibold leading-normal transition-all duration-200">
                     <span className="truncate">Login</span>
                     <input
                       checked
@@ -390,7 +388,7 @@ const Login = () => {
                   </label>
                   <Link
                     to="/register"
-                    className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-gray-600 dark:text-gray-400 hover:text-gray-900 hover:dark:text-white text-sm font-medium leading-normal transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                    className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-gray-400 hover:text-white text-sm font-medium leading-normal transition-all duration-200 hover:bg-gray-700/40"
                   >
                     <span className="truncate">Sign Up</span>
                   </Link>
@@ -417,10 +415,10 @@ const Login = () => {
               {/* Form Fields */}
               <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5 mb-6" key={isAuthenticated ? 'authenticated' : 'not-authenticated'}>
                 <label className="flex flex-col w-full">
-                  <p className="text-gray-700 dark:text-gray-300 text-sm font-semibold leading-normal pb-2.5">Email</p>
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Email</p>
                   <div className="flex w-full flex-1 items-stretch rounded-xl">
                     <input
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-900 dark:text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/60 dark:focus:ring-primary/50 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/90 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-sm dark:shadow-inner"
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-gray-100 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-600 bg-gray-800/90 focus:border-primary h-12 placeholder:text-gray-500 px-4 text-base font-normal leading-normal transition-all duration-200 shadow-inner"
                       placeholder="Enter your email address"
                       name="email"
                       type="email"

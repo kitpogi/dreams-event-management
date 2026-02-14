@@ -51,8 +51,8 @@ const MenuItem = ({ item, isActive, isCollapsed, badgeCount }) => {
             className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
                 } ${isActive
                     ? darkMode
-                        ? 'bg-gradient-to-r from-purple-600/20 to-indigo-600/20 text-purple-400'
-                        : 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700'
+                        ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/15 text-blue-400'
+                        : 'bg-gradient-to-r from-blue-50 to-sky-50 text-blue-700'
                     : darkMode
                         ? 'text-gray-400 hover:text-white hover:bg-white/5'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -61,15 +61,15 @@ const MenuItem = ({ item, isActive, isCollapsed, badgeCount }) => {
         >
             {/* Active indicator bar */}
             {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-purple-500 to-indigo-600 rounded-r-full" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-r-full shadow-[0_0_12px_rgba(59,130,246,0.5)]" />
             )}
 
             {/* Icon with animation */}
-            <span className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 flex-shrink-0 ${isActive
-                ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/30'
+            <span className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 flex-shrink-0 ${isActive
+                ? 'bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-lg shadow-blue-500/30'
                 : darkMode
-                    ? 'bg-gray-800/50 text-gray-400 group-hover:text-purple-400 group-hover:bg-gray-800'
-                    : 'bg-gray-100 text-gray-500 group-hover:text-purple-600 group-hover:bg-purple-50'
+                    ? 'bg-gray-800/50 text-gray-400 group-hover:text-blue-400 group-hover:bg-gray-800'
+                    : 'bg-gray-100 text-gray-500 group-hover:text-blue-600 group-hover:bg-blue-50'
                 }`}>
                 <Icon className={`w-[18px] h-[18px] transition-transform duration-200 ${!isCollapsed ? 'group-hover:scale-110' : ''
                     }`} />
@@ -92,7 +92,7 @@ const MenuItem = ({ item, isActive, isCollapsed, badgeCount }) => {
                             {item.badge && (
                                 <span className={`flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-md animate-pulse ${item.badgeColor === 'amber'
                                     ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
-                                    : 'bg-purple-500 text-white'
+                                    : 'bg-blue-500 text-white'
                                     }`}>
                                     {item.badge}
                                 </span>
@@ -114,7 +114,7 @@ const MenuItem = ({ item, isActive, isCollapsed, badgeCount }) => {
 
             {/* Arrow indicator for active */}
             {!isCollapsed && isActive && !badgeCount && (
-                <ChevronRight className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-blue-500 flex-shrink-0" />
             )}
 
             {/* Enhanced Tooltip for collapsed state */}
@@ -183,33 +183,30 @@ const ClientSidebar = () => {
 
     return (
         <aside
-            className={`hidden lg:flex flex-col fixed left-0 top-16 bottom-0 z-30 transition-all duration-300 ease-out ${darkMode
-                ? 'bg-gray-900/80 backdrop-blur-2xl border-r border-gray-800/50'
-                : 'bg-white/80 backdrop-blur-2xl border-r border-gray-200/50'
-                } ${isCollapsed ? 'w-20' : 'w-64'}`}
+            className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-30 transition-all duration-300 ease-out border-none bg-transparent ${isCollapsed ? 'w-20' : 'w-60'}`}
         >
             {/* Logo/Brand */}
-            <div className={`relative px-3 py-2.5 ${!isCollapsed ? 'border-b' : ''} ${darkMode ? 'border-gray-800/50' : 'border-gray-100'}`}>
+            <div className={`relative px-4 h-16 flex items-center`}>
                 {isCollapsed ? (
                     <Link
                         to="/"
                         className="flex justify-center group"
                         title="D'Dreams - Back to Home"
                     >
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-sm overflow-hidden transition-transform group-hover:scale-105">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden transition-transform group-hover:scale-105">
                             <span className="text-white font-bold text-lg">C</span>
                         </div>
                     </Link>
                 ) : (
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-500/20 overflow-hidden transition-transform group-hover:scale-105 flex-shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden transition-transform group-hover:scale-105 flex-shrink-0">
                             <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
                         </div>
                         <div className="min-w-0">
                             <h2 className={`font-bold text-base leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                                 Client Panel
                             </h2>
-                            <p className={`text-[11px] font-medium leading-tight mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            <p className={`text-[11px] font-medium leading-tight mt-0.5 ${darkMode ? 'text-blue-400/60' : 'text-gray-400'}`}>
                                 Dreams Events
                             </p>
                         </div>
@@ -252,13 +249,13 @@ const ClientSidebar = () => {
             </nav>
 
             {/* User section */}
-            <div className={`relative p-2.5 border-t ${darkMode ? 'border-gray-800/50 bg-gray-900/50' : 'border-gray-100 bg-gray-50/50'}`}>
+            <div className={`relative p-2.5`}>
                 {!isCollapsed ? (
                     <div className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors ${darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-white'
                         }`}>
                         {/* User avatar with online indicator */}
                         <div className="relative flex-shrink-0">
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center overflow-hidden">
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden">
                                 {user?.profile_picture ? (
                                     <img
                                         src={ensureAbsoluteUrl(user.profile_picture)}
@@ -303,7 +300,7 @@ const ClientSidebar = () => {
                     <div className="flex flex-col items-center gap-2">
                         {/* Collapsed avatar */}
                         <div className="relative">
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center overflow-hidden">
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center overflow-hidden">
                                 {user?.profile_picture ? (
                                     <img
                                         src={ensureAbsoluteUrl(user.profile_picture)}

@@ -60,9 +60,9 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
 
   useEffect(() => {
     const script = document.createElement('script');
-    script.src = 'https://js.paymongo.com/v1';
+    script.src = 'https://js.paymongo.com/v2';
     script.async = true;
-    script.onload = () => console.log('PayMongo SDK loaded');
+    script.onload = () => console.log('PayMongo V2 SDK loaded');
     document.body.appendChild(script);
 
     return () => {
@@ -71,6 +71,9 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
       }
     };
   }, []);
+
+  const [paymongoInstance, setPaymongoInstance] = useState(null);
+  const [cardElement, setCardElement] = useState(null);
 
   const handleCreatePaymentIntent = async () => {
     const paymentAmount = getPaymentAmount();
@@ -86,7 +89,11 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
         setPaymentIntentId(result.data.payment_intent_id);
         setClientKey(result.data.client_key);
         setStep('processing');
-        initializePayMongo(result.data.client_key, result.data.payment_intent_id);
+
+        // Wait a small bit for the modal/container to be rendered
+        setTimeout(() => {
+          initializePayMongo(result.data.client_key, result.data.payment_intent_id);
+        }, 100);
       } else {
         toast.error(result.message || 'Failed to create payment intent');
       }
@@ -101,91 +108,112 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
   const initializePayMongo = async (intentClientKey, intentId) => {
     if (typeof window.Paymongo === 'undefined') {
       toast.error('PayMongo SDK not loaded. Please refresh the page.');
-      setStep('method'); // Reset step so user can try again
+      setStep('method');
       return;
     }
 
     if (!PAYMONGO_PUBLIC_KEY) {
       toast.error('Payment configuration error. Please contact support.');
-      console.error('VITE_PAYMONGO_PUBLIC_KEY is not set in environment variables. Restart the Vite dev server after updating .env.');
       setStep('method');
       return;
     }
 
-    // Debug: log key prefix to verify env var is loaded (never log full key)
-    console.log('PayMongo key loaded:', PAYMONGO_PUBLIC_KEY ? `${PAYMONGO_PUBLIC_KEY.substring(0, 12)}...` : 'EMPTY');
-
     try {
       const paymongo = window.Paymongo(PAYMONGO_PUBLIC_KEY);
+      setPaymongoInstance(paymongo);
 
       if (paymentMethod === 'card') {
-        // --- CREDIT CARD FLOW ---
-        const paymentForm = paymongo.paymentForm({
-          intentId: intentId,
-          clientKey: intentClientKey,
-          onSuccess: async (payment) => {
-            try {
-              await attachPaymentMethod(intentId, payment.paymentMethodId);
-              toast.success('Payment successful!');
-              if (onSuccess) onSuccess(payment);
-            } catch (error) {
-              console.error('Payment attachment error:', error);
-              toast.error('Payment processing failed');
-            }
+        const elements = paymongo.elements();
+        const style = {
+          base: {
+            color: '#1f2937',
+            fontFamily: '"Manrope", sans-serif',
+            fontSize: '16px',
+            '::placeholder': {
+              color: '#9ca3af',
+            },
           },
-          onError: (error) => {
-            console.error('Payment error:', error);
-            toast.error(error.message || 'Payment failed');
-            setStep('method');
+          invalid: {
+            color: '#ef4444',
           },
-        });
+        };
 
-        const formContainer = document.getElementById('paymongo-payment-form');
-        if (formContainer) paymentForm.mount('#paymongo-payment-form');
-
+        const card = elements.create('card', { style });
+        card.mount('#paymongo-payment-form');
+        setCardElement(card);
       } else {
-        // --- E-WALLET / OTHER FLOW (GCash, Maya, Online Banking, etc.) ---
-        // Process entirely on the backend to avoid PayMongo JS SDK issues with e-wallets
-        const billingName = booking?.client?.client_fname
-          ? `${booking.client.client_fname} ${booking.client.client_lname}`
-          : 'Event Client';
-        const billingEmail = booking?.client?.client_email || null;
-
-        try {
-          const result = await processEwalletPayment(
-            intentId,
-            paymentMethod,
-            billingName,
-            billingEmail
-          );
-
-          if (result.success) {
-            const status = result.data.status;
-
-            if (status === 'awaiting_next_action') {
-              // REDIRECT TO GCASH/MAYA/DOB authorization page
-              const redirectUrl = result.data.payment_intent.attributes.next_action.redirect.url;
-              window.location.href = redirectUrl;
-            } else if (status === 'succeeded') {
-              toast.success('Payment successful!');
-              if (onSuccess) onSuccess(result.data);
-            } else {
-              toast.info(`Payment status: ${status}`);
-            }
-          } else {
-            toast.error(result.message || 'Failed to process payment');
-            setStep('method');
-          }
-        } catch (error) {
-          console.error('E-wallet payment error:', error);
-          toast.error(error.message || 'Failed to process wallet payment');
-          setStep('method');
-        }
+        // --- E-WALLET / OTHER FLOW ---
+        // Continue with backend processing as before
+        handleEwalletPayment(intentId);
       }
     } catch (error) {
       console.error('PayMongo initialization error:', error);
       toast.error('Failed to initialize payment form');
       setStep('method');
+    }
+  };
+
+  const handleEwalletPayment = async (intentId) => {
+    const billingName = booking?.client?.client_fname
+      ? `${booking.client.client_fname} ${booking.client.client_lname}`
+      : 'Event Client';
+    const billingEmail = booking?.client?.client_email || null;
+
+    try {
+      const result = await processEwalletPayment(
+        intentId,
+        paymentMethod,
+        billingName,
+        billingEmail
+      );
+
+      if (result.success) {
+        if (result.data.status === 'awaiting_next_action') {
+          window.location.href = result.data.payment_intent.attributes.next_action.redirect.url;
+        } else if (result.data.status === 'succeeded') {
+          toast.success('Payment successful!');
+          if (onSuccess) onSuccess(result.data);
+        }
+      } else {
+        toast.error(result.message || 'Failed to process payment');
+        setStep('method');
+      }
+    } catch (error) {
+      console.error('E-wallet payment error:', error);
+      toast.error(error.message || 'Failed to process wallet payment');
+      setStep('method');
+    }
+  };
+
+  const handleConfirmCardPayment = async () => {
+    if (!paymongoInstance || !cardElement || !paymentIntentId) return;
+
+    setLoading(true);
+    try {
+      // Step 1: Create Payment Method from card element
+      const result = await paymongoInstance.createPaymentMethod({
+        type: 'card',
+        details: {
+          card: cardElement,
+        },
+      });
+
+      // Step 2: Attach to payment intent via backend
+      const attachResult = await attachPaymentMethod(paymentIntentId, result.data.id);
+
+      if (attachResult.success) {
+        if (attachResult.data.status === 'succeeded') {
+          toast.success('Payment successful!');
+          if (onSuccess) onSuccess(attachResult.data);
+        } else {
+          toast.info(`Payment status: ${attachResult.data.status}`);
+        }
+      }
+    } catch (error) {
+      console.error('Card payment failure:', error);
+      toast.error(error.message || 'Card payment failed. Please check your details.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -202,12 +230,25 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Secure Checkout</CardTitle>
           <CardDescription>
-            Processing your {PAYMENT_METHODS.find(m => m.value === paymentMethod)?.label} payment
+            {paymentMethod === 'card'
+              ? 'Enter your card details to complete payment'
+              : `Processing your ${PAYMENT_METHODS.find(m => m.value === paymentMethod)?.label} payment`}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {paymentMethod === 'card' ? (
-            <div id="paymongo-payment-form" className="min-h-[350px] bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border/50"></div>
+            <div className="space-y-4">
+              <div className="bg-card/50 backdrop-blur-sm rounded-xl p-6 border border-border/50 shadow-inner">
+                <div id="paymongo-payment-form" className="min-h-[40px]"></div>
+              </div>
+              <Button
+                onClick={handleConfirmCardPayment}
+                disabled={loading}
+                className="w-full h-12 rounded-xl text-lg font-bold shadow-lg"
+              >
+                {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</> : `Confirm ${formatCurrency(getPaymentAmount())}`}
+              </Button>
+            </div>
           ) : (
             <div className="text-center py-12 bg-card/50 backdrop-blur-sm rounded-xl border border-border/50">
               <div className="relative inline-block">
@@ -217,8 +258,8 @@ export default function PaymentForm({ bookingId, amount, booking, onSuccess, onC
               <p className="text-sm text-muted-foreground mt-2">Please do not close this window</p>
             </div>
           )}
-          <div className="mt-6 flex justify-center">
-            <Button variant="ghost" onClick={() => setStep('method')} className="text-muted-foreground hover:text-foreground">
+          <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => { setStep('method'); setPaymentIntentId(null); }} className="text-muted-foreground hover:text-foreground">
               ← Cancel and go back
             </Button>
           </div>

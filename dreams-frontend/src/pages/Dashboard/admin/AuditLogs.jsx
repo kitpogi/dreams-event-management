@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
-import { LoadingSpinner } from "../../../components/ui";
+import { LoadingSpinner, Pagination } from "../../../components/ui";
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  DocumentTextIcon,
-  UserIcon,
-  CalendarIcon,
-  ArrowLeftIcon,
-} from "@heroicons/react/24/outline";
+  Search, Filter, FileText, User, Calendar, ArrowLeft,
+  Activity, ShieldAlert, Clock, ChevronDown, Trash2, Edit3, Plus,
+  RefreshCw, TrendingUp, HardDrive
+} from "lucide-react";
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -46,7 +43,7 @@ const AuditLogs = () => {
         ),
       };
 
-        const response = await api.get("/audit-logs", { params });
+      const response = await api.get("/audit-logs", { params });
       setLogs(response.data.data);
       setPagination(response.data.meta);
     } catch (error) {
@@ -84,287 +81,210 @@ const AuditLogs = () => {
     });
   };
 
+  const getActionIcon = (action) => {
+    if (!action || typeof action !== 'string') return <Activity className="w-4 h-4" />;
+    if (action.includes("created")) return <Plus className="w-4 h-4" />;
+    if (action.includes("updated")) return <Edit3 className="w-4 h-4" />;
+    if (action.includes("deleted")) return <Trash2 className="w-4 h-4" />;
+    if (action.includes("status")) return <RefreshCw className="w-4 h-4" />;
+    return <Activity className="w-4 h-4" />;
+  };
+
   const getActionBadgeColor = (action) => {
+    if (!action || typeof action !== 'string') return "bg-gray-500/10 text-gray-600 border-gray-500/20";
     if (action.includes("created"))
-      return "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300";
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
     if (action.includes("updated"))
-      return "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300";
+      return "bg-blue-500/10 text-blue-600 border-blue-500/20";
     if (action.includes("deleted"))
-      return "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300";
+      return "bg-rose-500/10 text-rose-600 border-rose-500/20";
     if (action.includes("status_changed"))
-      return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300";
+      return "bg-amber-500/10 text-amber-600 border-amber-500/20";
     if (action.includes("assigned"))
-      return "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300";
-    return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
+      return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+    return "bg-gray-500/10 text-gray-600 border-gray-500/20";
   };
 
   return (
-    <div className="bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
-        <div className="p-4 sm:p-6 lg:p-10">
-          <div className="mb-4 sm:mb-6">
-            <div className="flex items-center gap-4 mb-4">
-              <Link
-                to="/admin/dashboard"
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
-              >
-                <ArrowLeftIcon className="h-5 w-5" />
-                <span className="font-medium">Back to Dashboard</span>
-              </Link>
+    <div className="relative min-h-screen pb-20">
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-20">
+
+        {/* ═══════════════ HEADER ═══════════════ */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl shadow-blue-500/20 transition-transform hover:scale-105">
+              <ShieldAlert className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-300">
-              Audit Logs
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 transition-colors duration-300">
-              Track all administrative actions and changes in the system
-            </p>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                System Audit Logs
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-0.5">
+                Monitor and review all administrative activities
+              </p>
+            </div>
           </div>
 
-      {/* Search and Filter Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search descriptions..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-            />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchLogs}
+              className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-800 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-300"
-          >
-            <FunnelIcon className="h-5 w-5" />
-            <span>Filters</span>
-          </button>
         </div>
 
-        {/* Advanced Filters */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4 transition-colors duration-300">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                Action
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., package.created"
-                value={filters.action}
-                onChange={(e) => handleFilterChange("action", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                Model Type
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., App\Models\EventPackage"
-                value={filters.model_type}
-                onChange={(e) =>
-                  handleFilterChange("model_type", e.target.value)
-                }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                User ID
-              </label>
-              <input
-                type="number"
-                placeholder="User ID"
-                value={filters.user_id}
-                onChange={(e) => handleFilterChange("user_id", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={filters.start_date}
-                onChange={(e) =>
-                  handleFilterChange("start_date", e.target.value)
-                }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={filters.end_date}
-                onChange={(e) => handleFilterChange("end_date", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={clearFilters}
-                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300"
-              >
-                Clear Filters
-              </button>
+        {/* ═══════════════ STATS BAR ═══════════════ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Logs</p>
+            <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{pagination.total}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Alert Level</p>
+            <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">Normal</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Storage</p>
+            <div className="flex items-center gap-2">
+              <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">92%</p>
+              <HardDrive className="w-5 h-5 text-indigo-500" />
             </div>
           </div>
-        )}
-      </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Trend</p>
+            <div className="flex items-center gap-2">
+              <p className="text-3xl font-extrabold text-amber-500">Stable</p>
+              <TrendingUp className="w-5 h-5 text-amber-500" />
+            </div>
+          </div>
+        </div>
 
-      {/* Logs Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-        {loading ? (
-          <LoadingSpinner variant="section" size="md" text="Loading audit logs..." />
-        ) : logs.length === 0 ? (
-          <div className="p-8 text-center">
-            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-            <p className="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">
-              No audit logs found
-            </p>
+        {/* ═══════════════ SEARCH & FILTERS ═══════════════ */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 mb-8 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by action, model or description..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange("search", e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-slate-500/20"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${showFilters ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+            >
+              <Filter className="w-4 h-4" />
+              {showFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+            </button>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="min-w-[800px] divide-y divide-gray-200 dark:divide-gray-700 w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-2 duration-300">
+              <input type="date" value={filters.start_date} onChange={(e) => handleFilterChange("start_date", e.target.value)} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" />
+              <input type="date" value={filters.end_date} onChange={(e) => handleFilterChange("end_date", e.target.value)} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" />
+              <select value={filters.action} onChange={(e) => handleFilterChange("action", e.target.value)} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
+                <option value="">All Actions</option>
+                <option value="created">Created</option>
+                <option value="updated">Updated</option>
+                <option value="deleted">Deleted</option>
+              </select>
+              <input type="text" placeholder="User ID" value={filters.user_id} onChange={(e) => handleFilterChange("user_id", e.target.value)} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" />
+              <button onClick={clearFilters} className="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">Clear All Filters</button>
+            </div>
+          )}
+        </div>
+
+        {/* ═══════════════ LOGS TABLE ═══════════════ */}
+        <div className="bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-[2.5rem] border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-left">
+                <tr>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500">Event Time</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500">Administrator</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500">Action Protocol</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500">Resource Target</th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-500">Operation Hash</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {loading ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Date & Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Action
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Model
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      IP Address
-                    </th>
+                    <td colSpan="5" className="px-8 py-20 text-center">
+                      <LoadingSpinner size="lg" />
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {logs.map((log) => (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white transition-colors duration-300">
-                        <div className="flex items-center gap-2">
-                          <CalendarIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                          {formatDate(log.created_at)}
+                ) : logs.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-8 py-20 text-center">
+                      <p className="text-gray-500 font-bold italic">No audit records identified.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  logs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-gray-800/20 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-200">{formatDate(log.created_at)}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {log.user ? (
-                          <div className="flex items-center gap-2">
-                            <UserIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white transition-colors duration-300">
-                                {log.user.name}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                                {log.user.email}
-                              </div>
-                            </div>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center text-slate-600 dark:text-slate-400 text-xs font-bold">
+                            {log.user?.client_fname?.[0] || 'A'}
                           </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">System</span>
-                        )}
+                          <div>
+                            <p className="text-sm font-bold text-gray-900 dark:text-white leading-none mb-1">
+                              {log.user?.client_fname} {log.user?.client_lname}
+                            </p>
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">ID: #{log.user_id}</p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-300 ${getActionBadgeColor(
-                            log.action
-                          )}`}
-                        >
-                          {log.action}
+                      <td className="px-8 py-5">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getActionBadgeColor(log.action || '')}`}>
+                          {getActionIcon(log.action || '')}
+                          {(log.action || 'system_event').replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200 transition-colors duration-300">
-                        {log.description || "N/A"}
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-indigo-500" />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                            {log.model_type ? log.model_type.split("\\").pop() : 'System'}
+                          </span>
+                          <span className="text-[10px] font-black text-gray-400">#{log.model_id || '0'}</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                        {log.model_type ? (
-                          <div>
-                            <div className="font-medium">
-                              {log.model_type.split("\\").pop()}
-                            </div>
-                            {log.model_id && (
-                              <div className="text-xs">ID: {log.model_id}</div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 dark:text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                        {log.ip_address || "-"}
+                      <td className="px-8 py-5">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 italic line-clamp-1 max-w-[200px]" title={log.description}>
+                          {log.description}
+                        </p>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Pagination */}
-            {pagination.last_page > 1 && (
-              <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between transition-colors duration-300">
-                <div className="text-sm text-gray-700 dark:text-gray-300 transition-colors duration-300">
-                  Showing{" "}
-                  {(pagination.current_page - 1) * pagination.per_page + 1} to{" "}
-                  {Math.min(
-                    pagination.current_page * pagination.per_page,
-                    pagination.total
-                  )}{" "}
-                  of {pagination.total} results
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        current_page: Math.max(1, prev.current_page - 1),
-                      }))
-                    }
-                    disabled={pagination.current_page === 1}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-300"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        current_page: Math.min(
-                          prev.last_page,
-                          prev.current_page + 1
-                        ),
-                      }))
-                    }
-                    disabled={pagination.current_page === pagination.last_page}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors duration-300"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          <div className="px-8 py-6 bg-gray-50/50 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-800">
+            <Pagination
+              currentPage={pagination.current_page}
+              lastPage={pagination.last_page}
+              total={pagination.total}
+              perPage={pagination.per_page}
+              onPageChange={(p) => setPagination({ ...pagination, current_page: p })}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

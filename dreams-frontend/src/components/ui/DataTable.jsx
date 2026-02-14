@@ -10,6 +10,7 @@ import {
 import { Button } from './Button';
 import { Input } from './Input';
 import { Checkbox } from './checkbox';
+import { Pagination } from './pagination';
 import {
   ChevronUp,
   ChevronDown,
@@ -77,16 +78,16 @@ const DataTable = ({
       result.sort((a, b) => {
         const aValue = sortConfig.accessor ? a[sortConfig.accessor] : a[sortConfig.key];
         const bValue = sortConfig.accessor ? b[sortConfig.accessor] : b[sortConfig.key];
-        
+
         if (aValue === null || aValue === undefined) return 1;
         if (bValue === null || bValue === undefined) return -1;
-        
+
         if (typeof aValue === 'string') {
           return sortConfig.direction === 'asc'
             ? aValue.localeCompare(bValue)
             : bValue.localeCompare(aValue);
         }
-        
+
         return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
       });
     }
@@ -206,7 +207,7 @@ const DataTable = ({
 
   const handleSort = (column) => {
     if (!column.sortable) return;
-    
+
     setSortConfig((prev) => {
       if (prev.key === column.accessor) {
         return {
@@ -396,8 +397,8 @@ const DataTable = ({
                         {column.render
                           ? column.render(row, rowIndex)
                           : column.accessor
-                          ? row[column.accessor]
-                          : ''}
+                            ? row[column.accessor]
+                            : ''}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -410,55 +411,16 @@ const DataTable = ({
 
       {/* Pagination */}
       {pagination && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Showing {(currentPage - 1) * pageSize + 1} to{' '}
-            {Math.min(currentPage * pageSize, filteredData.length)} of{' '}
-            {filteredData.length} results
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(
-                  (page) =>
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-                )
-                .map((page, index, array) => (
-                  <div key={page} className="flex items-center">
-                    {index > 0 && array[index - 1] !== page - 1 && (
-                      <span className="px-2">...</span>
-                    )}
-                    <Button
-                      variant={currentPage === page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className="min-w-[40px]"
-                    >
-                      {page}
-                    </Button>
-                  </div>
-                ))}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          lastPage={totalPages}
+          total={filteredData.length}
+          perPage={pageSize}
+          from={(currentPage - 1) * pageSize + 1}
+          to={Math.min(currentPage * pageSize, filteredData.length)}
+          onPageChange={setCurrentPage}
+          onPerPageChange={() => { }} // pageSize is fixed via props in this component
+        />
       )}
     </div>
   );

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
 import { Button, Input, ConfirmationModal, LoadingSpinner } from '../../../components/ui';
-import { Card, CardContent, CardFooter } from '../../../components/ui/Card';
+import { Building2, MapPin, Users, FileText, X, Plus, Edit3, Search, Hash, TrendingUp } from 'lucide-react';
 
 const ManageVenues = () => {
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingVenue, setEditingVenue] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -17,55 +17,27 @@ const ManageVenues = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, venueId: null });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
-  useEffect(() => {
-    fetchVenues();
-  }, []);
-
-  const fetchVenues = async () => {
+  const fetchVenues = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await api.get('/venues');
       setVenues(response.data.data || response.data);
     } catch (error) {
       console.error('Error fetching venues:', error);
+      setFeedback({ type: 'error', message: 'Failed to load venues' });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleOpenModal = (venue = null) => {
-    if (venue) {
-      setEditingVenue(venue);
-      setFormData({
-        name: venue.name,
-        location: venue.location,
-        capacity: venue.capacity,
-        description: venue.description || '',
-      });
-    } else {
-      setEditingVenue(null);
-      setFormData({
-        name: '',
-        location: '',
-        capacity: '',
-        description: '',
-      });
-    }
-    setIsModalOpen(true);
-  };
+  useEffect(() => {
+    fetchVenues();
+  }, [fetchVenues]);
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingVenue(null);
-    setFormData({
-      name: '',
-      location: '',
-      capacity: '',
-      description: '',
-    });
-  };
-
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -76,26 +48,41 @@ const ManageVenues = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setFeedback({ type: '', message: '' });
 
     try {
-      if (editingVenue) {
-        await api.put(`/venues/${editingVenue.id}`, formData);
-        toast.success('Venue updated successfully');
+      if (editingId) {
+        await api.put(`/venues/${editingId}`, formData);
+        setFeedback({ type: 'success', message: 'Venue updated successfully' });
       } else {
         await api.post('/venues', formData);
-        toast.success('Venue created successfully');
+        setFeedback({ type: 'success', message: 'Venue created successfully' });
       }
       fetchVenues();
-      handleCloseModal();
+      resetForm();
+      setShowForm(false);
     } catch (error) {
       console.error('Error saving venue:', error);
-      toast.error(error.response?.data?.message || 'Failed to save venue');
+      setFeedback({ type: 'error', message: error.response?.data?.message || 'Failed to save venue' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteClick = (id) => {
+  const handleEdit = (venue) => {
+    setEditingId(venue.id);
+    setFormData({
+      name: venue.name,
+      location: venue.location,
+      capacity: venue.capacity,
+      description: venue.description || '',
+    });
+    setFeedback({ type: '', message: '' });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const confirmDelete = (id) => {
     setDeleteConfirm({ isOpen: true, venueId: id });
   };
 
@@ -105,212 +92,303 @@ const ManageVenues = () => {
 
     try {
       await api.delete(`/venues/${id}`);
-      setVenues(venues.filter((v) => v.id !== id));
-      toast.success('Venue deleted successfully');
+      setVenues(prev => prev.filter((v) => v.id !== id));
+      setFeedback({ type: 'success', message: 'Venue deleted successfully' });
     } catch (error) {
       console.error('Error deleting venue:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete venue');
+      setFeedback({ type: 'error', message: 'Failed to delete venue' });
     } finally {
       setDeleteConfirm({ isOpen: false, venueId: null });
     }
   };
 
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({
+      name: '',
+      location: '',
+      capacity: '',
+      description: '',
+    });
+  };
+
+  const filteredVenues = useMemo(() => {
+    return venues.filter(v =>
+      v.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.location?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [venues, searchQuery]);
+
+  const totalCapacity = useMemo(() => {
+    return venues.reduce((sum, v) => sum + (parseInt(v.capacity) || 0), 0);
+  }, [venues]);
+
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300/20 dark:bg-purple-900/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div className="relative min-h-screen pb-20">
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-20">
+        {/* ═══════════════ HEADER ═══════════════ */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl shadow-blue-500/20 transition-transform hover:scale-105">
+              <Building2 className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                Manage Venues
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-0.5">
+                Organize and scale your event locations
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {feedback.message && (
+              <div className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg animate-in slide-in-from-top-4 duration-500 border ${feedback.type === 'error'
+                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20'
+                : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                }`}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${feedback.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                  {feedback.message}
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => { resetForm(); setShowForm(!showForm); }}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 ${showForm
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/25'
+                }`}
+            >
+              {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              <span className="hidden sm:inline">{showForm ? 'Close Form' : 'Add Venue'}</span>
+            </button>
+          </div>
         </div>
-        
-        <div className="relative z-10 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-7xl mx-auto">
-          {/* Header Section with Icon */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div className="flex flex-col justify-center">
-                <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                  Manage Venues
-                </h1>
-                <p className="text-base text-gray-600 dark:text-gray-300 font-medium">
-                  Create and manage event venues
-                </p>
-              </div>
-            </div>
-            <Button 
-              onClick={() => handleOpenModal()}
-              className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 hover:scale-105 transition-all duration-300 font-bold px-8 py-4 rounded-2xl"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add New Venue
-            </Button>
-          </div>
 
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : venues.length === 0 ? (
-          <div className="text-center py-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl rounded-3xl border-2 border-indigo-100 dark:border-indigo-900/50">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 mb-6">
-              <svg className="w-10 h-10 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">No venues found</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-base mb-8">Create your first venue to get started</p>
-            <Button 
-              onClick={() => handleOpenModal()}
-              className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300 font-bold px-8 py-4 rounded-2xl"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Venue
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {venues.map((venue) => (
-              <Card 
-                key={venue.id} 
-                className="flex flex-col h-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-2 border-indigo-100 dark:border-indigo-900/50 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:-translate-y-2 hover:scale-105 rounded-3xl overflow-hidden group"
-              >
-                <CardContent className="flex-1 p-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
-                    {venue.name}
-                  </h3>
-                  <div className="text-gray-600 dark:text-gray-400 mb-4 space-y-3">
-                    <p className="flex items-center text-sm font-medium">
-                      <span className="mr-3 text-lg">📍</span> 
-                      <span className="truncate">{venue.location}</span>
-                    </p>
-                    <p className="flex items-center text-sm font-medium">
-                      <span className="mr-3 text-lg">👥</span> 
-                      <span>Capacity: <span className="font-bold text-gray-900 dark:text-white">{venue.capacity?.toLocaleString() || 'N/A'}</span> guests</span>
-                    </p>
+        {/* ═══════════════ FORM PANEL (Collapsible) ═══════════════ */}
+        {showForm && (
+          <div className="mb-8 animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
+              <div className="px-6 sm:px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                    {editingId ? <Edit3 className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
                   </div>
-                  {venue.description && (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-3 leading-relaxed">
-                      {venue.description}
-                    </p>
-                  )}
-                </CardContent>
-                <CardFooter className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-700/50 px-6 pb-6 bg-gray-50/50 dark:bg-gray-800/30">
-                  <button
-                    onClick={() => handleOpenModal(venue)}
-                    className="px-4 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all duration-300 border border-indigo-200 dark:border-indigo-800 hover:border-indigo-300 dark:hover:border-indigo-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(venue.id)}
-                    className="px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-300 border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
-                  >
-                    Delete
-                  </button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {editingId ? 'Edit Venue' : 'Create New Venue'}
+                  </h2>
+                </div>
+              </div>
 
-        {/* Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-md shadow-xl transform transition-all border border-gray-200 dark:border-gray-700">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white transition-colors duration-300">
-                {editingVenue ? 'Edit Venue' : 'Add New Venue'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                    Venue Name *
-                  </label>
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="e.g. Grand Ballroom"
-                  />
+              <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-blue-500" />
+                      Venue Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-medium"
+                      placeholder="e.g. Grand Ballroom"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-rose-500" />
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-medium"
+                      placeholder="e.g. Makati City"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <Users className="w-4 h-4 text-emerald-500" />
+                      Capacity *
+                    </label>
+                    <input
+                      type="number"
+                      name="capacity"
+                      value={formData.capacity}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-medium"
+                      placeholder="Max guests"
+                      required
+                      min="1"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-amber-500" />
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows="1"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm font-medium resize-none"
+                      placeholder="Brief description..."
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                    Location *
-                  </label>
-                  <Input
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    required
-                    placeholder="e.g. Makati City"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                    Capacity *
-                  </label>
-                  <Input
-                    type="number"
-                    name="capacity"
-                    value={formData.capacity}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    placeholder="Max guests"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows="3"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-                    placeholder="Brief description of the venue..."
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <Button
+
+                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <>
+                        {editingId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                        {editingId ? 'Update Venue' : 'Create Venue'}
+                      </>
+                    )}
+                  </button>
+                  <button
                     type="button"
-                    variant="outline"
-                    onClick={handleCloseModal}
+                    onClick={() => { resetForm(); setShowForm(false); }}
+                    className="px-6 py-3 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-all"
                   >
                     Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? 'Saving...' : 'Save Venue'}
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-        <ConfirmationModal
-          isOpen={deleteConfirm.isOpen}
-          onClose={() => setDeleteConfirm({ isOpen: false, venueId: null })}
-          onConfirm={handleDelete}
-          title="Delete Venue"
-          message="Are you sure you want to delete this venue? This action cannot be undone."
-          confirmText="Delete"
-          cancelText="Cancel"
-          variant="danger"
-        />
+        {/* ═══════════════ STATS BAR ═══════════════ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Venues</p>
+            <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{venues.length}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Capacity</p>
+            <p className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">{totalCapacity.toLocaleString()}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Locations</p>
+            <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{new Set(venues.map(v => v.location)).size}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Average Cap</p>
+            <div className="flex items-center gap-2">
+              <p className="text-3xl font-extrabold text-amber-500">
+                {venues.length > 0 ? Math.round(totalCapacity / venues.length) : 0}
+              </p>
+              <TrendingUp className="w-5 h-5 text-amber-400" />
+            </div>
+          </div>
         </div>
+
+        {/* ═══════════════ SEARCH BAR ═══════════════ */}
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or location..."
+            className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
+          />
+        </div>
+
+        {/* ═══════════════ VENUES GRID ═══════════════ */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-64 bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : filteredVenues.length === 0 ? (
+          <div className="py-20 flex flex-col items-center justify-center text-center bg-white/50 dark:bg-gray-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-gray-400 mb-4">
+              <Hash className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No venues matching your criteria</h3>
+            <p className="text-gray-500 dark:text-gray-400">Clear your search or add a new venue above.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredVenues.map((venue) => (
+              <div
+                key={venue.id}
+                className="group bg-white dark:bg-gray-900/70 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-gray-800 p-6 hover:border-blue-500/40 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-100 dark:border-emerald-500/20">
+                    <Users className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{venue.capacity?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">
+                  {venue.name}
+                </h3>
+
+                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-4">
+                  <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span className="truncate">{venue.location}</span>
+                </div>
+
+                {venue.description && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-6">
+                    {venue.description}
+                  </p>
+                )}
+
+                <div className="flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <button
+                    onClick={() => handleEdit(venue)}
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100 dark:border-blue-500/20"
+                  >
+                    Modify
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(venue.id)}
+                    className="px-4 py-2.5 rounded-xl text-red-500 bg-red-50 dark:bg-red-500/10 hover:bg-red-500 hover:text-white transition-all border border-red-100 dark:border-red-500/20"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ConfirmationModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, venueId: null })}
+        onConfirm={handleDelete}
+        title="Delete Venue"
+        message="Are you sure you want to delete this venue? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 };
 
 export default ManageVenues;
-

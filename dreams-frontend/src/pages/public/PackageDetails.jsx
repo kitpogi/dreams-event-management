@@ -9,7 +9,7 @@ import { BookingFormModal, AuthModal } from '../../components/modals';
 import ImageGallery from '../../components/features/ImageGallery';
 import PackageComparison from '../../components/features/PackageComparison';
 import PackageCard from '../../components/features/PackageCard';
-import { AnimatedBackground } from '../../components/features';
+import { AnimatedBackground, ParticlesBackground } from '../../components/features';
 import { Star, User, Scale, ExternalLink, Play } from 'lucide-react';
 
 const PackageDetails = () => {
@@ -47,7 +47,7 @@ const PackageDetails = () => {
         params: { package_id: id }
       });
       const reviewsData = response.data.data || response.data || [];
-      
+
       // If no package-specific reviews, fetch general testimonials
       if (reviewsData.length === 0) {
         const testimonialResponse = await api.get('/testimonials', {
@@ -140,13 +140,13 @@ const PackageDetails = () => {
     const currentPackageInComparison = comparisonPackages.find(
       p => (p.package_id || p.id) === id
     );
-    
+
     // Add current package if not already added
     let updatedPackages = [...comparisonPackages];
     if (!currentPackageInComparison) {
       updatedPackages.push(packageData);
     }
-    
+
     // Add selected package if not already in comparison
     if (!updatedPackages.find(p => (p.package_id || p.id) === packageId)) {
       if (updatedPackages.length < 3) {
@@ -302,17 +302,18 @@ const PackageDetails = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#f9f5ff] via-white to-[#fce7ff] dark:from-[#120818] dark:via-[#1c1022] dark:to-[#140014] font-display text-gray-800 dark:text-gray-200">
-      {/* Animated Background - Subtle waves */}
-      <AnimatedBackground 
-        type="waves"
-        colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
-        speed={0.4}
-        className="opacity-10 dark:opacity-5"
-      />
+    <div className="bg-[#0a0a1a] min-h-screen relative overflow-hidden font-display text-gray-200">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-20">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+        </div>
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
+      </div>
+
       <div className="container mx-auto px-4 py-10 md:py-16 relative z-10">
         <div className="max-w-6xl mx-auto">
-          
+
           {/* ========== BREADCRUMB NAVIGATION ========== */}
           <nav aria-label="Breadcrumb" className="mb-6">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
@@ -349,7 +350,7 @@ const PackageDetails = () => {
           {/* ========== HERO SECTION ========== */}
           <section className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-xl border border-purple-100/70 dark:border-gray-800 rounded-3xl shadow-xl shadow-purple-100/40 dark:shadow-black/40 overflow-hidden mb-10">
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-              
+
               {/* Hero Content */}
               <article className="p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
                 <header>
@@ -468,7 +469,7 @@ const PackageDetails = () => {
 
           {/* ========== MAIN CONTENT AREA ========== */}
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
-            
+
             {/* Left Column: Tabbed Content */}
             <main className="space-y-6">
               <Tabs defaultValue="overview" className="w-full">
@@ -664,11 +665,10 @@ const PackageDetails = () => {
                                         {[...Array(5)].map((_, i) => (
                                           <Star
                                             key={i}
-                                            className={`w-4 h-4 ${
-                                              i < Math.floor(review.rating)
-                                                ? 'fill-yellow-400 text-yellow-400'
-                                                : 'fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600'
-                                            }`}
+                                            className={`w-4 h-4 ${i < Math.floor(review.rating)
+                                              ? 'fill-yellow-400 text-yellow-400'
+                                              : 'fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600'
+                                              }`}
                                           />
                                         ))}
                                         <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
@@ -706,7 +706,7 @@ const PackageDetails = () => {
 
             {/* Right Column: Sidebar */}
             <aside className="space-y-4">
-              
+
               {/* Package Summary Card */}
               <section className="bg-white/95 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-purple-100/70 dark:border-purple-900/70 shadow-lg shadow-purple-100/50 dark:shadow-black/60 p-5 sm:p-6">
                 <header className="flex items-center justify-between gap-3 mb-4">
@@ -775,7 +775,7 @@ const PackageDetails = () => {
                 {/* Decorative background elements */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#a413ec]/10 to-transparent rounded-full blur-3xl -mr-16 -mt-16" aria-hidden="true"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-500/10 to-transparent rounded-full blur-2xl -ml-12 -mb-12" aria-hidden="true"></div>
-                
+
                 <div className="relative z-10">
                   <header className="mb-6">
                     <div className="flex items-center gap-3 mb-2">
@@ -796,7 +796,7 @@ const PackageDetails = () => {
                       {
                         id: '1',
                         question: 'What is included in this package?',
-                        answer: packageData.inclusions 
+                        answer: packageData.inclusions
                           ? `This package includes: ${parseInclusions(packageData.inclusions).slice(0, 3).join(', ')}${parseInclusions(packageData.inclusions).length > 3 ? ' and more.' : '.'}`
                           : 'Please contact us for detailed information about what is included in this package.',
                       },
@@ -808,7 +808,7 @@ const PackageDetails = () => {
                       {
                         id: '3',
                         question: 'What is the maximum guest capacity?',
-                        answer: packageData.capacity 
+                        answer: packageData.capacity
                           ? `This package can accommodate up to ${packageData.capacity} guests. If you need to accommodate more guests, please contact us to discuss options.`
                           : 'Please contact us to discuss guest capacity options for your event.',
                       },

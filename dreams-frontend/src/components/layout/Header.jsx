@@ -10,7 +10,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '../ui/sheet';
-import { Menu, X, User, LogOut, LayoutDashboard, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Sparkles, Package, Image, Star, Calendar, Home, Moon, Sun, Heart, MessageCircle } from 'lucide-react';
 import { NotificationCenter } from '../features';
 import { ensureAbsoluteUrl } from '../../utils/imageUtils';
 import logo from '../../assets/logo.png';
@@ -105,9 +105,11 @@ const Header = () => {
   const navLinks = [
     { to: '/', label: 'Home', icon: Home, sectionId: 'hero' },
     { to: '/services', label: 'Services', icon: Package, sectionId: 'services' },
+    { to: '/packages', label: 'Packages', icon: Sparkles, sectionId: 'packages' },
     { to: '/portfolio', label: 'Portfolio', icon: Image, sectionId: 'portfolio' },
     { to: '/reviews', label: 'Reviews', icon: Star, sectionId: 'reviews' },
-    { to: '/set-an-event', label: 'Set An Event', icon: Calendar, sectionId: 'contact' },
+    { to: '/set-an-event', label: 'Set An Event', icon: Calendar },
+    { to: '/#contact', label: 'Contact', icon: MessageCircle, sectionId: 'contact' },
   ];
 
   return (
@@ -115,45 +117,47 @@ const Header = () => {
       <header
         id="main-header"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
-          ? isActive('/')
-            ? 'bg-transparent backdrop-blur-md py-1'
-            : darkMode
-              ? 'bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-800 py-0'
-              : 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200 py-0'
+          ? 'bg-white/5 backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] border-b border-white/5 py-0'
           : 'bg-transparent border-transparent py-2'
           }`}
       >
-        <div className="w-full px-8 md:px-20">
+        <div className="w-full px-4 md:px-6 xl:px-20">
           {/* Main Header Content */}
           <div className="flex justify-between items-center h-16 md:h-20">
             {/* Logo/Brand */}
             <Link
               to="/"
-              className="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 rounded-lg p-2 -ml-2"
+              className="flex items-center gap-1.5 xl:gap-2 group focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2 rounded-2xl p-1.5 -ml-2 transition-all duration-300 relative"
             >
               <div className="relative">
-                <div className="relative w-14 h-14 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <div className="relative w-10 h-10 xl:w-14 xl:h-14 flex items-center justify-center group-hover:scale-110 transition-all duration-500 rounded-xl xl:rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#5A45F2]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <img
                     src={logo}
                     alt="D'Dreams Events Logo"
-                    className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.1)] brightness-110 contrast-110 transition-all"
+                    className="w-7 h-7 xl:w-10 xl:h-10 object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.1)] brightness-110 contrast-110 transition-all group-hover:rotate-6"
                   />
                 </div>
+                {/* Floating Glow Orb behind logo */}
+                <div className="absolute -inset-2 bg-[#5A45F2]/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
               </div>
               <div className="hidden sm:block">
-                <h1 className={`font-serif text-xl md:text-2xl font-bold group-hover:text-[#5A45F2] transition-colors ${isActive('/') || darkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                  D&apos;Dreams Events
-                </h1>
-                <p className={`text-[10px] md:text-xs italic -mt-1 ${isActive('/') || darkMode ? 'text-white/70' : 'text-gray-600'
-                  }`}>
-                  "We make your dream events happen."
-                </p>
+                <div className="flex flex-col">
+                  <h1 className="font-serif text-base xl:text-2xl font-black tracking-tight text-white group-hover:text-[#7ee5ff] transition-colors uppercase leading-none">
+                    D&apos;Dreams
+                  </h1>
+                  <div className="hidden xl:flex items-center gap-2 mt-1">
+                    <span className="text-[9px] font-bold text-[#7ee5ff] uppercase tracking-[0.3em] transition-all group-hover:tracking-[0.4em]">
+                      Events & Styles
+                    </span>
+                    <div className="h-px w-4 bg-white/20 group-hover:w-8 transition-all" />
+                  </div>
+                </div>
               </div>
             </Link>
 
-            {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-2" aria-label="Desktop navigation">
+            {/* Desktop Navigation Links - Tightened for standard laptops */}
+            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5" aria-label="Desktop navigation">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const active = isActive('/')
@@ -164,25 +168,37 @@ const Header = () => {
                   <button
                     key={link.to}
                     onClick={() => {
+                      // If on Home page and clicking a link that has an ID
                       if (isActive('/') && link.sectionId) {
-                        scrollToSection(link.sectionId);
+                        // If we're already looking at this section, navigate to full page
+                        // Exception for Home/Hero which should just stay/scroll to top
+                        if (activeSection === link.sectionId && link.to !== '/') {
+                          navigate(link.to);
+                        } else {
+                          scrollToSection(link.sectionId);
+                        }
                       } else {
                         navigate(link.to);
                       }
                     }}
-                    className={`relative flex items-center gap-0 hover:gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 group ${active
-                      ? 'text-[#5A45F2] bg-[#5A45F2]/10 dark:bg-[#5A45F2]/20 shadow-sm'
-                      : (isActive('/') || darkMode)
-                        ? 'text-white/70 hover:text-white hover:bg-white/10'
-                        : 'text-gray-500 hover:text-[#5A45F2] hover:bg-gray-100'
+                    className={`relative flex items-center gap-1.5 px-2 py-2 xl:px-4 xl:py-2.5 rounded-xl xl:rounded-2xl text-[9px] xl:text-[10px] font-black uppercase tracking-tight xl:tracking-[0.2em] transition-all duration-500 group border overflow-hidden ${active
+                      ? 'text-[#7ee5ff] bg-white/5 border-white/20 shadow-[0_0_25px_rgba(90,69,242,0.15)] backdrop-blur-md'
+                      : 'text-white/50 border-transparent hover:text-white hover:bg-white/5 hover:border-white/10'
                       }`}
                   >
-                    <Icon className={`w-5 h-5 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
-                    <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 transition-all duration-300 ease-in-out whitespace-nowrap">
+                    {/* Hover Shine Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                    <div className={`relative p-1 xl:p-1.5 rounded-lg transition-all duration-500 ${active ? 'bg-[#5A45F2]/20 scale-110' : 'bg-transparent group-hover:bg-white/5 group-hover:scale-110'}`}>
+                      <Icon className={`w-3 h-3 xl:w-3.5 xl:h-3.5 transition-all duration-500 ${active ? 'text-[#7ee5ff] drop-shadow-[0_0_8px_#7ee5ff]' : 'text-current group-hover:text-[#5A45F2]'}`} />
+                    </div>
+                    <span className="whitespace-nowrap uppercase tracking-widest leading-none">
                       {link.label}
                     </span>
+
+                    {/* Active Underline Glow */}
                     {active && (
-                      <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-[#5A45F2] rounded-full shadow-[0_0_8px_rgba(90,69,242,0.6)] animate-pulse"></span>
+                      <span className="absolute -bottom-px left-1/4 right-1/4 h-[2px] bg-gradient-to-r from-transparent via-[#7ee5ff] to-transparent shadow-[0_0_10px_#7ee5ff]" />
                     )}
                   </button>
                 );
@@ -190,20 +206,8 @@ const Header = () => {
             </nav>
 
             {/* Right Side - Dark Mode Toggle, Auth/User Menu */}
-            <div className="flex items-center gap-3">
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5A45F2] focus:ring-offset-2"
-                aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {darkMode ? (
-                  <Sun className="w-5 h-5 text-warning-400" />
-                ) : (
-                  <Moon className="w-5 h-5 text-gray-700" />
-                )}
-              </button>
+            <div className="flex items-center gap-2 xl:gap-3">
+
 
               {isAuthenticated ? (
                 <>
@@ -378,7 +382,12 @@ const Header = () => {
                           key={link.to}
                           onClick={() => {
                             if (isActive('/') && link.sectionId) {
-                              scrollToSection(link.sectionId);
+                              if (activeSection === link.sectionId && link.to !== '/') {
+                                navigate(link.to);
+                                setMobileMenuOpen(false);
+                              } else {
+                                scrollToSection(link.sectionId);
+                              }
                             } else {
                               navigate(link.to);
                               setMobileMenuOpen(false);
@@ -478,7 +487,7 @@ const Header = () => {
       </header>
 
       {/* Spacer to prevent content from going under fixed navbar - Hidden on Home for immersion */}
-      {!isActive('/') && <div className="h-16 md:h-20"></div>}
+      {/* Spacer removed to allow blending with page backgrounds */}
 
       {/* Auth Modal */}
       <AuthModal

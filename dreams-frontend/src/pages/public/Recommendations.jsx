@@ -28,6 +28,7 @@ import {
   Bookmark,
   BookmarkCheck
 } from 'lucide-react';
+import { AnimatedBackground, ParticlesBackground } from '../../components/features';
 
 const Recommendations = () => {
   const { isAuthenticated } = useAuth();
@@ -436,7 +437,14 @@ const Recommendations = () => {
   };
 
   return (
-    <div className="relative flex w-full flex-col overflow-x-hidden bg-gradient-to-b from-[#FFF7F0] via-[#FFF7F0] to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 min-h-[calc(100vh-200px)] transition-colors duration-300">
+    <div className="bg-[#0a0a1a] min-h-screen relative overflow-hidden flex flex-col w-full">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-20">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+        </div>
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
+      </div>
       {/* Skip to main content link for accessibility */}
       <a
         href="#main-content"
@@ -444,7 +452,7 @@ const Recommendations = () => {
       >
         Skip to main content
       </a>
-      <div id="main-content" className="flex flex-1 justify-center py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 w-full">
+      <div id="main-content" className="relative z-10 flex flex-1 justify-center py-8 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex flex-col max-w-7xl w-full flex-1 gap-6 md:gap-10">
           {/* Success Banner - Only show if coming from SetAnEvent */}
           {submitted && location.state?.recommendations && (
@@ -525,10 +533,10 @@ const Recommendations = () => {
                           aria-invalid={touchedFields.type && formErrors.type ? 'true' : 'false'}
                           aria-describedby={touchedFields.type && formErrors.type ? 'event-type-error' : undefined}
                           className={`w-full appearance-none pl-4 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${touchedFields.type && formErrors.type
-                              ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                              : formData.type
-                                ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
-                                : 'border-gray-200 dark:border-gray-600'
+                            ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
+                            : formData.type
+                              ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
+                              : 'border-gray-200 dark:border-gray-600'
                             }`}
                         >
                           <option value="">Select event type...</option>
@@ -586,10 +594,10 @@ const Recommendations = () => {
                           aria-invalid={touchedFields.guests && formErrors.guests ? 'true' : 'false'}
                           aria-describedby={touchedFields.guests && formErrors.guests ? 'guests-error' : undefined}
                           className={`w-full pl-4 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${touchedFields.guests && formErrors.guests
-                              ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                              : formData.guests
-                                ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
-                                : 'border-gray-200 dark:border-gray-600'
+                            ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
+                            : formData.guests
+                              ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
+                              : 'border-gray-200 dark:border-gray-600'
                             }`}
                         />
                         {touchedFields.guests && formData.guests && !formErrors.guests && (
@@ -635,10 +643,10 @@ const Recommendations = () => {
                           aria-invalid={touchedFields.budget && formErrors.budget ? 'true' : 'false'}
                           aria-describedby={touchedFields.budget && formErrors.budget ? 'budget-error' : 'budget-help'}
                           className={`w-full pl-10 pr-10 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] transition-all min-h-[48px] touch-manipulation ${touchedFields.budget && formErrors.budget
-                              ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                              : formData.budget
-                                ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
-                                : 'border-gray-200 dark:border-gray-600'
+                            ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
+                            : formData.budget
+                              ? 'border-green-500 dark:border-green-400 bg-white dark:bg-gray-700'
+                              : 'border-gray-200 dark:border-gray-600'
                             }`}
                         />
                         {touchedFields.budget && formData.budget && !formErrors.budget && (
@@ -678,8 +686,8 @@ const Recommendations = () => {
                           placeholder="e.g., elegant, modern, rustic, vintage"
                           aria-label="Event theme or style preference"
                           className={`w-full pl-4 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] focus:border-[#4338CA] dark:focus:border-[#6366F1] transition-all min-h-[48px] touch-manipulation ${formData.theme
-                              ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700'
-                              : 'border-gray-200 dark:border-gray-600'
+                            ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700'
+                            : 'border-gray-200 dark:border-gray-600'
                             }`}
                         />
                       </div>
@@ -696,8 +704,8 @@ const Recommendations = () => {
                             }}
                             aria-label={`Select ${theme} theme`}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[36px] touch-manipulation ${formData.theme === theme
-                                ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA]/10 dark:hover:bg-[#6366F1]/20 hover:text-[#4338CA] dark:hover:text-[#6366F1]'
+                              ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA]/10 dark:hover:bg-[#6366F1]/20 hover:text-[#4338CA] dark:hover:text-[#6366F1]'
                               }`}
                           >
                             <Tag className="w-3 h-3 inline mr-1" />
@@ -725,8 +733,8 @@ const Recommendations = () => {
                       onChange={handleChange}
                       placeholder="e.g., outdoor venue, photography included, catering service, live music"
                       className={`w-full pl-4 pr-4 py-3.5 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4338CA] dark:focus:ring-[#6366F1] focus:border-[#4338CA] dark:focus:border-[#6366F1] transition-all ${formData.preferences
-                          ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700'
-                          : 'border-gray-200 dark:border-gray-600'
+                        ? 'border-[#4338CA] dark:border-[#6366F1] bg-white dark:bg-gray-700'
+                        : 'border-gray-200 dark:border-gray-600'
                         }`}
                     />
                   </div>
@@ -885,8 +893,8 @@ const Recommendations = () => {
                   aria-pressed={filters.budgetRange === '1000-5000'}
                   aria-label="Filter packages under 5,000 pesos"
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.budgetRange === '1000-5000'
-                      ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
+                    ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
                     }`}
                 >
                   Under ₱5,000
@@ -896,8 +904,8 @@ const Recommendations = () => {
                   aria-pressed={filters.budgetRange === '5000-10000'}
                   aria-label="Filter packages between 5,000 and 10,000 pesos"
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.budgetRange === '5000-10000'
-                      ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
+                    ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
                     }`}
                 >
                   ₱5,000 - ₱10,000
@@ -907,8 +915,8 @@ const Recommendations = () => {
                   aria-pressed={filters.eventType === 'wedding'}
                   aria-label="Filter wedding packages"
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.eventType === 'wedding'
-                      ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
+                    ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
                     }`}
                 >
                   Wedding
@@ -918,8 +926,8 @@ const Recommendations = () => {
                   aria-pressed={filters.guests === '50'}
                   aria-label="Filter packages for 50 or more guests"
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 min-h-[44px] min-w-[44px] touch-manipulation ${filters.guests === '50'
-                      ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
+                    ? 'bg-[#4338CA] dark:bg-[#6366F1] text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#4338CA] dark:hover:bg-[#6366F1] hover:text-white'
                     }`}
                 >
                   50+ Guests
@@ -1122,8 +1130,8 @@ const Recommendations = () => {
                             <button
                               onClick={() => handleComparisonToggle(pkg)}
                               className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 ${isSelected
-                                  ? 'bg-[#4338CA] dark:bg-[#6366F1] border-[#4338CA] dark:border-[#6366F1] text-white shadow-lg'
-                                  : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-400 hover:border-[#4338CA] dark:hover:border-[#6366F1] hover:bg-white dark:hover:bg-gray-800'
+                                ? 'bg-[#4338CA] dark:bg-[#6366F1] border-[#4338CA] dark:border-[#6366F1] text-white shadow-lg'
+                                : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-400 hover:border-[#4338CA] dark:hover:border-[#6366F1] hover:bg-white dark:hover:bg-gray-800'
                                 }`}
                               title={isSelected ? 'Remove from comparison' : 'Add to comparison'}
                             >
@@ -1237,8 +1245,8 @@ const Recommendations = () => {
                               <button
                                 onClick={() => handleSaveForLater(pkg)}
                                 className={`w-full flex items-center justify-center gap-2 rounded-lg h-10 px-4 text-sm font-semibold transition-all duration-300 hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] ${isSaved(pkg)
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                   }`}
                                 title={isSaved(pkg) ? 'Remove from saved' : 'Save for later'}
                               >

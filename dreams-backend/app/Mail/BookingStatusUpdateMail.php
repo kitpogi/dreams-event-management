@@ -16,15 +16,17 @@ class BookingStatusUpdateMail extends Mailable
     public $booking;
     public $oldStatus;
     public $newStatus;
+    public $reason;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(BookingDetail $booking, string $oldStatus, string $newStatus)
+    public function __construct(BookingDetail $booking, string $oldStatus, string $newStatus, ?string $reason = null)
     {
         $this->booking = $booking;
         $this->oldStatus = $oldStatus;
         $this->newStatus = $newStatus;
+        $this->reason = $reason;
     }
 
     /**
@@ -59,6 +61,7 @@ class BookingStatusUpdateMail extends Mailable
                 'package' => $this->booking->eventPackage,
                 'oldStatus' => $this->oldStatus,
                 'newStatus' => $this->newStatus,
+                'reason' => $this->reason,
             ],
         );
     }

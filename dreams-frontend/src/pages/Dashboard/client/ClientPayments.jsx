@@ -183,7 +183,7 @@ const ClientPayments = () => {
 
     if (loading) {
         return (
-            <div className="px-4 py-8 lg:px-6">
+            <div className="px-4 py-8 lg:px-6 w-full">
                 <div className="mb-8">
                     <Skeleton className="h-10 w-64 mb-4" />
                     <Skeleton className="h-5 w-96" />
@@ -199,38 +199,40 @@ const ClientPayments = () => {
     }
 
     return (
-        <div className="px-4 py-8 lg:px-6">
+        <div className="px-4 py-8 lg:px-6 w-full">
             {/* Header */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
-                        <CreditCard className="w-6 h-6 text-white" />
+            <div className="mb-10">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-xl shadow-blue-500/20">
+                        <CreditCard className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
                             Payments
                         </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Manage your payments and view payment history
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">
+                            Manage your transactions
                         </p>
                     </div>
                 </div>
 
-                <Card className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <DollarSign className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                        <span>Track all your payments, view payment history, and make payments for your bookings.</span>
+                <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl p-4 border-none rounded-2xl shadow-xl relative overflow-hidden group">
+                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="p-2 bg-blue-100/50 dark:bg-blue-900/30 rounded-lg">
+                            <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <span className="font-medium italic">Track your payment journey, view history, and secure your dream event with ease.</span>
                     </div>
-                </Card>
+                </div>
             </div>
 
             {/* Payment Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl rounded-2xl p-6 border-none shadow-xl hover:shadow-2xl transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Outstanding</p>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                                 ₱{paymentStats.totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                         </div>
@@ -238,13 +240,13 @@ const ClientPayments = () => {
                             <TrendingUp className="w-8 h-8" />
                         </div>
                     </div>
-                </Card>
+                </div>
 
-                <Card className="p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md">
+                <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl rounded-2xl p-6 border-none shadow-xl hover:shadow-2xl transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Paid</p>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                                 ₱{paymentStats.totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                         </div>
@@ -252,13 +254,13 @@ const ClientPayments = () => {
                             <CheckCircle className="w-8 h-8" />
                         </div>
                     </div>
-                </Card>
+                </div>
 
-                <Card className="p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md">
+                <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl rounded-2xl p-6 border-none shadow-xl hover:shadow-2xl transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Pending Payments</p>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                                 {outstandingBookings.length}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -269,16 +271,21 @@ const ClientPayments = () => {
                             <Clock className="w-8 h-8" />
                         </div>
                     </div>
-                </Card>
+                </div>
             </div>
 
             {/* Outstanding Payments */}
             {outstandingBookings.length > 0 && (
-                <Card className="mb-8 p-8 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 shadow-md">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Outstanding Payments</h2>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Bookings that require payment</p>
+                <div className="mb-12 p-6 sm:p-8 bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl rounded-2xl border-none shadow-xl">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg">
+                                <CreditCard className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Outstanding Payments</h2>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Bookings that require attention</p>
+                            </div>
                         </div>
                     </div>
                     <div className="space-y-4">
@@ -287,7 +294,7 @@ const ClientPayments = () => {
                             return (
                                 <div
                                     key={booking.booking_id || booking.id}
-                                    className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:bg-white dark:hover:bg-gray-800/50 transition-all duration-200 bg-white dark:bg-gray-800/30 shadow-sm hover:shadow-md"
+                                    className="border-2 border-gray-100 dark:border-blue-900/10 rounded-xl p-6 hover:bg-white dark:hover:bg-blue-900/20 transition-all duration-300 bg-white/50 dark:bg-blue-900/10 shadow-sm hover:shadow-md"
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                         <div className="flex-1">
@@ -306,26 +313,26 @@ const ClientPayments = () => {
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Amount</span>
+                                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Total Amount</span>
                                                     <span className="text-base font-bold text-gray-900 dark:text-white">
                                                         ₱{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Paid</span>
-                                                    <span className="text-base font-semibold text-green-600 dark:text-green-400">
+                                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Paid</span>
+                                                    <span className="text-base font-bold text-blue-600 dark:text-blue-400">
                                                         ₱{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Remaining</span>
+                                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Remaining</span>
                                                     <span className="text-base font-bold text-red-600 dark:text-red-400">
                                                         ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Event Date</span>
-                                                    <span className="text-base font-medium text-gray-900 dark:text-white">
+                                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Event Date</span>
+                                                    <span className="text-base font-bold text-gray-900 dark:text-white">
                                                         {booking.event_date
                                                             ? new Date(booking.event_date).toLocaleDateString('en-US', {
                                                                 month: 'short',
@@ -343,7 +350,7 @@ const ClientPayments = () => {
                                                     variant="default"
                                                     size="default"
                                                     onClick={() => handlePayNow(booking)}
-                                                    className="bg-gradient-to-r from-[#a413ec] to-[#8a0fd4] hover:from-[#8a0fd4] hover:to-[#7a0fc4] text-white shadow-md hover:shadow-lg transition-all duration-200 px-6 py-2.5 font-semibold"
+                                                    className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 px-6 py-2.5 font-bold"
                                                 >
                                                     <CreditCard className="w-4 h-4 mr-2" />
                                                     Pay Now
@@ -352,10 +359,10 @@ const ClientPayments = () => {
                                             <Button
                                                 variant="outline"
                                                 size="default"
-                                                onClick={() => navigate(`/dashboard?view=bookings`)}
-                                                className="px-4 py-2.5"
+                                                onClick={() => navigate(`/dashboard/bookings/${booking.booking_id || booking.id}`)}
+                                                className="px-4 py-2.5 font-bold rounded-xl border-blue-200 dark:border-blue-900/30 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                             >
-                                                View Details
+                                                Details
                                                 <ArrowRight className="w-4 h-4 ml-2" />
                                             </Button>
                                         </div>
@@ -364,25 +371,25 @@ const ClientPayments = () => {
                             );
                         })}
                     </div>
-                </Card>
+                </div>
             )}
 
             {/* Payment History */}
-            <Card className="p-8 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 shadow-md">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Payment History</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">All your payment transactions</p>
+            <div className="p-6 sm:p-8 bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl rounded-2xl border-none shadow-xl">
+                <div className="mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Payment History</h2>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">History of your successful transactions</p>
                 </div>
 
                 {allPayments.length === 0 ? (
                     <div className="text-center py-12">
-                        <div className="mx-auto w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-                            <FileText className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                        <div className="mx-auto w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4 text-gray-400 transition-colors">
+                            <FileText className="w-10 h-10" />
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                             No payment history
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
                             Your payment transactions will appear here once you make a payment.
                         </p>
                     </div>
@@ -406,21 +413,21 @@ const ClientPayments = () => {
                             return (
                                 <div
                                     key={payment.payment_id || payment.id}
-                                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-white dark:hover:bg-gray-800/50 transition-colors bg-white dark:bg-gray-800/30"
+                                    className="border border-gray-100 dark:border-blue-900/10 rounded-xl p-4 hover:bg-white dark:hover:bg-blue-900/20 transition-all duration-300 bg-white/50 dark:bg-blue-900/10"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4 flex-1">
-                                            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+                                            <div className="p-2 rounded-lg bg-gray-50 dark:bg-blue-900/30">
                                                 {getPaymentStatusIcon()}
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                                    <h4 className="font-bold text-gray-900 dark:text-white">
                                                         {payment.packageName || 'Event Package'}
                                                     </h4>
                                                     {getPaymentStatusBadge(payment.status)}
                                                 </div>
-                                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                                <div className="flex items-center gap-4 text-[11px] font-medium text-gray-500 dark:text-gray-400">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="w-3 h-3" />
                                                         {payment.created_at
@@ -434,8 +441,8 @@ const ClientPayments = () => {
                                                             : 'N/A'}
                                                     </span>
                                                     {payment.transaction_id && (
-                                                        <span className="text-xs font-mono">
-                                                            TXN: {payment.transaction_id.slice(-8)}
+                                                        <span className="font-mono text-blue-500/70">
+                                                            TXN: {payment.transaction_id.slice(-8).toUpperCase()}
                                                         </span>
                                                     )}
                                                 </div>
@@ -449,7 +456,7 @@ const ClientPayments = () => {
                                                 })}
                                             </p>
                                             {payment.method && (
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                                                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                                                     {payment.method}
                                                 </p>
                                             )}
@@ -460,13 +467,13 @@ const ClientPayments = () => {
                         })}
                     </div>
                 )}
-            </Card>
+            </div>
 
             {/* Payment Modal */}
             <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-none bg-white/90 dark:bg-[#0b1121]/90 backdrop-blur-2xl rounded-3xl shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle>Make Payment</DialogTitle>
+                        <DialogTitle className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Make Payment</DialogTitle>
                     </DialogHeader>
                     <div className="mt-4">
                         {selectedBookingForPayment && (() => {

@@ -94,5 +94,31 @@ export const SkeletonPackageCard = () => {
   );
 };
 
+/**
+ * SkeletonPortfolioCard - A skeleton loader for portfolio items
+ */
+export const SkeletonPortfolioCard = () => {
+  return (
+    <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-lg">
+      <Skeleton className="w-full h-full" />
+    </div>
+  );
+};
+
+/**
+ * SkeletonTeamCard - A skeleton loader for team members
+ */
+export const SkeletonTeamCard = () => {
+  return (
+    <div className="text-center group">
+      <Skeleton className="mb-5 aspect-[4/5] rounded-3xl shadow-lg" />
+      <div className="flex flex-col items-center space-y-2">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    </div>
+  );
+};
+
 export default SkeletonCard;
 

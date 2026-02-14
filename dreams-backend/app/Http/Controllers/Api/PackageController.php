@@ -114,11 +114,11 @@ class PackageController extends Controller
 
             // Cache for 15 minutes (900 seconds)
             // Only cache if no search/filter parameters (to avoid cache bloat)
-            $shouldCache = !$request->filled('search') && 
-                          !$request->filled('minPrice') && 
-                          !$request->filled('maxPrice') && 
-                          !$request->filled('category') && 
-                          !$request->filled('minCapacity');
+            $shouldCache = !$request->filled('search') &&
+                !$request->filled('minPrice') &&
+                !$request->filled('maxPrice') &&
+                !$request->filled('category') &&
+                !$request->filled('minCapacity');
 
             if ($shouldCache && Cache::has($cacheKey)) {
                 return response()->json(Cache::get($cacheKey));
@@ -126,6 +126,12 @@ class PackageController extends Controller
 
             // Only eager load venue, images table doesn't exist - packages use package_image field directly
             $query = EventPackage::with('venue');
+
+            // By default, only show active packages (customers should not see inactive ones)
+            // Admins can pass include_inactive=true to see all packages
+            if (!$request->boolean('include_inactive')) {
+                $query->where('is_active', true);
+            }
 
             if ($request->filled('search')) {
                 $query->where('package_name', 'like', '%' . $request->search . '%');
@@ -186,6 +192,57 @@ class PackageController extends Controller
             Log::error('Error fetching packages: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to fetch packages',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/packages/featured",
+     *     summary="Get featured packages for homepage",
+     *     tags={"Packages"},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Maximum number of packages to return (default: 8)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=8)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of featured packages",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
+    public function featured(Request $request)
+    {
+        try {
+            $limit = (int) $request->query('limit', 8);
+            $limit = max(1, min($limit, 20)); // clamp between 1 and 20
+
+            $cacheKey = "packages_featured_{$limit}";
+
+            // Cache for 15 minutes
+            $packages = Cache::remember($cacheKey, now()->addMinutes(15), function () use ($limit) {
+                return EventPackage::with('venue')
+                    ->where('is_featured', true)
+                    ->where('is_active', true)
+                    ->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get();
+            });
+
+            return response()->json([
+                'data' => PackageResource::collection($packages),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching featured packages: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch featured packages',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -292,6 +349,8 @@ class PackageController extends Controller
             'capacity',
             'venue_id',
             'package_inclusions',
+            'is_featured',
+            'is_active',
         ]);
 
         if ($request->hasFile('package_image')) {
@@ -388,6 +447,8 @@ class PackageController extends Controller
             'capacity',
             'venue_id',
             'package_inclusions',
+            'is_featured',
+            'is_active',
         ]);
 
         if ($request->hasFile('package_image')) {
@@ -398,7 +459,7 @@ class PackageController extends Controller
                     app(ImageService::class)->deleteImage($oldPath);
                 }
             }
-            
+
             $imageService = app(ImageService::class);
             $path = $imageService->processAndStore(
                 $request->file('package_image'),
@@ -456,7 +517,7 @@ class PackageController extends Controller
         $package = EventPackage::findOrFail($id);
         $packageName = $package->package_name;
         $packageData = $package->toArray();
-        
+
         // Delete associated image
         if ($package->package_image) {
             $imagePath = str_replace(asset('storage/'), '', $package->package_image);
@@ -464,7 +525,7 @@ class PackageController extends Controller
                 app(ImageService::class)->deleteImage($imagePath);
             }
         }
-        
+
         $packageId = $package->package_id;
         $package->delete();
 

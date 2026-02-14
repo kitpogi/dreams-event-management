@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
 import { LoadingSpinner } from '../../../components/ui';
+import { Package, Plus, ArrowLeft, Image, Info, Sparkles, DollarSign, Users, MapPin, Tag, CheckCircle2 } from 'lucide-react';
 
 const EditPackage = () => {
   const { id } = useParams();
@@ -18,6 +19,7 @@ const EditPackage = () => {
     theme: [],
     inclusions: '',
     is_featured: false,
+    is_active: true,
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -25,6 +27,7 @@ const EditPackage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingPackage, setLoadingPackage] = useState(true);
   const [loadingVenues, setLoadingVenues] = useState(true);
+  const [isVenueOpen, setIsVenueOpen] = useState(false);
 
   // Get theme options based on event type
   const getThemeOptions = (eventType) => {
@@ -138,11 +141,11 @@ const EditPackage = () => {
     try {
       const response = await api.get(`/packages/${id}`);
       const packageData = response.data.data || response.data;
-      
+
       // Extract theme from description if it exists
       let description = packageData.package_description || packageData.description || '';
       let themeArray = [];
-      
+
       // Handle theme - convert string to array if needed
       if (packageData.theme) {
         // If theme is a string, split by comma; if array, use as is
@@ -150,7 +153,7 @@ const EditPackage = () => {
           ? packageData.theme
           : packageData.theme.split(',').map((t) => t.trim()).filter((t) => t);
       }
-      
+
       // Try to extract theme from description if it's stored there
       if (description.includes('Theme:')) {
         const themeMatch = description.match(/Theme:\s*(.+)/);
@@ -163,11 +166,11 @@ const EditPackage = () => {
           description = description.replace(/\n\nTheme:.*$/, '').trim();
         }
       }
-      
+
       // Format price with commas when loading
       const priceValue = packageData.package_price || packageData.price || '';
       const formattedPrice = priceValue ? formatNumberWithCommas(String(priceValue)) : '';
-      
+
       setFormData({
         name: packageData.package_name || packageData.name || '',
         description: description,
@@ -179,6 +182,7 @@ const EditPackage = () => {
         theme: themeArray,
         // Convert to boolean properly - handles 1/0, true/false, or null/undefined
         is_featured: Boolean(packageData.is_featured),
+        is_active: packageData.is_active !== false && packageData.is_active !== 0, // Default to true if undefined
       });
       setCurrentImageUrl(packageData.package_image || '');
     } catch (error) {
@@ -276,8 +280,8 @@ const EditPackage = () => {
       let fullDescription = formData.description;
       // Only append if not already present to avoid duplicates on repeated edits
       if (formData.theme && formData.theme.length > 0) {
-        const themesString = Array.isArray(formData.theme) 
-          ? formData.theme.join(', ') 
+        const themesString = Array.isArray(formData.theme)
+          ? formData.theme.join(', ')
           : formData.theme;
         if (!fullDescription.includes(`Theme: ${themesString}`)) {
           fullDescription += `\n\nTheme: ${themesString}`;
@@ -295,11 +299,15 @@ const EditPackage = () => {
         data.append('venue_id', parseInt(formData.venue_id));
       }
       data.append('package_inclusions', formData.inclusions || 'Standard inclusions');
-      
+
       if (imageFile) {
         data.append('package_image', imageFile);
       }
-      
+
+      // Append featured and active status
+      data.append('is_featured', formData.is_featured ? '1' : '0');
+      data.append('is_active', formData.is_active ? '1' : '0');
+
       // Since PUT with FormData is tricky in Laravel/PHP (doesn't parse multipart/form-data for PUT requests natively),
       // we use POST with _method=PUT spoofing.
       data.append('_method', 'PUT');
@@ -310,8 +318,8 @@ const EditPackage = () => {
       navigate('/admin/packages');
     } catch (error) {
       console.error('Error updating package:', error);
-      const errorMessage = error.response?.data?.message 
-        || error.response?.data?.error 
+      const errorMessage = error.response?.data?.message
+        || error.response?.data?.error
         || (error.response?.data?.errors ? JSON.stringify(error.response.data.errors) : null)
         || 'Failed to update package';
       toast.error(errorMessage);
@@ -331,258 +339,403 @@ const EditPackage = () => {
   }
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <div className="p-4 sm:p-6 lg:p-10">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8 transition-colors duration-300">
-            Edit Package
-          </h1>
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-xl p-6 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                Package Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-              />
+    <div className="relative min-h-screen">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 xl:p-10">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-[1.25rem] shadow-xl shadow-blue-500/20 transform transition-transform hover:scale-105">
+              <Package className="w-8 h-8 text-white" />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                Description *
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                rows="4"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-              />
+            <div className="flex flex-col justify-center">
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-1 tracking-tight text-left">
+                Edit Package
+              </h1>
+              <p className="text-base text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                Modify package details and configuration
+              </p>
             </div>
+          </div>
+          <Link
+            to="/admin/packages"
+            className="inline-flex items-center gap-2 px-6 py-3.5 bg-white shadow-sm dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-100 dark:hover:bg-white/10 hover:text-white transition-all duration-300 font-bold group"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            Back to Packages
+          </Link>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                Package Image
-              </label>
-              <div className="space-y-3">
-                {currentImageUrl && !imageFile && (
-                  <div className="mb-2">
-                    <img src={currentImageUrl} alt="Current" className="h-32 w-auto object-cover rounded border border-gray-200 dark:border-gray-600 transition-colors duration-300" />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">Current Image</p>
-                  </div>
-                )}
-                {imageFile && (
-                  <div className="flex items-start gap-4">
-                    {imagePreview && (
-                      <img src={imagePreview} alt="Preview" className="h-32 w-32 object-cover rounded border-2 border-indigo-200 dark:border-indigo-600 transition-colors duration-300" />
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
-                        <span className="font-medium">Selected:</span> {imageFile.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">Upload a new image to replace the current one.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <input
-                type="file"
-                name="image"
-                onChange={handleChange}
-                accept="image/*"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/30 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 transition-colors duration-300"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">Leave blank to keep current image</p>
+        <div className="bg-white/80 dark:bg-[#0b1121]/50 backdrop-blur-xl shadow-2xl rounded-[2rem] border border-gray-200 dark:border-blue-900/30 overflow-hidden transition-all duration-300">
+          {/* Form Header */}
+          <div className="h-16 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10 flex items-center px-8">
+            <div className="flex items-center gap-3 text-gray-900 dark:text-white font-bold text-sm tracking-wider uppercase">
+              <Package className="w-5 h-5 text-gray-400" />
+              Package Configuration
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                Inclusions *
-              </label>
-              <textarea
-                name="inclusions"
-                value={formData.inclusions}
-                onChange={handleChange}
-                required
-                rows="4"
-                placeholder="List package inclusions..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                  Price (₱) *
-                </label>
-                <input
-                  type="text"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                  placeholder="0.00"
-                  inputMode="decimal"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                  Capacity *
-                </label>
-                <input
-                  type="number"
-                  name="capacity"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                  Venue *
-                </label>
-                {loadingVenues ? (
-                  <div className="flex items-center justify-center py-4">
-                    <LoadingSpinner size="md" />
-                  </div>
-                ) : venues.length === 0 ? (
-                  <div className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 transition-colors duration-300">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      No venues available.
-                    </p>
-                  </div>
-                ) : (
-                  <select
-                    name="venue_id"
-                    value={formData.venue_id || ''}
+          <div className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                    <Tag className="w-4 h-4 text-gray-400" />
+                    Package Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-                  >
-                    <option value="">Select a venue...</option>
-                    {venues.map((venue) => (
-                      <option key={venue.id} value={String(venue.id)}>
-                        {venue.name} - {venue.location}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                  Type
-                </label>
-                <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-                >
-                  <option value="">Select type...</option>
-                  <option value="wedding">Wedding</option>
-                  <option value="debut">Debut</option>
-                  <option value="birthday">Birthday</option>
-                  <option value="pageant">Pageant</option>
-                  <option value="corporate">Corporate</option>
-                  <option value="anniversary">Anniversary</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">
-                Theme (Select multiple)
-                {!formData.type && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                    (Select event type first)
-                  </span>
-                )}
-              </label>
-              {formData.type ? (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 transition-colors duration-300">
-                    {getThemeOptions(formData.type).map((themeOption) => (
-                      <label
-                        key={themeOption.value}
-                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 p-2 rounded transition-colors duration-200"
-                      >
-                        <input
-                          type="checkbox"
-                          name="theme"
-                          value={themeOption.value}
-                          checked={formData.theme?.includes(themeOption.value) || false}
-                          onChange={handleChange}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 transition-colors duration-300"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300 transition-colors duration-300">
-                          {themeOption.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  {formData.theme && formData.theme.length > 0 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 transition-colors duration-300">
-                      Selected: {formData.theme.join(', ')}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    Please select an event type above to see available themes
-                  </p>
+                    placeholder="e.g. Royal Wedding Gala"
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-[#0b1121] text-gray-900 dark:text-white transition-all duration-300 shadow-sm"
+                  />
                 </div>
-              )}
-            </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="is_featured"
-                checked={formData.is_featured}
-                onChange={handleChange}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 transition-colors duration-300"
-              />
-              <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300 transition-colors duration-300">
-                Featured Package
-              </label>
-            </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                    <Sparkles className="w-4 h-4 text-gray-400" />
+                    Event Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-5 py-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-[#0b1121] text-gray-900 dark:text-white transition-all duration-300 shadow-sm"
+                  >
+                    <option value="">Select event type...</option>
+                    <option value="wedding">Wedding</option>
+                    <option value="debut">Debut</option>
+                    <option value="birthday">Birthday</option>
+                    <option value="pageant">Pageant</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="anniversary">Anniversary</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
 
-            <div className="flex space-x-4 pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-indigo-600 dark:bg-indigo-700 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Updating...' : 'Update Package'}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/admin/packages')}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                  <Info className="w-4 h-4 text-gray-400" />
+                  Package Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  required
+                  rows="4"
+                  placeholder="Describe the unique value of this package..."
+                  className="w-full px-5 py-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-[#0b1121] text-gray-900 dark:text-white transition-all duration-300 shadow-sm resize-none"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                  <Image className="w-4 h-4 text-gray-400" />
+                  Package Image
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {currentImageUrl && (
+                    <div className="relative group rounded-3xl overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                      <img
+                        src={currentImageUrl}
+                        alt="Current"
+                        className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold text-white uppercase tracking-wider">
+                        Current Image
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={`relative group border-2 border-dashed rounded-3xl p-8 transition-all duration-300 flex flex-col justify-center items-center ${imageFile ? 'border-blue-500/50 bg-blue-500/5' : 'border-gray-200 dark:border-gray-700 hover:border-blue-500/30 hover:bg-white/5'}`}>
+                    <input
+                      type="file"
+                      name="image"
+                      onChange={handleChange}
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+
+                    {!imageFile ? (
+                      <div className="text-center space-y-3">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
+                          <Plus className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-lg font-bold text-gray-700 dark:text-gray-200">
+                            {currentImageUrl ? 'Upload New Image' : 'Upload Image'}
+                          </p>
+                          <p className="text-sm text-gray-500">Click to browse or drag file here</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative text-center space-y-4 w-full">
+                        {imagePreview && (
+                          <div className="w-32 h-32 mx-auto rounded-2xl overflow-hidden shadow-lg border-2 border-white dark:border-gray-600">
+                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-bold text-blue-600 dark:text-blue-400 truncate px-4">
+                            {imageFile.name}
+                          </p>
+                          <p className="text-xs text-green-500 font-medium mt-1">Ready to upload</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                  <CheckCircle2 className="w-4 h-4 text-gray-400" />
+                  Key Inclusions <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="inclusions"
+                  value={formData.inclusions}
+                  onChange={handleChange}
+                  required
+                  rows="3"
+                  placeholder="List what's included in this package..."
+                  className="w-full px-5 py-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-[#0b1121] text-gray-900 dark:text-white transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                    <DollarSign className="w-4 h-4 text-gray-400" />
+                    Base Price (₱) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₱</span>
+                    <input
+                      type="text"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      required
+                      placeholder="0.00"
+                      className="w-full pl-10 pr-5 py-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-lg font-black text-gray-900 dark:text-white transition-all shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                    <Users className="w-4 h-4 text-gray-400" />
+                    Guest Capacity <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      name="capacity"
+                      value={formData.capacity}
+                      onChange={handleChange}
+                      required
+                      min="1"
+                      placeholder="0"
+                      className="w-full px-5 py-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-lg font-black text-gray-900 dark:text-white transition-all shadow-sm"
+                    />
+                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm uppercase tracking-widest">Guests</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    Primary Venue <span className="text-red-500">*</span>
+                  </label>
+                  {loadingVenues ? (
+                    <div className="h-[60px] flex items-center justify-center bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10">
+                      <LoadingSpinner size="sm" />
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsVenueOpen(!isVenueOpen)}
+                        className={`w-full px-5 py-4 bg-white dark:bg-[#0b1121] border ${isVenueOpen ? 'border-gray-400 dark:border-white/20 ring-2 ring-gray-400/20' : 'border-gray-200 dark:border-white/10'} rounded-2xl flex items-center justify-between transition-all duration-300 shadow-sm group`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <MapPin className={`w-5 h-5 ${formData.venue_id ? 'text-gray-400' : 'text-gray-400'}`} />
+                          <span className={`${formData.venue_id ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-400'}`}>
+                            {formData.venue_id
+                              ? venues.find(v => String(v.id) === String(formData.venue_id))?.name || 'Unknown Venue'
+                              : 'Choose a venue partner...'}
+                          </span>
+                        </div>
+                        <Plus className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isVenueOpen ? 'rotate-45' : ''}`} />
+                      </button>
+
+                      {isVenueOpen && (
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => setIsVenueOpen(false)} />
+                          <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#0f172a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl z-30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="max-h-60 overflow-y-auto no-scrollbar">
+                              {venues.length === 0 ? (
+                                <div className="px-5 py-4 text-center text-gray-500 italic">No venues available</div>
+                              ) : (
+                                venues.map((venue) => (
+                                  <button
+                                    key={venue.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData({ ...formData, venue_id: String(venue.id) });
+                                      setIsVenueOpen(false);
+                                    }}
+                                    className={`w-full px-5 py-4 flex flex-col items-start gap-0.5 hover:bg-blue-50 dark:hover:bg-blue-600/10 transition-colors border-b border-gray-100 dark:border-white/5 last:border-0 ${String(formData.venue_id) === String(venue.id) ? 'bg-blue-50/50 dark:bg-blue-600/20' : ''}`}
+                                  >
+                                    <div className="flex items-center justify-between w-full">
+                                      <span className={`font-bold ${String(formData.venue_id) === String(venue.id) ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'}`}>
+                                        {venue.name}
+                                      </span>
+                                      {String(formData.venue_id) === String(venue.id) && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                                    </div>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <MapPin className="w-3 h-3" />
+                                      {venue.location}
+                                    </span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
+                    <Sparkles className="w-4 h-4 text-gray-400" />
+                    Visual Themes
+                  </label>
+                  {!formData.type ? (
+                    <div className="h-14 flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-gray-200 dark:border-gray-700 italic text-sm text-gray-400">
+                      Select event type to see themes
+                    </div>
+                  ) : (
+                    <div className="relative group">
+                      <div className="flex flex-wrap gap-2 p-3 bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl min-h-[3.5rem] transition-all group-hover:border-blue-500/30">
+                        {getThemeOptions(formData.type).map((themeOption) => (
+                          <label
+                            key={themeOption.value}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all border ${formData.theme?.includes(themeOption.value)
+                              ? 'bg-gray-800 dark:bg-white/10 border-gray-700 dark:border-white/20 text-white'
+                              : 'bg-white dark:bg-[#0b1121] border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                              }`}
+                          >
+                            <input
+                              type="checkbox"
+                              name="theme"
+                              value={themeOption.value}
+                              checked={formData.theme?.includes(themeOption.value) || false}
+                              onChange={handleChange}
+                              className="hidden"
+                            />
+                            {themeOption.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-blue-600/[0.03] dark:bg-blue-600/[0.03] border border-blue-600/10 rounded-[2.5rem]">
+                <div className="flex items-center justify-between bg-white dark:bg-[#0b1121]/50 p-6 rounded-[2rem] border border-gray-100 dark:border-blue-900/20 shadow-sm transition-all hover:bg-white/80 dark:hover:bg-[#0b1121]/80">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+                      <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                        Featured
+                      </label>
+                      <p className="text-xs text-gray-500">Show on homepage</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_featured: !formData.is_featured })}
+                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-500 focus:outline-none ${formData.is_featured
+                      ? 'bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                      : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                  >
+                    <div className={`absolute left-1 flex items-center justify-center w-6 h-6 transform rounded-full bg-white shadow-md transition-all duration-500 ease-spring ${formData.is_featured ? 'translate-x-6 rotate-0' : 'translate-x-0 -rotate-90'}`}>
+                      <Sparkles className={`w-3.5 h-3.5 transition-colors duration-500 ${formData.is_featured ? 'text-amber-500' : 'text-gray-300'}`} />
+                    </div>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between bg-white dark:bg-[#0b1121]/50 p-6 rounded-[2rem] border border-gray-100 dark:border-blue-900/20 shadow-sm transition-all hover:bg-white/80 dark:hover:bg-[#0b1121]/80">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                        Live Status
+                      </label>
+                      <p className="text-xs text-gray-500">Visible to customers</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
+                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-all duration-500 focus:outline-none ${formData.is_active
+                      ? 'bg-gradient-to-r from-emerald-400 to-green-600 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
+                      : 'bg-gray-200 dark:bg-gray-700'
+                      }`}
+                  >
+                    <div className={`absolute left-1 flex items-center justify-center w-6 h-6 transform rounded-full bg-white shadow-md transition-all duration-500 ease-spring ${formData.is_active ? 'translate-x-6 scale-100' : 'translate-x-0 scale-90'}`}>
+                      <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${formData.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-10 mt-10 border-t border-gray-100 dark:border-blue-900/20">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 sm:flex-none px-12 py-5 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-[1.5rem] hover:from-blue-700 hover:to-blue-900 transition-all duration-300 font-black shadow-2xl shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.97] transform hover:-translate-y-1"
+                >
+                  {loading ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <CheckCircle2 className="w-6 h-6" />
+                  )}
+                  {loading ? 'Processing...' : 'Update Package'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/packages')}
+                  className="flex-1 sm:flex-none px-12 py-5 bg-white shadow-sm dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-[1.5rem] hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-300 font-bold active:scale-[0.97]"
+                >
+                  Discard Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
+    </div>
   );
 };
 

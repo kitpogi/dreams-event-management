@@ -1,6 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import api from '../../../api/axios';
 import { ConfirmationModal, LoadingSpinner } from '../../../components/ui';
+import {
+  Plus, X, Image as ImageIcon, Search, Filter, Calendar,
+  Star, Layout, Trash2, Edit3, Type, AlignLeft, Tags, Clock, TrendingUp
+} from 'lucide-react';
+import { formatAssetUrl } from '../../../lib/utils';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
@@ -19,10 +24,14 @@ const ManagePortfolio = () => {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState(initialFormState);
   const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, itemId: null });
+  const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
 
   useEffect(() => {
     fetchItems();
@@ -53,28 +62,35 @@ const ManagePortfolio = () => {
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
-
     if (!file) {
       setImageFile(null);
+      setImagePreview(null);
       return;
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       setFeedback({ type: 'error', message: 'Please upload a JPG, PNG, or WEBP image.' });
       setImageFile(null);
-      event.target.value = '';
+      setImagePreview(null);
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
       setFeedback({ type: 'error', message: 'Image must be 5MB or smaller.' });
       setImageFile(null);
-      event.target.value = '';
+      setImagePreview(null);
       return;
     }
 
     setFeedback({ type: '', message: '' });
     setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removePreview = () => {
+    setImageFile(null);
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
   };
 
   const handleSubmit = async (event) => {
@@ -91,10 +107,7 @@ const ManagePortfolio = () => {
     try {
       const payload = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        if (value === '' || value === null || typeof value === 'undefined') {
-          return;
-        }
-
+        if (value === '' || value === null || typeof value === 'undefined') return;
         if (typeof value === 'boolean') {
           payload.append(key, value ? 1 : 0);
         } else {
@@ -116,6 +129,7 @@ const ManagePortfolio = () => {
       }
 
       resetForm();
+      setShowForm(false);
       fetchItems();
     } catch (error) {
       console.error('Failed to save portfolio item', error);
@@ -135,8 +149,11 @@ const ManagePortfolio = () => {
       display_order: item.display_order ?? 0,
       is_featured: Boolean(item.is_featured),
     });
+    setImagePreview(item.image_url || item.image_path || null);
     setImageFile(null);
     setFeedback({ type: '', message: '' });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteClick = (id) => {
@@ -150,9 +167,7 @@ const ManagePortfolio = () => {
     try {
       await api.delete(`/portfolio-items/${id}`);
       setFeedback({ type: 'success', message: 'Portfolio item deleted.' });
-      if (editingId === id) {
-        resetForm();
-      }
+      if (editingId === id) resetForm();
       fetchItems();
     } catch (error) {
       console.error('Failed to delete portfolio item', error);
@@ -166,282 +181,352 @@ const ManagePortfolio = () => {
     setEditingId(null);
     setFormData(initialFormState);
     setImageFile(null);
+    setImagePreview(null);
   };
 
+  const categories = ['All', ...new Set(items.map(item => item.category).filter(Boolean))];
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = !searchQuery || item.title?.toLowerCase().includes(searchQuery.toLowerCase()) || item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = filterCategory === 'All' || item.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, searchQuery, filterCategory]);
+
+  const featuredCount = useMemo(() => items.filter(i => i.is_featured).length, [items]);
+
   return (
-    <div className="bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
-        <div className="p-4 sm:p-6 lg:p-10">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
+    <div className="relative min-h-screen pb-20">
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-20">
+        {/* ═══════════════ HEADER ═══════════════ */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl shadow-blue-500/20 transition-transform hover:scale-105">
+              <ImageIcon className="w-8 h-8 text-white" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white transition-colors duration-300">
-                Manage Portfolio
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                Portfolio Showroom
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                Upload event photos and keep your public portfolio fresh.
+              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-0.5">
+                Showcase your best event masterpieces
               </p>
             </div>
-            {feedback.message && (
-              <div
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${
-                  feedback.type === 'error'
-                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                    : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                }`}
-              >
-                {feedback.message}
-              </div>
-            )}
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 lg:col-span-1 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4 transition-colors duration-300">
-                {editingId ? 'Edit Portfolio Item' : 'Add Portfolio Item'}
-              </h2>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-                  placeholder="Weddings, Corporate..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                  Event Date
-                </label>
-                <input
-                  type="date"
-                  name="event_date"
-                  value={formData.event_date}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows="3"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-300"
-                  placeholder="Share highlights that appear on hover."
-                ></textarea>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                    Display Order
-                  </label>
-                  <input
-                    type="number"
-                    name="display_order"
-                    value={formData.display_order}
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-                    min="0"
-                  />
+          <div className="flex items-center gap-3">
+            {feedback.message && (
+              <div className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg animate-in slide-in-from-top-4 duration-500 border ${feedback.type === 'error'
+                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20'
+                : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
+                }`}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${feedback.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                  {feedback.message}
                 </div>
+              </div>
+            )}
+            <button
+              onClick={() => { resetForm(); setShowForm(!showForm); }}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 ${showForm
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-blue-500/25'
+                }`}
+            >
+              {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              <span className="hidden sm:inline">{showForm ? 'Close Form' : 'Add Masterpiece'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ═══════════════ FORM PANEL (Collapsible) ═══════════════ */}
+        {showForm && (
+          <div className="mb-8 animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="bg-white dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
+              <div className="px-6 sm:px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                 <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="is_featured"
-                    name="is_featured"
-                    checked={formData.is_featured}
-                    onChange={handleInputChange}
-                    className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 transition-colors duration-300"
-                  />
-                  <label
-                    htmlFor="is_featured"
-                    className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300"
-                  >
-                    Featured
-                  </label>
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                    {editingId ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {editingId ? 'Edit Masterpiece' : 'Post New Masterpiece'}
+                  </h2>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
-                  {editingId ? 'Replace Image' : 'Upload Image'}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/30 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50 transition-colors duration-300"
-                />
-                {editingId && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">
-                    Leave blank to keep the existing image.
-                  </p>
-                )}
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">
-                  JPG/PNG/WEBP, max 5MB.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 bg-indigo-600 dark:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors duration-300 disabled:opacity-50"
-                >
-                  {submitting ? 'Saving...' : editingId ? 'Update Item' : 'Add Item'}
-                </button>
-                {editingId && (
+
+              <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Content Info */}
+                  <div className="lg:col-span-8 space-y-6">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 text-indigo-500">
+                        <Type className="w-4 h-4" /> Mastery Title *
+                      </label>
+                      <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                        placeholder="e.g. Royal Wedding at the Palace"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 text-indigo-500">
+                          <Tags className="w-4 h-4" /> Category
+                        </label>
+                        <input
+                          type="text"
+                          name="category"
+                          value={formData.category}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                          placeholder="e.g. Weddings"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 text-indigo-500">
+                          <Calendar className="w-4 h-4" /> Event Date
+                        </label>
+                        <input
+                          type="date"
+                          name="event_date"
+                          value={formData.event_date}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 text-indigo-500">
+                        <AlignLeft className="w-4 h-4" /> Description
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none"
+                        placeholder="Share the story behind this event..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Asset & Settings */}
+                  <div className="lg:col-span-4 space-y-6">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 text-indigo-500">
+                        <Upload className="w-4 h-4" /> Highlight Image *
+                      </label>
+                      {imagePreview ? (
+                        <div className="relative group rounded-2xl overflow-hidden aspect-video border-2 border-indigo-500 shadow-lg">
+                          <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={removePreview}
+                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all shadow-xl"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center aspect-video border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-8 hover:border-indigo-500 hover:bg-indigo-50/50 transition-all cursor-pointer group">
+                          <Upload className="w-8 h-8 text-gray-400 group-hover:text-indigo-500 transition-colors mb-2" />
+                          <span className="text-xs font-bold text-gray-500 group-hover:text-indigo-600">Select Image</span>
+                          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Display Order</label>
+                        <input type="number" name="display_order" value={formData.display_order} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" />
+                      </div>
+                      <div className="flex flex-col justify-end pb-3">
+                        <label className="flex items-center gap-3 cursor-pointer group px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                          <input type="checkbox" name="is_featured" checked={formData.is_featured} onChange={handleInputChange} className="w-4 h-4 rounded border-indigo-500 text-indigo-600 focus:ring-indigo-500" />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                            <Star className={`w-3.5 h-3.5 ${formData.is_featured ? 'text-amber-500 fill-amber-500' : 'text-gray-400'}`} />
+                            Featured
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl text-sm font-bold hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20"
+                  >
+                    {submitting ? <LoadingSpinner size="sm" /> : (editingId ? 'Update Masterpiece' : 'Post Showroom Entry')}
+                  </button>
                   <button
                     type="button"
-                    onClick={resetForm}
-                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 transition-colors duration-300"
+                    onClick={() => { resetForm(); setShowForm(false); }}
+                    className="px-6 py-3.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-all font-medium"
                   >
                     Cancel
                   </button>
-                )}
-              </div>
-            </form>
-          </section>
-
-          <section className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Preview
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Title & Category
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Event Date
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Featured
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider transition-colors duration-300">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                  {loading ? (
-                    <tr>
-                      <td colSpan="5" className="py-10 text-center">
-                        <LoadingSpinner size="lg" />
-                      </td>
-                    </tr>
-                  ) : items.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="py-10 text-center text-gray-500 dark:text-gray-400 transition-colors duration-300"
-                      >
-                        No portfolio entries yet. Start by adding one on the left.
-                      </td>
-                    </tr>
-                  ) : (
-                    items.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300"
-                      >
-                        <td className="px-4 py-3">
-                          {item.image_url || item.image_path ? (
-                            <img
-                              src={item.image_url || item.image_path}
-                              alt={item.title}
-                              className="h-20 w-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600 transition-colors duration-300"
-                            />
-                          ) : (
-                            <div className="h-20 w-32 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm transition-colors duration-300">
-                              No image
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-                            {item.title}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                            {item.category || 'Uncategorized'}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
-                          {item.event_date
-                            ? new Date(item.event_date).toLocaleDateString()
-                            : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full transition-colors duration-300 ${
-                              item.is_featured
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                            }`}
-                          >
-                            {item.is_featured ? 'Featured' : 'Hidden'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="px-3 py-1.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors duration-300"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(item.id)}
-                              className="px-3 py-1.5 rounded-md bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors duration-300"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                </div>
+              </form>
             </div>
-          </section>
+          </div>
+        )}
+
+        {/* ═══════════════ STATS BAR ═══════════════ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Exhibits</p>
+            <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{items.length}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Featured</p>
+            <p className="text-3xl font-extrabold text-amber-500">{featuredCount}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Genres</p>
+            <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{new Set(items.map(i => i.category)).size}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Recent View</p>
+            <div className="flex items-center gap-2">
+              <p className="text-3xl font-extrabold text-emerald-500">Active</p>
+              <Clock className="w-5 h-5 text-emerald-400" />
+            </div>
+          </div>
         </div>
 
-        <ConfirmationModal
-          isOpen={deleteConfirm.isOpen}
-          onClose={() => setDeleteConfirm({ isOpen: false, itemId: null })}
-          onConfirm={handleDelete}
-          title="Delete Portfolio Item"
-          message="Are you sure you want to delete this portfolio item? This action cannot be undone."
-          confirmText="Delete"
-          cancelText="Cancel"
-          variant="danger"
-        />
+        {/* ═══════════════ SEARCH & FILTER ═══════════════ */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Find masterpieces by title or category..."
+              className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none transition-all shadow-sm focus:ring-2 focus:ring-indigo-500/10"
+            />
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${filterCategory === cat
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/20'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-100 dark:border-gray-700 hover:border-indigo-300'
+                  }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* ═══════════════ PORTFOLIO GRID ═══════════════ */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-800 rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="py-24 text-center bg-gray-50/50 dark:bg-gray-800/20 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-[2.5rem]">
+            <ImageIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold dark:text-white">No matches found in your showroom</h3>
+            <p className="text-gray-500 mt-2">Try adjusting your filters or explore new search terms.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="group bg-white dark:bg-gray-900/70 backdrop-blur-xl rounded-[2.5rem] border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={item.image_url || item.image_path}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800'; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+
+                  {/* Badges */}
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    {item.is_featured && (
+                      <span className="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg">
+                        Featured
+                      </span>
+                    )}
+                    <span className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg">
+                      #{item.display_order}
+                    </span>
+                  </div>
+
+                  {/* Title Overlay */}
+                  <div className="absolute bottom-5 left-6 right-6 translate-y-2 group-hover:translate-y-0 transition-transform">
+                    <h3 className="text-lg font-black text-white leading-tight drop-shadow-md">
+                      {item.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Tags className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+                        {item.category || 'Event Portfolio'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 mb-4">
+                    <Calendar className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-bold leading-none">{item.event_date ? new Date(item.event_date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date Unspecified'}</span>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-6">
+                    {item.description || 'Curation of the most elegant moments captured in our professional events showcase.'}
+                  </p>
+
+                  <div className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <button
+                      onClick={() => handleEdit(item)}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-600 hover:text-white transition-all duration-300 border border-indigo-100 dark:border-indigo-500/20"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Redact
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(item.id)}
+                      className="w-12 h-12 flex items-center justify-center rounded-2xl text-red-500 bg-red-50 dark:bg-red-500/10 hover:bg-red-500 hover:text-white transition-all duration-300 border border-red-100 dark:border-red-500/10"
+                    >
+                      <Trash2 className="w-4.5 h-4.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ConfirmationModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, itemId: null })}
+        onConfirm={handleDelete}
+        title="Acknowledge Deletion"
+        message="Are you sure you want to permanently remove this masterpiece from the showroom?"
+        confirmText="Terminate Entry"
+        variant="danger"
+      />
     </div>
   );
 };
 
 export default ManagePortfolio;
-
-

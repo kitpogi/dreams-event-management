@@ -1,106 +1,93 @@
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from './Card';
+import React from 'react';
+import { Card, CardContent } from './Card';
 import { cn } from '@/lib/utils';
-import { ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const StatsCard = ({
   title,
   value,
-  description,
-  icon: Icon,
+  unit,
   trend,
-  trendValue,
-  link,
-  linkText,
-  variant = 'default',
+  trendDirection = 'up',
+  status,
+  icon: Icon,
+  color = 'blue',
   className,
 }) => {
-  // Argon-style variants using your brand colors
-  const variants = {
-    default: 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300',
-    primary: 'bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] text-white border-transparent shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden',
-    success: 'bg-gradient-to-br from-green-500 to-emerald-600 text-white border-transparent shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden',
-    warning: 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white border-transparent shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden',
-    danger: 'bg-gradient-to-br from-red-500 to-pink-600 text-white border-transparent shadow-xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden',
+  const colorMap = {
+    blue: {
+      iconBg: 'bg-blue-500/10 dark:bg-blue-500/10',
+      iconText: 'text-blue-600 dark:text-blue-400',
+    },
+    cyan: {
+      iconBg: 'bg-cyan-500/10 dark:bg-cyan-500/10',
+      iconText: 'text-cyan-600 dark:text-cyan-400',
+    },
+    green: {
+      iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/10',
+      iconText: 'text-emerald-600 dark:text-emerald-400',
+    },
+    orange: {
+      iconBg: 'bg-orange-500/10 dark:bg-orange-500/10',
+      iconText: 'text-orange-600 dark:text-orange-400',
+    }
   };
 
-  const iconVariants = {
-    default: 'bg-gradient-to-br from-[#5A45F2] to-[#7c3aed] text-white shadow-lg',
-    primary: 'bg-white/20 backdrop-blur-sm text-white border border-white/30',
-    success: 'bg-white/20 backdrop-blur-sm text-white border border-white/30',
-    warning: 'bg-white/20 backdrop-blur-sm text-white border border-white/30',
-    danger: 'bg-white/20 backdrop-blur-sm text-white border border-white/30',
-  };
-
-  const isGradient = variant !== 'default';
-  const textColor = isGradient ? 'text-white' : 'text-gray-900 dark:text-white';
-  const secondaryTextColor = isGradient ? 'text-white/95' : 'text-gray-700 dark:text-gray-300';
+  const activeColor = colorMap[color] || colorMap.blue;
 
   return (
-    <Card className={cn('group hover:-translate-y-1 transition-all duration-300', variants[variant], className)}>
-      {/* Background decorative circles for gradient cards */}
-      {isGradient && (
-        <>
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-white/10 blur-xl"></div>
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 rounded-full bg-white/5 blur-2xl"></div>
-        </>
-      )}
-      
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-        <CardTitle className={cn('text-xs font-semibold uppercase tracking-wider', secondaryTextColor)}>
-          {title}
-        </CardTitle>
-        {Icon && (
+    <Card className={cn(
+      'relative overflow-hidden group border-none transition-all duration-300 hover:-translate-y-1',
+      'bg-slate-900/40 dark:bg-slate-950/40 backdrop-blur-2xl border border-white/10 dark:border-white/5 shadow-2xl rounded-3xl',
+      className
+    )}>
+      <CardContent className="p-8">
+        {/* Top Section: Icon and Trend */}
+        <div className="flex items-center justify-between mb-8">
           <div className={cn(
-            'inline-flex items-center justify-center h-12 w-12 rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3',
-            iconVariants[variant]
+            'p-3.5 rounded-2xl transition-transform duration-300 group-hover:scale-110 shadow-inner',
+            'bg-slate-800/50 dark:bg-slate-800/50',
+            activeColor.iconText
           )}>
-            <Icon className="h-6 w-6" />
+            {Icon && <Icon className="w-6 h-6" />}
           </div>
-        )}
-      </CardHeader>
-      <CardContent className="relative z-10">
-        <div className="space-y-3">
-          <div className="flex items-baseline gap-2">
-            <p className={cn('text-4xl font-extrabold tracking-tight', textColor)}>{value}</p>
-            {trend && trendValue && (
-              <span
-                className={cn(
-                  'text-xs font-bold px-2.5 py-1 rounded-full',
-                  isGradient
-                    ? trend === 'up' 
-                      ? 'bg-green-500/30 text-white border border-green-400/50' 
-                      : 'bg-red-500/30 text-white border border-red-400/50'
-                    : trend === 'up' 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700' 
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700'
-                )}
-              >
-                {trend === 'up' ? '↑' : '↓'} {trendValue}
-              </span>
-            )}
-          </div>
-          {description && (
-            <p className={cn('text-sm font-medium', secondaryTextColor)}>{description}</p>
-          )}
-          {link && linkText && (
-            <Link
-              to={link}
-              className={cn(
-                'inline-flex items-center gap-1 text-sm font-semibold transition-all duration-300 group/link',
-                isGradient 
-                  ? 'text-white/90 hover:text-white hover:gap-2' 
-                  : 'text-[#5A45F2] dark:text-[#7ee5ff] hover:text-[#7c3aed] dark:hover:text-[#7ee5ff]'
-              )}
-            >
-              {linkText}
-              <ArrowRight className={cn(
-                'w-4 h-4 transition-transform duration-300',
-                isGradient ? 'group-hover/link:translate-x-1' : 'group-hover/link:translate-x-1'
-              )} />
-            </Link>
+
+          {(trend || status) && (
+            <div className={cn(
+              'flex items-center gap-1 text-sm font-black italic tracking-tighter transition-transform duration-300 group-hover:translate-x-1',
+              trendDirection === 'up' ? 'text-emerald-400' : 'text-rose-400'
+            )}>
+              {trendDirection === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <span>{trend || status}</span>
+            </div>
           )}
         </div>
+
+        {/* Value Section */}
+        <div className="flex items-baseline gap-2 mb-2">
+          <h2 className="text-4xl font-black text-white tracking-tighter drop-shadow-sm group-hover:scale-[1.02] transform origin-left transition-transform duration-300">
+            {value}
+          </h2>
+          {unit && (
+            <span className="text-lg font-bold text-gray-500/80 uppercase tracking-widest text-xs">
+              {unit}
+            </span>
+          )}
+        </div>
+
+        {/* Title Section */}
+        <p className="text-sm font-bold text-gray-400 dark:text-gray-500 tracking-wide">
+          {title}
+        </p>
+
+        {/* Decorative Glow */}
+        <div className={cn(
+          "absolute -bottom-12 -right-12 w-32 h-32 blur-3xl opacity-20 transition-opacity duration-500 group-hover:opacity-40 rounded-full",
+          color === 'blue' && "bg-blue-500",
+          color === 'cyan' && "bg-cyan-500",
+          color === 'green' && "bg-emerald-500",
+          color === 'orange' && "bg-orange-500"
+        )}></div>
       </CardContent>
     </Card>
   );

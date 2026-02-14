@@ -27,7 +27,7 @@ const DashboardBottomNavigation = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg lg:hidden safe-area-bottom"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 shadow-lg lg:hidden safe-area-bottom px-4"
       role="navigation"
       aria-label="Dashboard navigation"
     >
@@ -43,15 +43,15 @@ const DashboardBottomNavigation = () => {
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-h-[44px] min-w-[44px] rounded-lg transition-all duration-200 touch-manipulation',
                 active
-                  ? 'text-purple-600 dark:text-purple-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
               )}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
             >
               <div className={cn(
                 'p-1.5 rounded-lg transition-all duration-200',
-                active && 'bg-purple-100 dark:bg-purple-900/30'
+                active && 'bg-blue-100 dark:bg-blue-900/30'
               )}>
                 <Icon className="w-5 h-5" />
               </div>

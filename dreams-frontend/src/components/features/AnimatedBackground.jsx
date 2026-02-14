@@ -25,21 +25,33 @@ const AnimatedBackground = ({
 
   useEffect(() => {
     if (type === 'gradient' || type === 'mesh') {
+      let isVisible = true;
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          isVisible = entry.isIntersecting;
+        },
+        { threshold: 0.1 }
+      );
+
+      if (containerRef.current) observer.observe(containerRef.current);
+
       const animate = () => {
-        progressRef.current += 0.01 * speed;
-        if (progressRef.current >= 1) progressRef.current = 0;
+        if (isVisible) {
+          progressRef.current += 0.01 * speed;
+          if (progressRef.current >= 1) progressRef.current = 0;
 
-        if (containerRef.current) {
-          const angle = progressRef.current * 360;
-          containerRef.current.style.setProperty('--gradient-angle', `${angle}deg`);
+          if (containerRef.current) {
+            const angle = progressRef.current * 360;
+            containerRef.current.style.setProperty('--gradient-angle', `${angle}deg`);
+          }
         }
-
         animationFrameRef.current = requestAnimationFrame(animate);
       };
 
       animate();
 
       return () => {
+        observer.disconnect();
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
@@ -48,10 +60,10 @@ const AnimatedBackground = ({
   }, [type, speed]);
 
   const colorString = Array.isArray(colors) ? colors.join(', ') : colors;
-  
+
   const getGradientStyle = () => {
     const angle = type === 'gradient' ? 'var(--gradient-angle, 45deg)' : '45deg';
-    
+
     switch (direction) {
       case 'horizontal':
         return `linear-gradient(90deg, ${colorString})`;
@@ -71,10 +83,10 @@ const AnimatedBackground = ({
     case 'mesh':
       return (
         <div ref={containerRef} className={`${baseClasses} opacity-30`}>
-          <div 
+          <div
             className="absolute inset-0"
             style={{
-              background: `linear-gradient(var(--gradient-angle, 45deg), ${colorString})`,
+              backgroundImage: `linear-gradient(var(--gradient-angle, 45deg), ${colorString})`,
               backgroundSize: '200% 200%',
               animation: `mesh-animation ${10 / speed}s ease-in-out infinite`
             }}
@@ -95,9 +107,9 @@ const AnimatedBackground = ({
             <defs>
               <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                 {Array.isArray(colors) ? colors.map((color, i) => (
-                  <stop 
-                    key={i} 
-                    offset={`${(i / (colors.length - 1)) * 100}%`} 
+                  <stop
+                    key={i}
+                    offset={`${(i / (colors.length - 1)) * 100}%`}
                     stopColor={color}
                   />
                 )) : <stop offset="0%" stopColor={colors} />}
@@ -126,7 +138,7 @@ const AnimatedBackground = ({
     case 'dots':
       return (
         <div className={`${baseClasses} opacity-20`}>
-          <div 
+          <div
             className="absolute inset-0"
             style={{
               backgroundImage: `radial-gradient(circle, ${colors[0] || '#5A45F2'} 1px, transparent 1px)`,
@@ -146,7 +158,7 @@ const AnimatedBackground = ({
     case 'grid':
       return (
         <div className={`${baseClasses} opacity-10`}>
-          <div 
+          <div
             className="absolute inset-0"
             style={{
               backgroundImage: `
@@ -169,11 +181,11 @@ const AnimatedBackground = ({
     case 'gradient':
     default:
       return (
-        <div 
+        <div
           ref={containerRef}
           className={`${baseClasses} opacity-30`}
           style={{
-            background: getGradientStyle(),
+            backgroundImage: getGradientStyle(),
             backgroundSize: type === 'gradient' ? '200% 200%' : '100% 100%',
             animation: type === 'gradient' ? `gradient-shift ${10 / speed}s ease infinite` : 'none'
           }}

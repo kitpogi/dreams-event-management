@@ -14,15 +14,16 @@ import {
     Badge
 } from '../../../components/ui';
 import BookingCancellationModal from '../../../components/modals/BookingCancellationModal';
-import { AnalyticsCharts, AnimatedBackground, PullToRefresh } from '../../../components/features';
+import { AnalyticsCharts, AnimatedBackground, PullToRefresh, ParticlesBackground } from '../../../components/features';
 import PaymentForm from '../../../components/features/PaymentForm';
 import { getBookingPayments } from '../../../api/services/paymentService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui';
 import { useToast } from '../../../hooks/use-toast';
-import { Calendar, Clock, Package, Search, BarChart3, CreditCard, DollarSign, BookOpen, FileText } from 'lucide-react';
+import { Calendar, Clock, Package, Search, BarChart3, CreditCard, DollarSign, BookOpen, FileText, Sparkles } from 'lucide-react';
 import BookingFilters from '../../../components/features/BookingFilters';
 import BookingActionsDropdown from '../../../components/features/BookingActionsDropdown';
 import InvoiceList from '../../../components/features/invoice/InvoiceList';
+import { cn } from '../../../lib/utils';
 
 const ClientBookings = () => {
     const { isAdmin } = useAuth();
@@ -326,304 +327,316 @@ const ClientBookings = () => {
     }
 
     return (
-        <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
+        <PullToRefresh onRefresh={handleRefresh}>
             <div className="relative min-h-screen">
-                <AnimatedBackground
-                    type="dots"
-                    colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
-                    speed={0.2}
-                    className="opacity-5 dark:opacity-10"
-                />
-                <div className="px-4 py-6 lg:px-8 lg:py-8 relative z-10 max-w-7xl mx-auto">
+
+                <div className="px-4 py-8 lg:px-12 lg:py-12 relative z-10 w-full max-w-[1600px] mx-auto">
                     {/* Header */}
-                    <div className="mb-8">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
-                                <BookOpen className="w-6 h-6 text-white" />
+                    <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="flex items-center gap-5">
+                                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-xl shadow-blue-500/20 group relative overflow-hidden transition-transform duration-500 hover:scale-110">
+                                    <BookOpen className="w-7 h-7 text-white relative z-10" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                        My Bookings
+                                    </h1>
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">
+                                        Workspace / Events
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">My Bookings</h1>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View and manage all your event bookings</p>
+
+                            <div className="flex items-center gap-3">
+                                <Link to="/dashboard/packages">
+                                    <Button className="glass-card hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 border-blue-500/20 rounded-2xl px-6 py-6 font-bold transition-all duration-300">
+                                        <Sparkles className="w-5 h-5 mr-2" />
+                                        Book New Event
+                                    </Button>
+                                </Link>
                             </div>
                         </div>
                     </div>
 
                     {/* All Bookings with Tabs */}
-                    <Card className="p-8 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300 shadow-md">
-                        {bookings.length === 0 ? (
-                            <div className="text-center py-16">
-                                <div className="mx-auto w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
-                                    <Package className="w-12 h-12 text-gray-400 dark:text-gray-500" />
-                                </div>
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                                    No bookings yet
-                                </h3>
-                                <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                                    Start by exploring our event packages and make your first booking!
-                                </p>
-                                <Link to="/dashboard/packages">
-                                    <Button className="bg-primary-600 hover:bg-primary-700 text-white">
-                                        <Package className="w-4 h-4 mr-2" />
-                                        Browse Packages
-                                    </Button>
-                                </Link>
-                            </div>
-                        ) : filteredBookings.length === 0 ? (
-                            <div className="text-center py-12">
-                                <div className="mx-auto w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-                                    <Search className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                    No bookings match your filters
-                                </h3>
-                                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                                    Try adjusting your filters to see more results.
-                                </p>
-                                <Button variant="outline" onClick={handleClearFilters}>
-                                    Clear Filters
-                                </Button>
-                            </div>
-                        ) : (
-                            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                                <TabsList className="grid w-full grid-cols-5 mb-8 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-lg">
-                                    <TabsTrigger value="list" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700">
-                                        <Package className="w-4 h-4" />
-                                        <span className="font-medium">List View</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="calendar" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700">
-                                        <Calendar className="w-4 h-4" />
-                                        <span className="font-medium">Calendar</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="timeline" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700">
-                                        <Clock className="w-4 h-4" />
-                                        <span className="font-medium">Timeline</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700">
-                                        <BarChart3 className="w-4 h-4" />
-                                        <span className="font-medium">Analytics</span>
-                                    </TabsTrigger>
-                                    <TabsTrigger value="invoices" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700">
-                                        <FileText className="w-4 h-4" />
-                                        <span className="font-medium">Invoices</span>
-                                    </TabsTrigger>
-                                </TabsList>
-
-                                {/* Show message if on payments view */}
-                                {searchParams.get('tab') === 'payments' && (
-                                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl shadow-sm">
-                                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 flex items-center gap-2">
-                                            <CreditCard className="w-5 h-5" />
-                                            Showing bookings with payment information. Use filters to refine your search.
-                                        </p>
+                    <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl p-1 sm:p-2 rounded-[2.5rem] border-none shadow-xl relative overflow-hidden group">
+                        <div className="p-4 sm:p-8">
+                            {bookings.length === 0 ? (
+                                <div className="text-center py-16">
+                                    <div className="mx-auto w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
+                                        <Package className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                                     </div>
-                                )}
+                                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                                        No bookings yet
+                                    </h3>
+                                    <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+                                        Start by exploring our event packages and make your first booking!
+                                    </p>
+                                    <Link to="/dashboard/packages">
+                                        <Button className="bg-primary-600 hover:bg-primary-700 text-white">
+                                            <Package className="w-4 h-4 mr-2" />
+                                            Browse Packages
+                                        </Button>
+                                    </Link>
+                                </div>
+                            ) : filteredBookings.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="mx-auto w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                                        <Search className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                        No bookings match your filters
+                                    </h3>
+                                    <p className="text-gray-600 dark:text-gray-400 mb-6">
+                                        Try adjusting your filters to see more results.
+                                    </p>
+                                    <Button variant="outline" onClick={handleClearFilters}>
+                                        Clear Filters
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-10 bg-blue-500/5 dark:bg-white/5 p-1 rounded-2xl">
+                                        <TabsTrigger value="list" className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:text-white data-[state=active]:shadow-xl">
+                                            <Package className="w-4 h-4" />
+                                            <span className="font-semibold">List View</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="calendar" className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:text-white data-[state=active]:shadow-xl">
+                                            <Calendar className="w-4 h-4" />
+                                            <span className="font-semibold">Calendar</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="timeline" className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:text-white data-[state=active]:shadow-xl">
+                                            <Clock className="w-4 h-4" />
+                                            <span className="font-semibold">Timeline</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="analytics" className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:text-white data-[state=active]:shadow-xl">
+                                            <BarChart3 className="w-4 h-4" />
+                                            <span className="font-semibold">Analytics</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="invoices" className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:text-white data-[state=active]:shadow-xl">
+                                            <FileText className="w-4 h-4" />
+                                            <span className="font-semibold">Invoices</span>
+                                        </TabsTrigger>
+                                    </TabsList>
 
-                                {/* List View Tab */}
-                                <TabsContent value="list" className="mt-0">
-                                    <BookingFilters
-                                        statusFilter={statusFilter}
-                                        paymentFilter={paymentFilter}
-                                        onStatusChange={setStatusFilter}
-                                        onPaymentChange={setPaymentFilter}
-                                        onClearFilters={handleClearFilters}
-                                    />
-                                    <DataTable
-                                        data={filteredBookings.sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))}
-                                        columns={[
-                                            {
-                                                accessor: 'booking_id',
-                                                header: 'ID',
-                                                sortable: true,
-                                                render: (row) => (
-                                                    <div className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                                        #{row.booking_id || row.id}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                accessor: 'package_name',
-                                                header: 'Package',
-                                                sortable: true,
-                                                render: (row) => (
-                                                    <div>
-                                                        <div className="font-medium text-gray-900 dark:text-white">
-                                                            {getPackageName(row)}
+                                    {/* Show message if on payments view */}
+                                    {searchParams.get('tab') === 'payments' && (
+                                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl shadow-sm">
+                                            <p className="text-sm font-medium text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                                                <CreditCard className="w-5 h-5" />
+                                                Showing bookings with payment information. Use filters to refine your search.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* List View Tab */}
+                                    <TabsContent value="list" className="mt-0">
+                                        <BookingFilters
+                                            statusFilter={statusFilter}
+                                            paymentFilter={paymentFilter}
+                                            onStatusChange={setStatusFilter}
+                                            onPaymentChange={setPaymentFilter}
+                                            onClearFilters={handleClearFilters}
+                                        />
+                                        <DataTable
+                                            data={filteredBookings.sort((a, b) => new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0))}
+                                            columns={[
+                                                {
+                                                    accessor: 'booking_id',
+                                                    header: 'ID',
+                                                    sortable: true,
+                                                    render: (row) => (
+                                                        <div className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                                            #{row.booking_id || row.id}
                                                         </div>
-                                                        {(row.event_type || row.theme) && (
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                                {row.event_type && <span>{row.event_type}</span>}
-                                                                {row.event_type && row.theme && <span> • </span>}
-                                                                {row.theme && <span>{row.theme}</span>}
+                                                    ),
+                                                },
+                                                {
+                                                    accessor: 'package_name',
+                                                    header: 'Package',
+                                                    sortable: true,
+                                                    render: (row) => (
+                                                        <div>
+                                                            <div className="font-medium text-gray-900 dark:text-white">
+                                                                {getPackageName(row)}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                accessor: 'event_date',
-                                                header: 'Event Date & Time',
-                                                sortable: true,
-                                                render: (row) => (
-                                                    <div className="text-sm">
-                                                        <div className="text-gray-900 dark:text-gray-200">
-                                                            {row.event_date
-                                                                ? new Date(row.event_date).toLocaleDateString('en-US', {
-                                                                    year: 'numeric',
-                                                                    month: 'short',
-                                                                    day: 'numeric',
-                                                                })
-                                                                : 'N/A'}
-                                                        </div>
-                                                        {row.event_time && (
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                                                                <Clock className="w-3 h-3" />
-                                                                {row.event_time}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                accessor: 'event_venue',
-                                                header: 'Venue',
-                                                sortable: true,
-                                                render: (row) => (
-                                                    <div className="text-sm text-gray-900 dark:text-gray-200">
-                                                        {row.event_venue || 'TBD'}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                accessor: 'guest_count',
-                                                header: 'Guests',
-                                                sortable: true,
-                                                render: (row) => (
-                                                    <div className="text-sm text-gray-900 dark:text-gray-200">
-                                                        {row.guest_count || row.number_of_guests || 'N/A'}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                accessor: 'status',
-                                                header: 'Status',
-                                                sortable: true,
-                                                render: (row) => getStatusBadge(row.booking_status || row.status),
-                                            },
-                                            {
-                                                accessor: 'payment_status',
-                                                header: 'Payment',
-                                                sortable: true,
-                                                render: (row) => {
-                                                    const { paymentStatus, totalPaid, totalAmount, remainingBalance } = getPaymentInfo(row);
-                                                    return (
-                                                        <div className="space-y-1">
-                                                            {getPaymentStatusBadge(paymentStatus)}
-                                                            {totalAmount > 0 && (
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                                    {totalPaid > 0 && (
-                                                                        <div>Paid: ₱{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                                                                    )}
-                                                                    {remainingBalance > 0 && (
-                                                                        <div className="text-orange-600 dark:text-orange-400">
-                                                                            Due: ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                        </div>
-                                                                    )}
+                                                            {(row.event_type || row.theme) && (
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                                    {row.event_type && <span>{row.event_type}</span>}
+                                                                    {row.event_type && row.theme && <span> • </span>}
+                                                                    {row.theme && <span>{row.theme}</span>}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    );
+                                                    ),
                                                 },
-                                            },
-                                            {
-                                                accessor: 'price',
-                                                header: 'Total Price',
-                                                sortable: true,
-                                                render: (row) => (
-                                                    <div className="text-sm">
-                                                        <div className="font-medium text-gray-900 dark:text-white">
-                                                            {getPackagePrice(row)
-                                                                ? `₱${parseFloat(getPackagePrice(row)).toLocaleString('en-US', {
-                                                                    minimumFractionDigits: 2,
-                                                                    maximumFractionDigits: 2,
-                                                                })}`
-                                                                : 'N/A'}
-                                                        </div>
-                                                        {row.deposit_amount && parseFloat(row.deposit_amount) > 0 && (
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                                Deposit: ₱{parseFloat(row.deposit_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                {
+                                                    accessor: 'event_date',
+                                                    header: 'Event Date & Time',
+                                                    sortable: true,
+                                                    render: (row) => (
+                                                        <div className="text-sm">
+                                                            <div className="text-gray-900 dark:text-gray-200">
+                                                                {row.event_date
+                                                                    ? new Date(row.event_date).toLocaleDateString('en-US', {
+                                                                        year: 'numeric',
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                    })
+                                                                    : 'N/A'}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ),
-                                            },
-                                            {
-                                                accessor: 'actions',
-                                                header: 'Actions',
-                                                sortable: false,
-                                                render: (row) => {
-                                                    const bookingId = row.booking_id || row.id;
-                                                    if (bookingId && !bookingPayments[bookingId]) {
-                                                        fetchBookingPayments(bookingId);
-                                                    }
-                                                    return (
-                                                        <div className="flex items-center gap-2">
-                                                            {canShowPayButton(row) && (
-                                                                <Button
-                                                                    variant="default"
-                                                                    size="default"
-                                                                    onClick={() => handlePayNow(row)}
-                                                                    className="bg-gradient-to-r from-[#a413ec] to-[#8a0fd4] hover:from-[#8a0fd4] hover:to-[#7a0fc4] text-white shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 font-semibold"
-                                                                >
-                                                                    <CreditCard className="w-4 h-4 mr-1.5" />
-                                                                    Pay Now
-                                                                </Button>
+                                                            {row.event_time && (
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    {row.event_time}
+                                                                </div>
                                                             )}
-                                                            <BookingActionsDropdown
-                                                                booking={row}
-                                                                onViewDetails={(b) => navigate(`/dashboard/bookings/${b.booking_id || b.id}`)}
-                                                                onPayNow={handlePayNow}
-                                                                onCancel={handleCancelClick}
-                                                                canShowPayButton={canShowPayButton}
-                                                                canCancelBooking={canCancelBooking}
-                                                            />
                                                         </div>
-                                                    );
+                                                    ),
                                                 },
-                                            },
-                                        ]}
-                                        searchable
-                                        searchPlaceholder="Search bookings..."
-                                        pagination
-                                        pageSize={perPage}
-                                    />
-                                </TabsContent>
+                                                {
+                                                    accessor: 'event_venue',
+                                                    header: 'Venue',
+                                                    sortable: true,
+                                                    render: (row) => (
+                                                        <div className="text-sm text-gray-900 dark:text-gray-200">
+                                                            {row.event_venue || 'TBD'}
+                                                        </div>
+                                                    ),
+                                                },
+                                                {
+                                                    accessor: 'guest_count',
+                                                    header: 'Guests',
+                                                    sortable: true,
+                                                    render: (row) => (
+                                                        <div className="text-sm text-gray-900 dark:text-gray-200">
+                                                            {row.guest_count || row.number_of_guests || 'N/A'}
+                                                        </div>
+                                                    ),
+                                                },
+                                                {
+                                                    accessor: 'status',
+                                                    header: 'Status',
+                                                    sortable: true,
+                                                    render: (row) => getStatusBadge(row.booking_status || row.status),
+                                                },
+                                                {
+                                                    accessor: 'payment_status',
+                                                    header: 'Payment',
+                                                    sortable: true,
+                                                    render: (row) => {
+                                                        const { paymentStatus, totalPaid, totalAmount, remainingBalance } = getPaymentInfo(row);
+                                                        return (
+                                                            <div className="space-y-1">
+                                                                {getPaymentStatusBadge(paymentStatus)}
+                                                                {totalAmount > 0 && (
+                                                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        {totalPaid > 0 && (
+                                                                            <div>Paid: ₱{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                                        )}
+                                                                        {remainingBalance > 0 && (
+                                                                            <div className="text-orange-600 dark:text-orange-400">
+                                                                                Due: ₱{remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    },
+                                                },
+                                                {
+                                                    accessor: 'price',
+                                                    header: 'Total Price',
+                                                    sortable: true,
+                                                    render: (row) => (
+                                                        <div className="text-sm">
+                                                            <div className="font-medium text-gray-900 dark:text-white">
+                                                                {getPackagePrice(row)
+                                                                    ? `₱${parseFloat(getPackagePrice(row)).toLocaleString('en-US', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}`
+                                                                    : 'N/A'}
+                                                            </div>
+                                                            {row.deposit_amount && parseFloat(row.deposit_amount) > 0 && (
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                                    Deposit: ₱{parseFloat(row.deposit_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ),
+                                                },
+                                                {
+                                                    accessor: 'actions',
+                                                    header: 'Actions',
+                                                    sortable: false,
+                                                    render: (row) => {
+                                                        const bookingId = row.booking_id || row.id;
+                                                        if (bookingId && !bookingPayments[bookingId]) {
+                                                            fetchBookingPayments(bookingId);
+                                                        }
+                                                        return (
+                                                            <div className="flex items-center gap-2">
+                                                                {canShowPayButton(row) && (
+                                                                    <Button
+                                                                        variant="default"
+                                                                        size="default"
+                                                                        onClick={() => handlePayNow(row)}
+                                                                        className="bg-gradient-to-r from-[#a413ec] to-[#8a0fd4] hover:from-[#8a0fd4] hover:to-[#7a0fc4] text-white shadow-md hover:shadow-lg transition-all duration-200 px-4 py-2 font-semibold"
+                                                                    >
+                                                                        <CreditCard className="w-4 h-4 mr-1.5" />
+                                                                        Pay Now
+                                                                    </Button>
+                                                                )}
+                                                                <BookingActionsDropdown
+                                                                    booking={row}
+                                                                    onViewDetails={(b) => navigate(`/dashboard/bookings/${b.booking_id || b.id}`)}
+                                                                    onPayNow={handlePayNow}
+                                                                    onCancel={handleCancelClick}
+                                                                    canShowPayButton={canShowPayButton}
+                                                                    canCancelBooking={canCancelBooking}
+                                                                />
+                                                            </div>
+                                                        );
+                                                    },
+                                                },
+                                            ]}
+                                            searchable
+                                            searchPlaceholder="Search bookings..."
+                                            pagination
+                                            pageSize={perPage}
+                                        />
+                                    </TabsContent>
 
-                                {/* Calendar View Tab */}
-                                <TabsContent value="calendar" className="mt-0">
-                                    <BookingCalendarView
-                                        bookings={bookings}
-                                        month={calendarMonth}
-                                        onMonthChange={setCalendarMonth}
-                                    />
-                                </TabsContent>
+                                    {/* Calendar View Tab */}
+                                    <TabsContent value="calendar" className="mt-0">
+                                        <BookingCalendarView
+                                            bookings={bookings}
+                                            month={calendarMonth}
+                                            onMonthChange={setCalendarMonth}
+                                        />
+                                    </TabsContent>
 
-                                {/* Timeline View Tab */}
-                                <TabsContent value="timeline" className="mt-0">
-                                    <BookingTimelineView bookings={bookings} />
-                                </TabsContent>
+                                    {/* Timeline View Tab */}
+                                    <TabsContent value="timeline" className="mt-0">
+                                        <BookingTimelineView bookings={bookings} />
+                                    </TabsContent>
 
-                                {/* Analytics Tab */}
-                                <TabsContent value="analytics" className="mt-0">
-                                    <AnalyticsCharts bookings={bookings} />
-                                </TabsContent>
+                                    {/* Analytics Tab */}
+                                    <TabsContent value="analytics" className="mt-0">
+                                        <AnalyticsCharts bookings={bookings} />
+                                    </TabsContent>
 
-                                {/* Invoices Tab */}
-                                <TabsContent value="invoices" className="mt-0">
-                                    <InvoiceList />
-                                </TabsContent>
-                            </Tabs>
-                        )}
-                    </Card>
+                                    {/* Invoices Tab */}
+                                    <TabsContent value="invoices" className="mt-0">
+                                        <InvoiceList />
+                                    </TabsContent>
+                                </Tabs>
+                            )}
+                        </div>
+                    </div>
 
                     {/* Payment Modal */}
                     <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>

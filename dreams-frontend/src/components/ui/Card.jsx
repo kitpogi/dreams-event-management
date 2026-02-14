@@ -11,6 +11,7 @@ const cardVariants = cva(
         default: "border-border shadow-sm",
         outlined: "border-2 border-border shadow-none",
         elevated: "border-border shadow-md hover:shadow-lg",
+        glass: "bg-slate-900/40 dark:bg-slate-950/40 backdrop-blur-2xl border border-white/10 dark:border-white/5 shadow-2xl rounded-3xl",
       },
     },
     defaultVariants: {

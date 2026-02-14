@@ -3,17 +3,17 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../../api/axios';
 import { useAuth } from '../../../context/AuthContext';
-import { 
-    LoadingSpinner, 
-    OptimizedImage, 
-    Skeleton, 
-    Tabs, 
-    TabsList, 
-    TabsTrigger, 
-    TabsContent, 
-    ShareButton, 
-    FavoriteButton, 
-    FAQ, 
+import {
+    LoadingSpinner,
+    OptimizedImage,
+    Skeleton,
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    TabsContent,
+    ShareButton,
+    FavoriteButton,
+    FAQ,
     Button,
     Card,
     Badge
@@ -22,16 +22,16 @@ import { BookingFormModal, AuthModal } from '../../../components/modals';
 import ImageGallery from '../../../components/features/ImageGallery';
 import PackageComparison from '../../../components/features/PackageComparison';
 import PackageCard from '../../../components/features/PackageCard';
-import { 
-    Star, 
-    User, 
-    Scale, 
-    ExternalLink, 
-    Play, 
-    ArrowLeft, 
-    Package, 
-    Users, 
-    MapPin, 
+import {
+    Star,
+    User,
+    Scale,
+    ExternalLink,
+    Play,
+    ArrowLeft,
+    Package,
+    Users,
+    MapPin,
     Calendar,
     CheckCircle2,
     Clock,
@@ -72,7 +72,7 @@ const ClientPackageDetails = () => {
                 params: { package_id: id }
             });
             const reviewsData = response.data.data || response.data || [];
-            
+
             if (reviewsData.length === 0) {
                 const testimonialResponse = await api.get('/testimonials', {
                     params: { limit: 6 }
@@ -153,12 +153,12 @@ const ClientPackageDetails = () => {
         const currentPackageInComparison = comparisonPackages.find(
             p => (p.package_id || p.id) === id
         );
-        
+
         let updatedPackages = [...comparisonPackages];
         if (!currentPackageInComparison) {
             updatedPackages.push(packageData);
         }
-        
+
         if (!updatedPackages.find(p => (p.package_id || p.id) === packageId)) {
             if (updatedPackages.length < 3) {
                 updatedPackages.push(pkg);
@@ -283,7 +283,7 @@ const ClientPackageDetails = () => {
 
     return (
         <div className="px-4 py-8 lg:px-6">
-            <div className="max-w-6xl mx-auto">
+            <div className="w-full">
                 {/* Back Button & Breadcrumb */}
                 <div className="flex items-center gap-4 mb-6">
                     <Button
@@ -536,11 +536,10 @@ const ClientPackageDetails = () => {
                                                                 {[...Array(5)].map((_, i) => (
                                                                     <Star
                                                                         key={i}
-                                                                        className={`w-4 h-4 ${
-                                                                            i < Math.floor(review.rating)
-                                                                                ? 'fill-yellow-400 text-yellow-400'
-                                                                                : 'fill-gray-300 text-gray-300'
-                                                                        }`}
+                                                                        className={`w-4 h-4 ${i < Math.floor(review.rating)
+                                                                            ? 'fill-yellow-400 text-yellow-400'
+                                                                            : 'fill-gray-300 text-gray-300'
+                                                                            }`}
                                                                     />
                                                                 ))}
                                                             </div>

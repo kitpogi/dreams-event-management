@@ -12,7 +12,7 @@ import { useEffect, useRef } from 'react';
  * @param {boolean} interactive - Whether particles react to mouse movement
  * @param {string} className - Additional CSS classes
  */
-const ParticlesBackground = ({ 
+const ParticlesBackground = ({
   particleCount = 50,
   particleColor = 'rgba(122, 69, 242, 0.5)',
   lineColor = 'rgba(122, 69, 242, 0.2)',
@@ -67,7 +67,7 @@ const ParticlesBackground = ({
           const dx = mouseRef.current.x - this.x;
           const dy = mouseRef.current.y - this.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          
+
           if (distance < 100) {
             const force = (100 - distance) / 100;
             this.vx -= (dx / distance) * force * 0.05;
@@ -113,16 +113,28 @@ const ParticlesBackground = ({
       }
     };
 
+    // Visibility observer to pause animation when off-screen
+    let isVisible = true;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(canvas);
+
     // Animation loop
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (isVisible) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      particlesRef.current.forEach(particle => {
-        particle.update();
-        particle.draw();
-      });
+        particlesRef.current.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
 
-      drawLines();
+        drawLines();
+      }
 
       animationId = requestAnimationFrame(animate);
     };
@@ -144,6 +156,7 @@ const ParticlesBackground = ({
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      observer.disconnect();
       if (interactive) {
         window.removeEventListener('mousemove', handleMouseMove);
       }

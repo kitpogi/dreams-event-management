@@ -13,9 +13,11 @@ class PaymentService
     protected $secretKey;
     protected $publicKey;
     protected $baseUrl;
+    protected $notificationService;
 
-    public function __construct()
+    public function __construct(NotificationService $notificationService)
     {
+        $this->notificationService = $notificationService;
         $this->secretKey = config('services.paymongo.secret_key');
         $this->publicKey = config('services.paymongo.public_key');
         $this->baseUrl = config('services.paymongo.base_url', 'https://api.paymongo.com/v1');
@@ -83,7 +85,7 @@ class PaymentService
                         'data' => [
                             'attributes' => [
                                 'payment_method' => $paymentMethodId,
-                                'return_url' => config('app.frontend_url') . '/payment/confirm/' . $paymentId,
+                                'return_url' => env('FRONTEND_URL', 'http://localhost:3000') . '/payment/confirm/' . $paymentId,
                             ],
                         ],
                     ]);
@@ -200,6 +202,9 @@ class PaymentService
                 $payment->status = 'paid';
                 $payment->paid_at = now();
                 $hasChanged = true;
+
+                // Notify admins of new payment
+                $this->notifyAdminsOfPayment($payment);
             }
 
             // Always ensure booking status is synced if payment is succeeded
@@ -301,11 +306,17 @@ class PaymentService
         // Update payment status based on event type
         switch ($eventType) {
             case 'payment_intent.succeeded':
+                $isNewPayment = $payment->status !== 'paid';
                 $payment->status = 'paid';
                 $payment->paid_at = now();
                 $payment->transaction_id = $attributes['payment_method']['id'] ?? $attributes['payment_method_id'] ?? null;
                 $payment->payment_method = $this->extractPaymentMethod($attributes);
                 $payment->save();
+
+                // Notify admins of new payment
+                if ($isNewPayment) {
+                    $this->notifyAdminsOfPayment($payment);
+                }
 
                 // Update booking payment status
                 if ($payment->booking) {
@@ -426,6 +437,53 @@ class PaymentService
                 'success' => false,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Notify admins and coordinators of a successful payment.
+     */
+    protected function notifyAdminsOfPayment(Payment $payment): void
+    {
+        try {
+            // Reload booking and client to ensure we have data
+            $payment->load(['booking.client']);
+            $booking = $payment->booking;
+
+            $clientName = $booking && $booking->client
+                ? $booking->client->client_fname . ' ' . $booking->client->client_lname
+                : 'A client';
+
+            $amount = number_format((float) $payment->amount, 2);
+            $bookingId = $booking ? $booking->booking_id : 'N/A';
+
+            $title = "💰 Payment Received: ₱{$amount}";
+            $message = "{$clientName} has paid ₱{$amount} for Booking #{$bookingId}.";
+
+            // Notify both admins and coordinators
+            $this->notificationService->sendToRole(
+                'admin',
+                NotificationService::TYPE_PAYMENT,
+                $title,
+                $message,
+                ['payment_id' => $payment->id, 'booking_id' => $bookingId],
+                NotificationService::PRIORITY_HIGH,
+                "/admin/bookings/{$bookingId}"
+            );
+
+            $this->notificationService->sendToRole(
+                'coordinator',
+                NotificationService::TYPE_PAYMENT,
+                $title,
+                $message,
+                ['payment_id' => $payment->id, 'booking_id' => $bookingId],
+                NotificationService::PRIORITY_HIGH,
+                "/admin/bookings/{$bookingId}"
+            );
+
+            Log::info("Admin and Coordinator notified of payment for Booking #{$bookingId}");
+        } catch (Exception $e) {
+            Log::error("Failed to send payment notification: " . $e->getMessage());
         }
     }
 }

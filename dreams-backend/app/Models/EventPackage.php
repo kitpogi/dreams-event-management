@@ -69,6 +69,15 @@ class EventPackage extends Model
         'venue_id',
         'package_image',
         'package_inclusions',
+        'is_featured',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'package_price' => 'decimal:2',
+        'capacity' => 'integer',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     /**

@@ -8,4 +8,5 @@ export { default as Header } from './Header';
 export { default as DashboardHeader } from './DashboardHeader';
 export { default as BottomNavigation } from './BottomNavigation';
 export { default as DashboardBottomNavigation } from './DashboardBottomNavigation';
+export { default as AdminBottomNavigation } from './AdminBottomNavigation';
 export { default as Footer } from './Footer';

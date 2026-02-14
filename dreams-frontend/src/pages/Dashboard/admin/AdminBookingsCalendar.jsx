@@ -40,11 +40,13 @@ const AdminBookingsCalendar = () => {
       const [y, m] = monthValue.split('-').map(Number);
       const start = new Date(y, m - 1, 1);
       const end = new Date(y, m, 0);
+      const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+      const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
 
       const response = await api.get('/bookings/calendar', {
         params: {
-          start_date: start.toISOString().split('T')[0],
-          end_date: end.toISOString().split('T')[0],
+          start_date: startStr,
+          end_date: endStr,
         },
       });
       setEvents(response.data.data || []);
@@ -98,14 +100,18 @@ const AdminBookingsCalendar = () => {
 
     const days = [];
     const currentDate = new Date(startDate);
-    const today = new Date().toISOString().split('T')[0];
-
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     // Generate 42 days (6 weeks)
     for (let i = 0; i < 42; i++) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const year = currentDate.getFullYear();
+      const monthNum = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const dayNum = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${monthNum}-${dayNum}`;
+
       const isCurrentMonth = currentDate.getMonth() === m - 1;
-      const isToday = dateStr === today;
-      const isPast = dateStr < today;
+      const isToday = dateStr === todayStr;
+      const isPast = dateStr < todayStr;
       const dayEvents = eventsByDate[dateStr] || [];
       const availabilityStatus = getAvailabilityStatus(dayEvents);
 
@@ -149,25 +155,19 @@ const AdminBookingsCalendar = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
-      {/* Enhanced Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-300/20 dark:bg-purple-900/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-300/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
-
-      <div className="relative z-10 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-7xl mx-auto">
+    <div className="relative">
+      <div className="relative z-10 p-4 sm:p-6 lg:p-8 xl:p-10 w-full">
         {/* Enhanced Header Section */}
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-              <div className="relative flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+              <div className="relative flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform duration-300">
                 <CalendarIcon className="w-8 h-8 text-white" />
               </div>
             </div>
             <div className="flex flex-col justify-center">
-              <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
                 Bookings Calendar
               </h1>
               <p className="text-gray-700 dark:text-gray-300 text-base font-semibold">
@@ -182,7 +182,7 @@ const AdminBookingsCalendar = () => {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${viewMode === 'grid'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
               >
@@ -192,7 +192,7 @@ const AdminBookingsCalendar = () => {
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${viewMode === 'list'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
               >
@@ -254,7 +254,7 @@ const AdminBookingsCalendar = () => {
         ) : (
           <div className="space-y-8">
             {/* Enhanced Status Summary Cards */}
-            <Card className="p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+            <Card className="p-6 sm:p-8 bg-white/5 dark:bg-white/5 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-xl rounded-2xl">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {['pending', 'approved', 'confirmed', 'completed', 'cancelled'].map((key) => {
                   const colorMap = {
@@ -283,7 +283,7 @@ const AdminBookingsCalendar = () => {
 
             {/* Calendar Grid View */}
             {viewMode === 'grid' ? (
-              <Card className="p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+              <Card className="p-6 sm:p-8 bg-white/5 dark:bg-white/5 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-xl rounded-2xl">
                 <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
                     {calendarData.monthName}
@@ -369,7 +369,7 @@ const AdminBookingsCalendar = () => {
                         case 'pending':
                           return 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 hover:border-yellow-400 dark:hover:border-yellow-600';
                         default:
-                          return 'bg-white dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10';
+                          return 'bg-white/40 dark:bg-white/5 border-gray-200/50 dark:border-white/10 hover:border-green-400 dark:hover:border-green-500 hover:bg-green-50/50 dark:hover:bg-green-900/20';
                       }
                     };
 
@@ -409,10 +409,10 @@ const AdminBookingsCalendar = () => {
                           </div>
                           {day.events.length > 0 && (
                             <span className={`text-xs font-extrabold px-1.5 py-0.5 rounded-full ${day.availabilityStatus === 'blocked'
-                                ? 'text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-800/50'
-                                : day.availabilityStatus === 'pending'
-                                  ? 'text-yellow-700 dark:text-yellow-300 bg-yellow-200 dark:bg-yellow-800/50'
-                                  : 'text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-600'
+                              ? 'text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-800/50'
+                              : day.availabilityStatus === 'pending'
+                                ? 'text-yellow-700 dark:text-yellow-300 bg-yellow-200 dark:bg-yellow-800/50'
+                                : 'text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-600'
                               }`}>
                               {day.events.length}
                             </span>
@@ -448,7 +448,7 @@ const AdminBookingsCalendar = () => {
 
                 {/* Selected Date Details */}
                 {selectedDate && eventsByDate[selectedDate] && (
-                  <div className="mt-6 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border-2 border-indigo-200 dark:border-indigo-800">
+                  <div className="mt-6 p-6 bg-gradient-to-br from-indigo-50/30 to-purple-50/30 dark:from-indigo-900/10 dark:to-purple-900/10 rounded-xl border border-indigo-200/30 dark:border-indigo-800/30 backdrop-blur-md">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
                         {formatDisplayDate(selectedDate)}
@@ -466,7 +466,7 @@ const AdminBookingsCalendar = () => {
                         return (
                           <div
                             key={event.id}
-                            className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                            className="p-4 bg-white/40 dark:bg-white/5 rounded-lg border border-gray-200/30 dark:border-white/10 shadow-sm"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
@@ -498,7 +498,7 @@ const AdminBookingsCalendar = () => {
             ) : (
               /* Enhanced List View */
               sortedDates.length === 0 ? (
-                <Card className="text-center py-16 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl">
+                <Card className="text-center py-16 bg-white/5 dark:bg-white/5 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-xl rounded-2xl">
                   <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
                     No bookings in this range.
                   </p>
@@ -508,7 +508,7 @@ const AdminBookingsCalendar = () => {
                   {sortedDates.map((date) => (
                     <Card
                       key={date}
-                      className="p-6 sm:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300"
+                      className="p-6 sm:p-8 bg-white/5 dark:bg-white/5 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300"
                     >
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white">
@@ -524,7 +524,7 @@ const AdminBookingsCalendar = () => {
                           return (
                             <div
                               key={event.id}
-                              className="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700/50 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all duration-300 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-600"
+                              className="p-4 border border-gray-200/50 dark:border-white/10 rounded-xl bg-white/40 dark:bg-white/5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all duration-300 hover:shadow-md hover:border-indigo-300/50 dark:hover:border-indigo-600/50"
                             >
                               <div className="flex-1">
                                 <p className="text-base font-bold text-gray-900 dark:text-white mb-1">
@@ -554,59 +554,7 @@ const AdminBookingsCalendar = () => {
               )
             )}
 
-            {sortedDates.length === 0 ? (
-              <Card className="text-center py-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-                <p className="text-gray-600 dark:text-gray-400 transition-colors duration-300">
-                  No bookings in this range.
-                </p>
-              </Card>
-            ) : (
-              sortedDates.map((date) => (
-                <Card
-                  key={date}
-                  className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-colors duration-300"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-                      {formatDisplayDate(date)}
-                    </h3>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                      {eventsByDate[date].length} booking(s)
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {eventsByDate[date].map((event) => {
-                      const statusKey = (event.status || '').toLowerCase();
-                      return (
-                        <div
-                          key={event.id}
-                          className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-700 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-2 transition-colors duration-300"
-                        >
-                          <div>
-                            <p className="text-base font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-                              {event.package || 'Event Package'}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
-                              {event.client || 'Unknown client'} • Guests: {event.guest_count ?? 'N/A'}
-                            </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-500 transition-colors duration-300">
-                              {event.venue || 'Venue TBD'}{event.time ? ` • ${event.time}` : ''}
-                            </p>
-                          </div>
-                          <span
-                            className={`px-3 py-1 text-xs font-semibold rounded-full border transition-colors duration-300 ${statusColors[statusKey] ||
-                              'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-500'
-                              }`}
-                          >
-                            {event.status || 'Unknown'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-              ))
-            )}
+
           </div>
         )}
       </div>

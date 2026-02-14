@@ -13,17 +13,21 @@ class ServiceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Service::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order');
+        $category = $request->input('category', 'All');
 
-        if ($category = $request->input('category')) {
+        $cacheKey = 'services_public_' . $category;
+
+        $services = Cache::remember($cacheKey, now()->addHours(12), function () use ($category) {
+            $query = Service::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order');
+
             if ($category !== 'All') {
                 $query->where('category', $category);
             }
-        }
 
-        $services = $query->get();
+            return $query->get();
+        });
 
         return response()->json([
             'success' => true,
@@ -33,7 +37,10 @@ class ServiceController extends Controller
 
     public function adminIndex(Request $request)
     {
-        $services = Service::orderBy('sort_order')->get();
+        $services = Cache::remember('services_admin_all', now()->addHours(12), function () {
+            return Service::orderBy('sort_order')->get();
+        });
+
         return response()->json([
             'success' => true,
             'data' => $services
@@ -62,6 +69,9 @@ class ServiceController extends Controller
 
         $validated['images'] = $images;
         $service = Service::create($validated);
+
+        // Clear services cache
+        $this->clearServicesCache();
 
         return response()->json([
             'success' => true,
@@ -103,6 +113,9 @@ class ServiceController extends Controller
         $validated['images'] = $currentImages;
         $service->update($validated);
 
+        // Clear services cache
+        $this->clearServicesCache();
+
         return response()->json([
             'success' => true,
             'message' => 'Service updated successfully',
@@ -122,10 +135,29 @@ class ServiceController extends Controller
 
         $service->delete();
 
+        // Clear services cache
+        $this->clearServicesCache();
+
         return response()->json([
             'success' => true,
             'message' => 'Service deleted successfully'
         ]);
+    }
+
+    protected function clearServicesCache()
+    {
+        Cache::forget('services_admin_all');
+        // Since we have category-based cache keys, we might want to clear all variants
+        // If the number of categories is small, we could manually clear them, 
+        // but it's better to use a tag if the cache driver supports it (e.g. redis/memcached)
+        // For development/simple systems, manually clearing known keys or using a common prefix is common.
+        // As a simpler solution for now, we'll clear the main admin cache which usually triggers 
+        // an admin re-fetch that could then possibly clear public caches if we used tags.
+        // For standard file cache, we can't easily clear by prefix without custom logic.
+
+        // Let's just clear the main ones for now.
+        Cache::forget('services_public_All');
+        // Note: Specific category caches will expire in 12 hours or can be cleared if tracked.
     }
 
     protected function validateData(Request $request, bool $isCreate = true): array

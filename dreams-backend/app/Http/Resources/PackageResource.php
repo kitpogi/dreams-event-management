@@ -22,11 +22,11 @@ class PackageResource extends JsonResource
             'package_category' => $this->package_category,
             'package_image' => $this->package_image,
             'capacity' => $this->capacity,
-            'is_featured' => $this->is_featured ?? false,
-            'is_available' => $this->is_available ?? true,
+            'is_featured' => (bool) ($this->is_featured ?? false),
+            'is_active' => (bool) ($this->is_active ?? true),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
-            
+
             // Include venue only when loaded
             'venue' => $this->whenLoaded('venue', function () {
                 return [

@@ -14,12 +14,12 @@ export { default as OptimizedImage } from './OptimizedImage';
 // shadcn/ui components
 export { Button as ShadcnButton, buttonVariants } from './Button';
 export { Input as ShadcnInput } from './Input';
-export { 
-  Card as ShadcnCard, 
-  CardHeader, 
-  CardFooter, 
-  CardTitle, 
-  CardDescription, 
+export {
+  Card as ShadcnCard,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
   CardContent,
   CardActions,
   cardVariants
@@ -53,12 +53,14 @@ export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
 export { Badge, badgeVariants } from './badge';
 export { Avatar, AvatarImage, AvatarFallback } from './avatar';
 export { Skeleton } from './skeleton';
-export { 
-  SkeletonCard, 
-  SkeletonStatCard, 
-  SkeletonTableRow, 
-  SkeletonList, 
-  SkeletonPackageCard 
+export {
+  SkeletonCard,
+  SkeletonStatCard,
+  SkeletonTableRow,
+  SkeletonList,
+  SkeletonPackageCard,
+  SkeletonPortfolioCard,
+  SkeletonTeamCard
 } from './SkeletonCard';
 export {
   Command,

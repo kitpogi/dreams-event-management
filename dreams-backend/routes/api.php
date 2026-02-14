@@ -67,6 +67,7 @@ Route::middleware('throttle:sensitive')->post('/contact', [ContactController::cl
 // Public package viewing with rate limiting
 Route::middleware('throttle:public')->group(function () {
     Route::get('/packages', [PackageController::class, 'index']);
+    Route::get('/packages/featured', [PackageController::class, 'featured']);
     Route::get('/packages/{id}', [PackageController::class, 'show']);
     Route::get('/venues', [VenueController::class, 'index']);
     Route::get('/portfolio-items', [PortfolioController::class, 'index']);

@@ -39,7 +39,7 @@ const AdminNavbar = () => {
 
   return (
     <nav
-      className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-50 transition-all duration-300"
+      className="fixed top-0 right-0 h-16 bg-white/10 dark:bg-white/5 backdrop-blur-2xl border-b border-gray-200 dark:border-white/5 shadow-sm z-50 transition-all duration-300"
       style={{
         left: mainContentMargin,
         width: mainContentWidth

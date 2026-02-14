@@ -1,24 +1,113 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { Menu } from 'lucide-react';
-import { useSidebar } from '../../context/SidebarContext';
-import { useNotificationCounts } from '../../context/NotificationContext';
-import { mainMenuItems, menuGroups } from '../../config/sidebarMenu';
-import { Badge } from '../ui/badge';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '../ui/sheet';
+  LogOut,
+  ChevronRight,
+} from 'lucide-react';
+import { useSidebar } from '../../context/SidebarContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { useNotificationCounts } from '../../context/NotificationContext';
+import { Badge } from '../ui/badge';
+import { ensureAbsoluteUrl } from '../../utils/imageUtils';
+import logo from '../../assets/logo.png';
+import { mainMenuItems, menuGroups } from '../../config/sidebarMenu';
 
+/**
+ * MenuItem component — dark blue gradient theme for admin dashboard
+ */
+const MenuItem = ({ item, isActive, isCollapsed, badgeCount, isSubItem = false }) => {
+  const Icon = item.icon;
+  const { darkMode } = useTheme();
+
+  return (
+    <Link
+      to={item.path}
+      className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-500 ease-out ${isCollapsed ? 'justify-center' : ''
+        } ${isActive
+          ? darkMode
+            ? 'bg-blue-600/10 text-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.1)]'
+            : 'bg-blue-50/80 text-blue-700 shadow-sm'
+          : darkMode
+            ? 'text-slate-400 hover:text-white hover:bg-white/5'
+            : 'text-slate-600 hover:text-gray-900 hover:bg-gray-50'
+        }`}
+      title={isCollapsed ? item.label : undefined}
+    >
+      {/* Active interaction glow */}
+      {isActive && (
+        <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-500 rounded-full blur-[2px] opacity-80" />
+      )}
+
+      {/* Modern Icon Interface */}
+      <span className={`relative flex items-center justify-center ${isSubItem ? 'w-6 h-6' : 'w-8 h-8'} rounded-xl transition-all duration-500 flex-shrink-0 ${isActive
+        ? 'bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-lg shadow-blue-500/20'
+        : darkMode
+          ? 'bg-slate-800/40 text-slate-400 group-hover:text-blue-400 group-hover:bg-slate-800/80'
+          : 'bg-slate-100/50 text-slate-500 group-hover:text-blue-600 group-hover:bg-blue-50'
+        }`}>
+        <Icon className={`${isSubItem ? 'w-3.5 h-3.5' : 'w-[18px] h-[18px]'} transition-transform duration-500 ${!isCollapsed ? 'group-hover:scale-110' : ''}`} />
+
+        {/* Dynamic Badge Engine */}
+        {isCollapsed && badgeCount > 0 && (
+          <Badge className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 flex items-center justify-center text-[8px] bg-indigo-500 hover:bg-indigo-600 text-white border-2 border-[#0d1529] rounded-full">
+            {badgeCount > 9 ? '9+' : badgeCount}
+          </Badge>
+        )}
+      </span>
+
+      {!isCollapsed && (
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 justify-between">
+            <span className={`text-[13px] font-bold tracking-tight truncate ${isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-white transition-colors'}`}>
+              {item.label}
+            </span>
+
+            {/* Numeric badge when expanded */}
+            {badgeCount > 0 && (
+              <Badge className={`flex-shrink-0 h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-black tracking-tighter rounded-lg ${isActive
+                ? 'bg-blue-500/20 text-blue-400'
+                : 'bg-indigo-600/20 text-indigo-400'
+                }`}>
+                {badgeCount > 99 ? '99+' : badgeCount}
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Subtle chevron for active sub-items */}
+      {!isCollapsed && isActive && (
+        <ChevronRight className="w-3.5 h-3.5 text-blue-500/50 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+      )}
+
+      {/* Apple-style floating tooltip */}
+      {isCollapsed && (
+        <div className={`absolute left-full ml-4 px-4 py-2 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none whitespace-nowrap z-50 translate-x-3 group-hover:translate-x-0 backdrop-blur-3xl border ${darkMode ? 'bg-slate-900/90 border-slate-800 text-white' : 'bg-white/90 border-slate-200 text-slate-900'
+          }`}>
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-xs tracking-tight">
+              {item.label}
+            </span>
+            {badgeCount > 0 && (
+              <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-indigo-500 text-white">
+                {badgeCount}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </Link>
+  );
+};
 
 const AdminSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isCollapsed } = useSidebar();
+  const { logout, user } = useAuth();
+  const { darkMode } = useTheme();
   const { counts } = useNotificationCounts();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Get badge count for a menu item based on its path
   const getBadgeCount = (path) => {
     switch (path) {
       case '/admin/bookings':
@@ -30,259 +119,180 @@ const AdminSidebar = () => {
     }
   };
 
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  // Close mobile menu on escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        setIsMobileMenuOpen(false);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, []);
-
-  const renderMenuItems = (items, showLabels = true, isSubItem = false) => {
-    return items.map((item) => {
-      const Icon = item.icon;
-      const isActive = location.pathname === item.path;
-      const badgeCount = getBadgeCount(item.path);
-
-      return (
-        <li key={item.path} role="listitem" className="m-0 p-0">
-          <Link
-            to={item.path}
-            className={`relative !flex !items-center gap-3 ${showLabels ? '' : '!justify-center'} px-4 ${isSubItem ? 'py-2.5' : 'py-3'} rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 group ${isActive
-              ? 'bg-purple-600 text-white shadow-sm'
-              : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-              }`}
-            aria-current={isActive ? 'page' : undefined}
-            title={!showLabels ? `${item.label}${badgeCount > 0 ? ` (${badgeCount})` : ''}` : undefined}
-          >
-            {/* Active indicator bar */}
-            {isActive && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></span>
-            )}
-            {/* Icon container - fixed size, always aligned */}
-            <span className={`relative flex-shrink-0 flex items-center justify-center ${isSubItem ? 'h-4 w-4' : 'h-5 w-5'}`}>
-              <Icon
-                className={`${isSubItem ? 'h-4 w-4' : 'h-5 w-5'} transition-transform duration-200 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200'
-                  }`}
-                aria-hidden="true"
-              />
-              {/* Badge on icon when collapsed */}
-              {!showLabels && badgeCount > 0 && (
-                <Badge
-                  className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 flex items-center justify-center text-[10px] bg-red-500 hover:bg-red-500 text-white border-2 border-white dark:border-gray-900 animate-pulse"
-                >
-                  {badgeCount > 9 ? '9+' : badgeCount}
-                </Badge>
-              )}
-            </span>
-            {/* Text - follows icon alignment, can be any length */}
-            {showLabels && (
-              <span className={`flex-1 ${isSubItem ? 'text-sm' : 'text-base'} font-medium whitespace-nowrap min-w-0 ${isActive ? 'text-white' : ''}`}>{item.label}</span>
-            )}
-            {/* Badge when expanded */}
-            {showLabels && badgeCount > 0 && (
-              <Badge
-                className={`h-5 min-w-[20px] px-1.5 flex items-center justify-center text-xs font-bold ${isActive
-                    ? 'bg-white/20 hover:bg-white/30 text-white'
-                    : 'bg-red-500 hover:bg-red-500 text-white'
-                  } ${!isActive ? 'animate-pulse' : ''}`}
-              >
-                {badgeCount > 99 ? '99+' : badgeCount}
-              </Badge>
-            )}
-            {!showLabels && (
-              <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-gray-700">
-                {item.label}
-                {badgeCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
-                    {badgeCount}
-                  </span>
-                )}
-              </span>
-            )}
-          </Link>
-        </li>
-      );
-    });
+  const isActive = (path) => {
+    if (path === '/admin/dashboard') {
+      return location.pathname === '/admin/dashboard';
+    }
+    return location.pathname.startsWith(path);
   };
 
-  const SidebarContent = ({ collapsed = false }) => {
-    const showLabels = !collapsed;
-
-    return (
-      <nav className="h-full flex flex-col">
-        {/* Header - Fixed */}
-        <div className={`flex-shrink-0 p-4 pb-2 ${collapsed ? 'flex justify-center' : ''}`}>
-          {collapsed ? (
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-lg">A</span>
-            </div>
-          ) : (
-            <>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-1">Admin Panel</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Dreams Events</p>
-            </>
-          )}
-        </div>
-
-        {/* Navigation - Scrollable */}
-        <div
-          id="admin-sidebar"
-          className="flex-1 px-3 overflow-y-auto overflow-x-hidden sidebar-scrollbar min-h-0"
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(156, 163, 175, 0.5) transparent',
-          }}
-        >
-          <style>{`
-            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar {
-              width: 6px;
-            }
-            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb {
-              background-color: rgba(156, 163, 175, 0.5);
-              border-radius: 3px;
-            }
-            #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-              background-color: rgba(156, 163, 175, 0.7);
-            }
-            .dark #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb {
-              background-color: rgba(75, 85, 99, 0.5);
-            }
-            .dark #admin-sidebar.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-              background-color: rgba(75, 85, 99, 0.7);
-            }
-          `}</style>
-
-          {/* Main Navigation */}
-          <ul className="space-y-1 m-0 p-0 list-none" role="list">
-            {renderMenuItems(mainMenuItems, showLabels)}
-          </ul>
-
-          {/* Divider */}
-          {!collapsed && (
-            <div className="my-4 border-t border-gray-200 dark:border-gray-700"></div>
-          )}
-
-          {/* Menu Groups */}
-          {collapsed ? (
-            // Collapsed view - show all individual item icons with tooltips
-            <ul className="space-y-1 m-0 p-0 list-none" role="list">
-              {menuGroups.map((group) => (
-                <div key={group.id} className="space-y-1">
-                  {group.items.map((item) => {
-                    const ItemIcon = item.icon;
-                    const isActive = location.pathname === item.path;
-
-                    return (
-                      <li key={item.path} role="listitem" className="m-0 p-0">
-                        <div className="relative group">
-                          <Link
-                            to={item.path}
-                            className={`relative !flex !items-center !justify-center px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                              ? 'bg-purple-600 text-white shadow-sm'
-                              : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                              }`}
-                            title={item.label}
-                          >
-                            {/* Active indicator bar */}
-                            {isActive && (
-                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></span>
-                            )}
-                            <span className="flex-shrink-0 h-5 w-5 flex items-center justify-center">
-                              <ItemIcon
-                                className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200'
-                                  }`}
-                                aria-hidden="true"
-                              />
-                            </span>
-                          </Link>
-                          <span className="absolute left-full ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-gray-700">
-                            {item.label}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </div>
-              ))}
-            </ul>
-          ) : (
-            // Expanded view - show groups with labels
-            <div className="space-y-4">
-              {menuGroups.map((group) => {
-                const GroupIcon = group.icon;
-                const hasActiveItem = group.items.some((item) => location.pathname === item.path);
-
-                return (
-                  <div key={group.id} className="space-y-1">
-                    {/* Group Label */}
-                    <div className={`px-4 py-2 flex items-center gap-3 ${hasActiveItem
-                      ? 'text-primary-600 dark:text-primary-400'
-                      : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                      <GroupIcon
-                        className="h-4 w-4 flex-shrink-0"
-                        aria-hidden="true"
-                      />
-                      <span className="text-xs font-semibold uppercase tracking-wider">
-                        {group.label}
-                      </span>
-                    </div>
-                    {/* Group Items */}
-                    <ul className="space-y-0.5 m-0 p-0 list-none" role="list">
-                      {renderMenuItems(group.items, showLabels, true)}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </nav>
-    );
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
+
+  // Build sections from the admin sidebarMenu config
+  const sections = [
+    {
+      id: 'main',
+      label: 'Core Interface',
+      items: mainMenuItems,
+    },
+    ...menuGroups,
+  ];
 
   return (
-    <>
-      {/* Mobile menu with Sheet */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetTrigger asChild>
-          <button
-            className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-primary-600 text-primary-foreground rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
-            aria-label="Toggle menu"
+    <aside
+      className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-30 transition-all duration-500 ease-in-out ${darkMode ? 'bg-[#0d1529]/80 backdrop-blur-3xl' : 'bg-white'} ${isCollapsed ? 'w-24' : 'w-64'}`}
+    >
+      {/* Logo/Brand */}
+      <div className={`relative px-3 h-16 flex items-center`}>
+        {isCollapsed ? (
+          <Link
+            to="/"
+            className="flex justify-center group"
+            title="D'Dreams - Back to Home"
           >
-            <Menu className="h-6 w-6" />
-          </button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0">
-          <div className="p-6 h-full">
-            <SidebarContent collapsed={false} />
-          </div>
-        </SheetContent>
-      </Sheet>
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-sm overflow-hidden transition-transform group-hover:scale-105">
+              <span className="text-white font-bold text-lg">A</span>
+            </div>
+          </Link>
+        ) : (
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105 flex-shrink-0">
+              <img src={logo} alt="Logo" className="w-7 h-7 object-contain" />
+            </div>
+            <div className="min-w-0">
+              <h2 className={`font-bold text-base leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Admin Panel
+              </h2>
+              <p className={`text-[11px] font-medium leading-tight mt-0.5 ${darkMode ? 'text-blue-400/60' : 'text-gray-400'}`}>
+                Dreams Events
+              </p>
+            </div>
+          </Link>
+        )}
+      </div>
 
-      {/* Desktop Sidebar */}
-      <aside
-        className={`hidden lg:block h-screen fixed left-0 top-0 z-40 transition-all duration-300 ease-in-out bg-white dark:bg-gray-900 shadow-md ${isCollapsed ? 'w-20' : 'w-72'}`}
-      >
-        <div className={`h-full ${isCollapsed ? 'px-3 py-6' : 'p-6'}`}>
-          <SidebarContent collapsed={isCollapsed} />
-        </div>
-      </aside>
-    </>
+      {/* Navigation */}
+      <nav className="relative flex-1 px-3 py-2 overflow-y-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+        {sections.map((section, index) => (
+          <div key={section.id} className={index > 0 ? 'mt-4' : ''}>
+            {/* Section label */}
+            {!isCollapsed && (
+              <p className={`px-3 mb-1.5 text-[9px] font-semibold uppercase tracking-wider ${darkMode ? 'text-blue-400/40' : 'text-gray-400'
+                }`}>
+                {section.label}
+              </p>
+            )}
+
+            {/* Collapsed state section divider */}
+            {isCollapsed && index > 0 && (
+              <div className={`mx-auto w-8 h-px mb-3 ${darkMode ? 'bg-blue-900/40' : 'bg-gray-200'}`} />
+            )}
+
+            {/* Section items */}
+            <div className="space-y-1">
+              {section.items.map((item) => (
+                <MenuItem
+                  key={item.path}
+                  item={item}
+                  isActive={isActive(item.path)}
+                  isCollapsed={isCollapsed}
+                  badgeCount={getBadgeCount(item.path)}
+                  isSubItem={section.id !== 'main'}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* User section */}
+      <div className={`relative p-2.5 transition-colors`}>
+        {!isCollapsed ? (
+          <div className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors ${darkMode ? 'hover:bg-blue-900/20' : 'hover:bg-white'
+            }`}>
+            {/* User avatar with online indicator */}
+            <div className="relative flex-shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center overflow-hidden">
+                {user?.profile_picture ? (
+                  <img
+                    src={ensureAbsoluteUrl(user.profile_picture)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white font-bold text-sm">
+                    {user?.name?.charAt(0).toUpperCase() || 'A'}
+                  </span>
+                )}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-[#0a1628] rounded-full shadow-sm z-10">
+                <span className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></span>
+              </span>
+            </div>
+
+            {/* User info */}
+            <div className="flex-1 min-w-0">
+              <p className={`font-semibold text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {user?.name}
+              </p>
+              <p className={`text-xs truncate ${darkMode ? 'text-blue-400/50' : 'text-gray-500'}`}>
+                {user?.email}
+              </p>
+            </div>
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className={`p-2 rounded-lg transition-all hover:scale-105 ${darkMode
+                ? 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
+                : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                }`}
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            {/* Collapsed avatar */}
+            <div className="relative">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center overflow-hidden">
+                {user?.profile_picture ? (
+                  <img
+                    src={ensureAbsoluteUrl(user.profile_picture)}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white font-bold text-sm">
+                    {user?.name?.charAt(0).toUpperCase() || 'A'}
+                  </span>
+                )}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-[#0a1628] rounded-full shadow-sm z-10">
+                <span className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></span>
+              </span>
+            </div>
+
+            {/* Collapsed logout */}
+            <button
+              onClick={handleLogout}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-105 ${darkMode
+                ? 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
+                : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                }`}
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </aside>
   );
 };
 
 export default AdminSidebar;
-

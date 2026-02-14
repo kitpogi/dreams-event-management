@@ -74,19 +74,41 @@ export default defineConfig(({ mode }) => {
           '**/*.spec.{js,jsx,ts,tsx}'
         ]
       },
-      ...(env.VITE_API_PROXY_TARGET || env.VITE_API_BASE_URL ? {
-        proxy: {
-          '/api': {
-            target: env.VITE_API_PROXY_TARGET || env.VITE_API_BASE_URL.replace('/api', ''),
-            changeOrigin: true,
-            secure: false,
-            headers: {
-              'ngrok-skip-browser-warning': 'true',
-            },
-            ws: false, // WebSocket disabled for API proxy
-          }
+      proxy: {
+        '/api': {
+          // ALWAYS proxy to local backend directly - never through ngrok
+          // Ngrok is only for EXTERNAL access; local dev should use localhost
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+          ws: false,
+          // Timeout settings to prevent socket hang up errors
+          timeout: 30000,
+          proxyTimeout: 30000,
+          // Configure error handling to avoid crashing on transient errors
+          configure: (proxy) => {
+            proxy.on('error', (err, _req, res) => {
+              console.warn('[Proxy Error]', err.message);
+              if (res && !res.headersSent) {
+                res.writeHead(502, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Backend server is not responding. Make sure php artisan serve is running on port 8000.' }));
+              }
+            });
+          },
         }
-      } : {})
+      },
+      // Headers for the main entry file (index.html)
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
     },
     build: {
       // Optimize bundle size

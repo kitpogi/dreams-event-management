@@ -7,14 +7,17 @@ const DYNAMIC_CACHE_NAME = 'dreams-events-dynamic-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
+  // removed manifest.json as it might be missing
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      // Use cache.addAll cautiously, if one fails they all fail
+      return Promise.allSettled(
+        STATIC_ASSETS.map(url => cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err)))
+      );
     })
   );
   self.skipWaiting();
@@ -40,7 +43,7 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - different strategies for different resources
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -55,6 +58,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // STRATEGY: Network First for HTML/Root (ensure latest version)
+  if (request.headers.get('accept')?.includes('text/html') || url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // STRATEGY: Cache First for other assets (images, fonts, scripts)
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -79,10 +103,8 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Return offline page if available
-          if (request.headers.get('accept').includes('text/html')) {
-            return caches.match('/');
-          }
+          // Return offline fallback if images fail? (optional)
+          return null;
         });
     })
   );

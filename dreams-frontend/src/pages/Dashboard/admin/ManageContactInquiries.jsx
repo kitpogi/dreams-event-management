@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { Search, Filter, X, Trash2, CheckSquare, Square } from 'lucide-react';
+import {
+  Search, Filter, X, Trash2, CheckSquare, Square, Mail, Phone, Calendar,
+  MessageSquare, User, TrendingUp, Sparkles, Download, RefreshCw,
+  ChevronRight, CheckCircle2, Clock, AlertCircle, Inbox, Send, Tags, MapPin, Users
+} from 'lucide-react';
 import api from '../../../api/axios';
 import { contactService } from '../../../api/services/contactService';
-import { LoadingSpinner, Button } from '../../../components/ui';
-import InquiryPagination from '../../../components/ui/pagination';
+import { LoadingSpinner, Button, Pagination } from '../../../components/ui';
 import { PullToRefresh } from '../../../components/features';
 import ContactInquiryReplyModal from '../../../components/modals/ContactInquiryReplyModal';
 import BulkDeleteConfirmModal from '../../../components/modals/BulkDeleteConfirmModal';
@@ -18,24 +21,24 @@ const ManageContactInquiries = () => {
   const [activeTab, setActiveTab] = useState('new');
   const [replyModalOpen, setReplyModalOpen] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
-  
+
   // Old inquiries filtering and pagination
   const [oldStatusFilter, setOldStatusFilter] = useState('all');
   const [dateRange, setDateRange] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(25);
+  const [perPage, setPerPage] = useState(20);
   const [pagination, setPagination] = useState(null);
   const [oldInquiriesStats, setOldInquiriesStats] = useState(null);
   const [selectedInquiries, setSelectedInquiries] = useState([]);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchInquiries();
   }, []);
 
-  // Fetch old inquiries when filters or pagination change
   useEffect(() => {
     if (activeTab === 'old') {
       fetchOldInquiries();
@@ -44,24 +47,18 @@ const ManageContactInquiries = () => {
 
   const fetchInquiries = async () => {
     try {
+      setLoading(true);
       const response = await contactService.getAll();
       const data = response.data.data || {};
-      
-      // Handle new API structure with separated inquiries
+
       if (data.new_inquiries !== undefined && data.old_inquiries !== undefined) {
-        // Ensure they are arrays
         setNewInquiries(Array.isArray(data.new_inquiries) ? data.new_inquiries : []);
-        // Old inquiries will be fetched separately with filters
-        if (activeTab === 'old') {
-          fetchOldInquiries();
-        }
+        if (activeTab === 'old') fetchOldInquiries();
       } else {
-        // Fallback for backward compatibility
-        const allInquiries = Array.isArray(data.all_inquiries) 
-          ? data.all_inquiries 
+        const allInquiries = Array.isArray(data.all_inquiries)
+          ? data.all_inquiries
           : (Array.isArray(data) ? data : []);
-        const newInq = allInquiries.filter(inq => !inq.is_old);
-        setNewInquiries(newInq);
+        setNewInquiries(allInquiries.filter(inq => !inq.is_old));
       }
     } catch (error) {
       console.error('Error fetching inquiries:', error);
@@ -78,29 +75,20 @@ const ManageContactInquiries = () => {
         paginate: 'true',
         page: currentPage,
         per_page: perPage,
+        old_status: oldStatusFilter !== 'all' ? oldStatusFilter : undefined,
+        date_range: dateRange !== 'all' ? dateRange : undefined,
+        search: searchQuery.trim() || undefined
       };
-
-      if (oldStatusFilter !== 'all') {
-        params.old_status = oldStatusFilter;
-      }
-
-      if (dateRange !== 'all') {
-        params.date_range = dateRange;
-      }
-
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
 
       const response = await contactService.getAll(params);
       const data = response.data.data || {};
-      
+
       setOldInquiries(Array.isArray(data.old_inquiries) ? data.old_inquiries : []);
       setPagination(data.old_inquiries_pagination || null);
       setOldInquiriesStats(data.old_inquiries_stats || null);
     } catch (error) {
       console.error('Error fetching old inquiries:', error);
-      toast.error('Failed to fetch old inquiries');
+      toast.error('Failed to fetch archival inquiries');
       setOldInquiries([]);
     }
   };
@@ -109,46 +97,42 @@ const ManageContactInquiries = () => {
     setUpdatingId(id);
     try {
       await api.patch(`/contact-inquiries/${id}/status`, { status });
-      toast.success('Inquiry status updated successfully');
+      toast.success('Inquiry priority updated');
       fetchInquiries();
+      if (activeTab === 'old') fetchOldInquiries();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update inquiry status');
+      toast.error(error.response?.data?.message || 'Failed to update status');
     } finally {
       setUpdatingId(null);
     }
   };
 
   const handleRefresh = async () => {
-    if (activeTab === 'new') {
-      await fetchInquiries();
-    } else {
-      await fetchOldInquiries();
-    }
+    if (activeTab === 'new') await fetchInquiries();
+    else await fetchOldInquiries();
   };
 
   const handleClearFilters = () => {
     setOldStatusFilter('all');
     setDateRange('all');
     setSearchQuery('');
+    setFilterStatus('all');
     setCurrentPage(1);
   };
 
   const handleBulkDelete = async () => {
     if (selectedInquiries.length === 0) return;
-
     setBulkDeleting(true);
     try {
       const response = await contactService.bulkDelete(selectedInquiries.map(i => i.id));
-
       if (response.data.success) {
-        toast.success(response.data.message || `Successfully deleted ${selectedInquiries.length} inquiry(ies)`);
+        toast.success(response.data.message || `Deleted ${selectedInquiries.length} inquiries`);
         setSelectedInquiries([]);
         setBulkDeleteModalOpen(false);
         await fetchOldInquiries();
       }
     } catch (error) {
-      console.error('Error deleting inquiries:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete inquiries');
+      toast.error(error.response?.data?.message || 'Failed to delete selected items');
     } finally {
       setBulkDeleting(false);
     }
@@ -159,578 +143,396 @@ const ManageContactInquiries = () => {
     if (isSelected) {
       setSelectedInquiries(selectedInquiries.filter(i => i.id !== inquiry.id));
     } else {
-      // Check if inquiry is old enough to delete (>90 days)
       const inquiryDate = new Date(inquiry.created_at);
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-      
-      if (inquiryDate < ninetyDaysAgo) {
-        setSelectedInquiries([...selectedInquiries, inquiry]);
-      } else {
-        toast.warning('Only inquiries older than 90 days can be deleted');
-      }
+
+      if (inquiryDate < ninetyDaysAgo) setSelectedInquiries([...selectedInquiries, inquiry]);
+      else toast.warning('Security Protocol: Only inquiries older than 90 days can be purged');
     }
   };
 
   const toggleSelectAll = () => {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    
-    const eligibleInquiries = filteredOldInquiries.filter(inq => {
-      const inquiryDate = new Date(inq.created_at);
-      return inquiryDate < ninetyDaysAgo;
-    });
 
-    if (selectedInquiries.length === eligibleInquiries.length) {
-      setSelectedInquiries([]);
-    } else {
-      setSelectedInquiries(eligibleInquiries);
-    }
-  };
+    const eligibleInquiries = oldInquiries.filter(inq => new Date(inq.created_at) < ninetyDaysAgo);
 
-  const isInquiryEligibleForDelete = (inquiry) => {
-    const inquiryDate = new Date(inquiry.created_at);
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    return inquiryDate < ninetyDaysAgo;
+    if (selectedInquiries.length === eligibleInquiries.length) setSelectedInquiries([]);
+    else setSelectedInquiries(eligibleInquiries);
   };
 
   const getStatusBadge = (status) => {
-    const statusStyles = {
-      new: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
-      contacted: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-      converted: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800',
-      closed: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600',
+    const styles = {
+      new: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+      contacted: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+      converted: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+      closed: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
     };
     return (
-      <span
-        className={`px-3 py-1 text-xs font-semibold rounded-full border transition-colors duration-300 ${
-          statusStyles[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600'
-        }`}
-      >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${styles[status] || styles.closed}`}>
+        {status}
       </span>
     );
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const formatDate = (dateString, detailed = false) => {
+    if (!dateString) return 'Not Set';
+    const options = detailed
+      ? { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+      : { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return 'Not specified';
-    return `₱${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (!amount) return 'N/A';
+    return `₱${parseFloat(amount).toLocaleString()}`;
   };
 
-  // Filter inquiries based on status filter (for new inquiries)
-  const getFilteredInquiries = (inquiriesList) => {
-    // Ensure inquiriesList is always an array
-    if (!Array.isArray(inquiriesList)) return [];
-    if (filterStatus === 'all') return inquiriesList;
-    return inquiriesList.filter(inq => inq.status === filterStatus);
-  };
+  const filteredNewInquiries = useMemo(() => {
+    if (filterStatus === 'all') return newInquiries;
+    return newInquiries.filter(inq => inq.status === filterStatus);
+  }, [newInquiries, filterStatus]);
 
-  const filteredNewInquiries = getFilteredInquiries(newInquiries);
-  // Old inquiries are already filtered by backend, no need to filter again
-  const filteredOldInquiries = oldInquiries;
-  
-  // Render inquiry card component
-  const renderInquiryCard = (inquiry, showCheckbox = false) => {
+  const renderInquiryCard = (inquiry, isOld = false) => {
     const isSelected = selectedInquiries.some(i => i.id === inquiry.id);
-    const canDelete = isInquiryEligibleForDelete(inquiry);
-    
+    const inquiryDate = new Date(inquiry.created_at);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    const canDelete = inquiryDate < ninetyDaysAgo;
+
     return (
-    <div
-      key={inquiry.id}
-      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 border ${
-        isSelected ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'
-      }`}
-    >
-      {showCheckbox && (
-        <div className="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => toggleInquirySelection(inquiry)}
-            disabled={!canDelete}
-            className={`flex items-center gap-2 text-sm ${
-              canDelete 
-                ? 'text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400' 
-                : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-            }`}
-            title={canDelete ? 'Select for deletion' : 'Only inquiries older than 90 days can be deleted'}
-          >
-            {isSelected ? (
-              <CheckSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            ) : (
-              <Square className="w-5 h-5" />
-            )}
-            <span>{isSelected ? 'Selected' : canDelete ? 'Select' : 'Cannot delete (< 90 days)'}</span>
-          </button>
-        </div>
-      )}
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-              {inquiry.name || `${inquiry.first_name || ''} ${inquiry.last_name || ''}`.trim()}
-            </h3>
-            {getStatusBadge(inquiry.status)}
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
-            <div>
-              <span className="font-medium">Email:</span> {inquiry.email}
+      <div key={inquiry.id} className={`group bg-white dark:bg-gray-900/70 backdrop-blur-xl rounded-[2.5rem] border transition-all duration-500 hover:shadow-2xl flex flex-col overflow-hidden ${isSelected ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-gray-200 dark:border-gray-800'}`}>
+        {/* User Header */}
+        <div className="p-8 pb-4 flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform border border-indigo-500/20">
+              <span className="text-xl font-black">{(inquiry.name || inquiry.first_name || '?').charAt(0).toUpperCase()}</span>
             </div>
             <div>
-              <span className="font-medium">Phone:</span> {inquiry.mobile_number || inquiry.phone_number || 'N/A'}
-            </div>
-            <div>
-              <span className="font-medium">Event Type:</span> {inquiry.event_type || 'N/A'}
-            </div>
-            <div>
-              <span className="font-medium">Submitted:</span> {formatDate(inquiry.created_at)}
+              <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
+                {inquiry.name || `${inquiry.first_name || ''} ${inquiry.last_name || ''}`.trim()}
+              </h3>
+              <div className="flex items-center gap-2 mt-1">
+                {getStatusBadge(inquiry.status)}
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">#{inquiry.id}</span>
+              </div>
             </div>
           </div>
+          {isOld && (
+            <button
+              onClick={() => toggleInquirySelection(inquiry)}
+              disabled={!canDelete}
+              className={`p-3 rounded-2xl transition-all ${isSelected ? 'bg-indigo-600 text-white shadow-lg' : (canDelete ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-indigo-500' : 'opacity-20 grayscale cursor-not-allowed')}`}
+            >
+              {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+            </button>
+          )}
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
-        <div>
-          <span className="font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-            Event Date:
-          </span>{' '}
-          <span className="text-gray-600 dark:text-gray-400">
-            {inquiry.date_of_event || inquiry.event_date
-              ? formatDate(inquiry.date_of_event || inquiry.event_date)
-              : 'Not specified'}
-          </span>
-        </div>
-        <div>
-          <span className="font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-            Preferred Venue:
-          </span>{' '}
-          <span className="text-gray-600 dark:text-gray-400">
-            {inquiry.preferred_venue || inquiry.venue || 'Not specified'}
-          </span>
-        </div>
-        <div>
-          <span className="font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-            Budget:
-          </span>{' '}
-          <span className="text-gray-600 dark:text-gray-400">{formatCurrency(inquiry.budget)}</span>
-        </div>
-        <div>
-          <span className="font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-            Estimated Guests:
-          </span>{' '}
-          <span className="text-gray-600 dark:text-gray-400">
-            {inquiry.estimated_guests || inquiry.guests || 'Not specified'}
-          </span>
-        </div>
-      </div>
-
-      {inquiry.motifs && (
-        <div className="mb-4 text-sm">
-          <span className="font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-            Motifs/Theme:
-          </span>{' '}
-          <span className="text-gray-600 dark:text-gray-400">{inquiry.motifs}</span>
-        </div>
-      )}
-
-      <div className="mb-4">
-        <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1 transition-colors duration-300">
-          Message:
-        </span>
-        <p className="text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg transition-colors duration-300">
-          {inquiry.message || 'No message provided'}
-        </p>
-      </div>
-
-      <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-          Update Status:
-        </span>
-        <select
-          value={inquiry.status}
-          onChange={(e) => handleStatusUpdate(inquiry.id, e.target.value)}
-          disabled={updatingId === inquiry.id}
-          className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-300"
-        >
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="converted">Converted</option>
-          <option value="closed">Closed</option>
-        </select>
-        {updatingId === inquiry.id && (
-          <div className="inline-flex items-center">
-            <LoadingSpinner size="sm" />
+        {/* Tactical Info Row */}
+        <div className="px-8 grid grid-cols-2 gap-4 my-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <Mail className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-xs font-bold truncate">{inquiry.email}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <Phone className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-xs font-bold">{inquiry.mobile_number || inquiry.phone_number || 'Sensitive'}</span>
+            </div>
           </div>
-        )}
-        <button
-          onClick={() => {
-            setSelectedInquiry(inquiry);
-            setReplyModalOpen(true);
-          }}
-          className="ml-auto px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 text-sm font-medium transition-colors duration-300"
-        >
-          Reply
-        </button>
-      </div>
-    </div>
-    );
-  };
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <Calendar className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-xs font-bold">{formatDate(inquiry.date_of_event || inquiry.event_date)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <Tags className="w-3.5 h-3.5 text-purple-500" />
+              <span className="text-xs font-black uppercase tracking-tighter text-indigo-400">{inquiry.event_type || 'Event Inquiry'}</span>
+            </div>
+          </div>
+        </div>
 
-  if (loading) {
-    return (
-      <div className="bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
-        <div className="p-4 sm:p-6 lg:p-10">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8 transition-colors duration-300">
-            Contact Inquiries
-          </h1>
-          <div className="flex items-center justify-center py-12">
-            <LoadingSpinner size="lg" />
+        {/* Summary Box */}
+        <div className="px-8 mt-4">
+          <div className="bg-gray-50 dark:bg-gray-800/40 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 flex flex-wrap gap-x-8 gap-y-4">
+            <div>
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Target Venue</p>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3 h-3 text-rose-500" />
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{inquiry.preferred_venue || inquiry.venue || 'Undecided'}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Unit Count</p>
+              <div className="flex items-center gap-2">
+                <Users className="w-3 h-3 text-indigo-500" />
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{inquiry.estimated_guests || inquiry.guests || '0'} Pax</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Allocation</p>
+              <p className="text-sm font-black text-emerald-500">{formatCurrency(inquiry.budget)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Message Fragment */}
+        <div className="px-8 mt-6 flex-1">
+          <div className="relative group/msg">
+            <Quote className="absolute -top-2 -left-2 w-6 h-6 text-indigo-500/10" />
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed italic line-clamp-3">
+              {inquiry.message || 'Transmission contains no readable message payload.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Footer Controls */}
+        <div className="p-8 pt-6 mt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Protocol</span>
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                value={inquiry.status}
+                onChange={(e) => handleStatusUpdate(inquiry.id, e.target.value)}
+                disabled={updatingId === inquiry.id}
+                className="w-full sm:w-auto appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-2.5 pr-10 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="new">Mark New</option>
+                <option value="contacted">Mark Contacted</option>
+                <option value="converted">Mark Converted</option>
+                <option value="closed">Mark Closed</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+            {updatingId === inquiry.id && <LoadingSpinner size="sm" />}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] font-bold text-gray-400 uppercase hidden md:inline">Logged {formatDate(inquiry.created_at)}</span>
+            <button
+              onClick={() => { setSelectedInquiry(inquiry); setReplyModalOpen(true); }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:shadow-xl hover:-translate-y-1 transition-all active:scale-95"
+            >
+              <Send className="w-4 h-4" />
+              Dispatch Reply
+            </button>
           </div>
         </div>
       </div>
     );
-  }
+  };
 
   return (
-    <div className="bg-gradient-to-b from-[#FFF7F0] to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
-        <PullToRefresh onRefresh={handleRefresh} className="h-full">
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-300">
-                Contact Inquiries
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 transition-colors duration-300">
-                Manage and respond to customer inquiries
-              </p>
-            </div>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                const response = await api.get('/contact-inquiries/export', {
-                  responseType: 'blob',
-                });
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'contact_inquiries.csv');
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-              } catch (error) {
-                toast.error('Failed to export inquiries');
-              }
-            }}
-          >
-            Export CSV
-          </Button>
-        </div>
+    <div className="relative min-h-screen pb-20">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-20">
 
-        {/* Filter - Only show for new inquiries */}
-        {activeTab === 'new' && (
-          <div className="mb-6 flex gap-4 items-center">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">
-              Filter by Status:
-            </label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-300"
+          {/* ═══════════════ HEADER ═══════════════ */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+            <div className="flex items-center gap-5">
+              <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl shadow-blue-500/20 transition-transform hover:scale-105">
+                <Inbox className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                  Inquiry Hub
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mt-0.5">
+                  Review and manage {newInquiries.length + (oldInquiriesStats?.total || 0)} incoming client requests
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await api.get('/contact-inquiries/export', { responseType: 'blob' });
+                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `Inquiries_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                  } catch (error) { toast.error('Failed to export catalog'); }
+                }}
+                className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all font-black uppercase tracking-widest"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ═══════════════ STATS BAR ═══════════════ */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Incoming Pipeline</p>
+              <p className="text-3xl font-extrabold text-gray-900 dark:text-white">{newInquiries.length}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Archived Records</p>
+              <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">{oldInquiriesStats?.total || 0}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Success Rate</p>
+              <div className="flex items-center gap-2">
+                <p className="text-3xl font-extrabold text-emerald-500">{oldInquiriesStats?.by_status?.converted || 0}</p>
+                <TrendingUp className="w-5 h-5 text-emerald-400" />
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Attention Req.</p>
+              <div className="flex items-center gap-2">
+                <p className="text-3xl font-extrabold text-amber-500">{newInquiries.filter(i => i.status === 'new').length}</p>
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* ═══════════════ TABS ═══════════════ */}
+          <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-8 w-fit border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => { setActiveTab('new'); setSelectedInquiries([]); }}
+              className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'new' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
             >
-              <option value="all">All Inquiries</option>
-              <option value="new">New</option>
-              <option value="contacted">Contacted</option>
-              <option value="converted">Converted</option>
-              <option value="closed">Closed</option>
-            </select>
-            <span className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
-              Showing {filteredNewInquiries.length} of {newInquiries.length} new inquiries
-            </span>
+              Active <span className="ml-1 opacity-60">({newInquiries.length})</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('old'); setSelectedInquiries([]); }}
+              className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'old' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+            >
+              Archived <span className="ml-1 opacity-60">({oldInquiriesStats?.total || 0})</span>
+            </button>
           </div>
-        )}
 
-        {/* Old Inquiries Filters and Summary */}
-        {activeTab === 'old' && (
-          <>
-            {/* Summary Statistics */}
-            {oldInquiriesStats && (
-              <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Old Inquiries</div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                    {oldInquiriesStats.total || 0}
-                  </div>
-                </div>
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                  <div className="text-sm text-blue-600 dark:text-blue-400">Contacted</div>
-                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-200 mt-1">
-                    {oldInquiriesStats.by_status?.contacted || 0}
-                  </div>
-                </div>
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                  <div className="text-sm text-green-600 dark:text-green-400">Converted</div>
-                  <div className="text-2xl font-bold text-green-900 dark:text-green-200 mt-1">
-                    {oldInquiriesStats.by_status?.converted || 0}
-                  </div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Closed</div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                    {oldInquiriesStats.by_status?.closed || 0}
-                  </div>
-                </div>
+          {/* ═══════════════ SEARCH & FILTERS ═══════════════ */}
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 mb-8 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or event parameters..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
               </div>
-            )}
-
-            {/* Filter Bar */}
-            <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                <div className="flex items-center gap-2 flex-1">
-                  <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters:</span>
-                </div>
-                
-                {/* Status Filter */}
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Status:</label>
-                  <select
-                    value={oldStatusFilter}
-                    onChange={(e) => {
-                      setOldStatusFilter(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="all">All</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="converted">Converted</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </div>
-
-                {/* Date Range Filter */}
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Date Range:</label>
-                  <select
-                    value={dateRange}
-                    onChange={(e) => {
-                      setDateRange(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="7days">Last 7 Days</option>
-                    <option value="30days">Last 30 Days</option>
-                    <option value="90days">Last 90 Days</option>
-                    <option value="6months">Last 6 Months</option>
-                  </select>
-                </div>
-
-                {/* Search */}
-                <div className="flex items-center gap-2 flex-1 max-w-md">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="Search by name, email, event type..."
-                      className="w-full pl-10 pr-4 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => {
-                          setSearchQuery('');
-                          setCurrentPage(1);
-                        }}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Clear Filters */}
-                {(oldStatusFilter !== 'all' || dateRange !== 'all' || searchQuery) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="text-xs"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${showFilters ? 'bg-slate-900 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-slate-700 dark:text-gray-300'}`}
+              >
+                <Filter className="w-4 h-4" />
+                Advanced Filters
+              </button>
+              {selectedInquiries.length > 0 && (
+                <button
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" /> Purge ({selectedInquiries.length})
+                </button>
+              )}
             </div>
 
-            {/* Bulk Actions Bar */}
-            {selectedInquiries.length > 0 && (
-              <div className="mb-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-indigo-900 dark:text-indigo-200">
-                    {selectedInquiries.length} inquiry(ies) selected
-                  </span>
-                  <button
-                    onClick={toggleSelectAll}
-                    className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 animate-in slide-in-from-top-4 duration-300">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Priority Status</label>
+                  <select
+                    value={activeTab === 'new' ? filterStatus : oldStatusFilter}
+                    onChange={(e) => {
+                      if (activeTab === 'new') setFilterStatus(e.target.value);
+                      else { setOldStatusFilter(e.target.value); setCurrentPage(1); }
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold"
                   >
-                    {selectedInquiries.length === filteredOldInquiries.filter(isInquiryEligibleForDelete).length
-                      ? 'Deselect All'
-                      : 'Select All Eligible'}
-                  </button>
+                    <option value="all">All Statuses</option>
+                    <option value="new">New Requests</option>
+                    <option value="contacted">In Discussion</option>
+                    <option value="converted">Converted Deals</option>
+                    <option value="closed">Closed/Lost</option>
+                  </select>
                 </div>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setBulkDeleteModalOpen(true)}
-                  className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete Selected
-                </Button>
+                {activeTab === 'old' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-gray-400 ml-2">Age Protocol</label>
+                    <select
+                      value={dateRange}
+                      onChange={(e) => { setDateRange(e.target.value); setCurrentPage(1); }}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold"
+                    >
+                      <option value="all">Unlimited History</option>
+                      <option value="7days">Last 7 Days</option>
+                      <option value="30days">Last 30 Days</option>
+                      <option value="90days">Standard Archi (90d)</option>
+                      <option value="6months">Extended (6m)</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex items-end">
+                  <button onClick={handleClearFilters} className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-red-500 transition-colors px-4 py-3">Reset Filters</button>
+                </div>
               </div>
             )}
-          </>
-        )}
-
-        {/* Tabs for New and Old Inquiries */}
-        <div className="mb-6">
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => {
-                  setActiveTab('new');
-                  setSelectedInquiries([]); // Clear selections when switching tabs
-                }}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
-                  activeTab === 'new'
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                New Inquiries
-                {newInquiries.length > 0 && (
-                  <span className="ml-2 py-0.5 px-2 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
-                    {newInquiries.length}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('old');
-                  setSelectedInquiries([]); // Clear selections when switching tabs
-                }}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-300 ${
-                  activeTab === 'old'
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                Old Inquiries
-                {oldInquiriesStats?.total > 0 && (
-                  <span className="ml-2 py-0.5 px-2 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                    {oldInquiriesStats.total}
-                  </span>
-                )}
-              </button>
-            </nav>
           </div>
-        </div>
 
-        {/* Inquiries List */}
-        {activeTab === 'new' ? (
-          filteredNewInquiries.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-              <p className="text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                No new inquiries found.
-              </p>
+          {/* ═══════════════ INQUIRY LIST ═══════════════ */}
+          {loading ? (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-96 bg-gray-200 dark:bg-gray-800 rounded-[2.5rem] animate-pulse" />
+              ))}
+            </div>
+          ) : (activeTab === 'new' ? filteredNewInquiries : oldInquiries).length === 0 ? (
+            <div className="py-24 text-center bg-gray-50/50 dark:bg-gray-800/20 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-[2.5rem]">
+              <Inbox className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold dark:text-white">Communication channel silent</h3>
+              <p className="text-gray-500 mt-2">No inquiries detected matching the current configuration.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredNewInquiries.map(inquiry => renderInquiryCard(inquiry, false))}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {(activeTab === 'new' ? filteredNewInquiries : oldInquiries).map(inq => renderInquiryCard(inq, activeTab === 'old'))}
             </div>
-          )
-        ) : (
-          <>
-            {filteredOldInquiries.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center border border-gray-200 dark:border-gray-700 transition-colors duration-300">
-                <p className="text-gray-500 dark:text-gray-400 transition-colors duration-300">
-                  No old inquiries found matching your filters.
-                </p>
-                {(oldStatusFilter !== 'all' || dateRange !== 'all' || searchQuery) && (
-                  <Button
-                    variant="outline"
-                    onClick={handleClearFilters}
-                    className="mt-4"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {filteredOldInquiries.map(inquiry => renderInquiryCard(inquiry, true))}
-                </div>
-                {/* Pagination */}
-                {pagination && (
-                  <InquiryPagination
-                    currentPage={pagination.current_page}
-                    lastPage={pagination.last_page}
-                    total={pagination.total}
-                    perPage={pagination.per_page}
-                    from={pagination.from}
-                    to={pagination.to}
-                    onPageChange={setCurrentPage}
-                    onPerPageChange={(newPerPage) => {
-                      setPerPage(newPerPage);
-                      setCurrentPage(1);
-                    }}
-                  />
-                )}
-              </>
-            )}
-          </>
-        )}
+          )}
+
+          {/* ═══════════════ PAGINATION ═══════════════ */}
+          {activeTab === 'old' && pagination && (
+            <div className="mt-12 flex justify-center">
+              <Pagination
+                currentPage={pagination.current_page}
+                lastPage={pagination.last_page}
+                total={pagination.total}
+                perPage={pagination.per_page}
+                from={pagination.from}
+                to={pagination.to}
+                onPageChange={setCurrentPage}
+                onPerPageChange={(newPerPage) => { setPerPage(newPerPage); setCurrentPage(1); }}
+              />
+            </div>
+          )}
         </div>
-        </PullToRefresh>
+      </PullToRefresh>
 
-        {/* Reply Modal */}
-        <ContactInquiryReplyModal
-          isOpen={replyModalOpen}
-          onClose={() => {
-            setReplyModalOpen(false);
-            setSelectedInquiry(null);
-          }}
-          inquiry={selectedInquiry}
-        />
-
-        {/* Bulk Delete Confirmation Modal */}
-        <BulkDeleteConfirmModal
-          isOpen={bulkDeleteModalOpen}
-          onClose={() => setBulkDeleteModalOpen(false)}
-          inquiries={selectedInquiries}
-          onConfirm={handleBulkDelete}
-          loading={bulkDeleting}
-        />
+      {/* Modals */}
+      <ContactInquiryReplyModal
+        isOpen={replyModalOpen}
+        onClose={() => { setReplyModalOpen(false); setSelectedInquiry(null); }}
+        inquiry={selectedInquiry}
+      />
+      <BulkDeleteConfirmModal
+        isOpen={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+        inquiries={selectedInquiries}
+        onConfirm={handleBulkDelete}
+        loading={bulkDeleting}
+      />
     </div>
   );
 };
 
 export default ManageContactInquiries;
-

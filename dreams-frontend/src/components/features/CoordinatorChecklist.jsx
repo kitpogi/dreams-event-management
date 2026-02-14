@@ -101,9 +101,9 @@ const CoordinatorChecklist = ({ bookingId }) => {
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-        <div 
-          className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
+      <div className="w-full bg-gray-100 dark:bg-gray-800/50 rounded-full h-3 overflow-hidden border border-gray-200 dark:border-white/5">
+        <div
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-700 ease-out"
           style={{ width: `${progress}%` }}
         ></div>
       </div>
@@ -115,19 +115,17 @@ const CoordinatorChecklist = ({ bookingId }) => {
           </div>
         ) : (
           tasks.map((task) => (
-            <div 
-              key={task.id} 
-              className={`group flex items-start gap-3 p-3 rounded-lg border transition-all ${
-                task.status === 'completed' 
-                  ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-800 opacity-75' 
-                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm'
-              }`}
-            >
-              <button 
-                onClick={() => toggleTaskStatus(task)}
-                className={`mt-0.5 flex-shrink-0 text-gray-400 hover:text-indigo-600 transition-colors ${
-                  task.status === 'completed' ? 'text-green-500 hover:text-green-600' : ''
+            <div
+              key={task.id}
+              className={`group flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300 ${task.status === 'completed'
+                  ? 'bg-gray-50/50 dark:bg-gray-900/40 border-gray-100 dark:border-white/5 opacity-60'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-white/10 hover:border-blue-400 dark:hover:border-blue-500 shadow-md hover:shadow-xl'
                 }`}
+            >
+              <button
+                onClick={() => toggleTaskStatus(task)}
+                className={`mt-0.5 flex-shrink-0 text-gray-400 hover:text-indigo-600 transition-colors ${task.status === 'completed' ? 'text-green-500 hover:text-green-600' : ''
+                  }`}
               >
                 {task.status === 'completed' ? (
                   <CheckCircle2 className="w-5 h-5" />
@@ -135,11 +133,10 @@ const CoordinatorChecklist = ({ bookingId }) => {
                   <Circle className="w-5 h-5" />
                 )}
               </button>
-              
+
               <div className="flex-1 min-w-0">
-                <p className={`font-medium text-sm ${
-                  task.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'
-                }`}>
+                <p className={`font-medium text-sm ${task.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
                   {task.title}
                 </p>
                 {task.description && (
@@ -155,7 +152,7 @@ const CoordinatorChecklist = ({ bookingId }) => {
                 )}
               </div>
 
-              <button 
+              <button
                 onClick={() => handleDeleteTask(task.id)}
                 className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
                 title="Delete task"
@@ -184,7 +181,7 @@ const CoordinatorChecklist = ({ bookingId }) => {
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description (Optional)

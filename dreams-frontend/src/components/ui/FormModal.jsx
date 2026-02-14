@@ -5,13 +5,13 @@ import { cn } from '@/lib/utils';
  * FormModal - A backward-compatible wrapper around shadcn/ui Dialog
  * Maintains the same API as the original FormModal for easy migration
  */
-const FormModal = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
+const FormModal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
   size = 'md',
-  showCloseButton = true 
+  showCloseButton = true
 }) => {
   const sizeClasses = {
     sm: 'max-w-md',
@@ -23,10 +23,10 @@ const FormModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent 
+      <DialogContent
         className={cn(
           sizeClasses[size],
-          'max-h-[90vh] overflow-y-auto',
+          'max-h-[90vh] overflow-y-auto no-scrollbar',
           'dark:bg-gray-900 dark:border-gray-800'
         )}
         onInteractOutside={(e) => {
@@ -45,7 +45,7 @@ const FormModal = ({
             {title ? `Dialog for ${title}` : "Dialog content"}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className={cn(
           'mt-4',
           !title && !showCloseButton && 'mt-0'

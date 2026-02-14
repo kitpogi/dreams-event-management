@@ -192,7 +192,7 @@ const ClientRecommendations = () => {
             const packageId = pkg.id || pkg.package_id;
             const saved = [...savedRecommendations];
             const index = saved.findIndex(r => (r.id || r.package_id) === packageId);
-            
+
             if (index > -1) {
                 saved.splice(index, 1);
                 toast({
@@ -209,7 +209,7 @@ const ClientRecommendations = () => {
                     description: 'You can view saved recommendations anytime.',
                 });
             }
-            
+
             setSavedRecommendations(saved);
             localStorage.setItem('savedRecommendations', JSON.stringify(saved));
         } catch (error) {
@@ -602,7 +602,7 @@ const ClientRecommendations = () => {
         if (pkg.package_image) {
             return pkg.package_image;
         }
-        return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%239ca3af' text-anchor='middle' dy='.3em'%3EPackage Image%3C/text%3E%3C/svg%3E"; 
+        return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%239ca3af' text-anchor='middle' dy='.3em'%3EPackage Image%3C/text%3E%3C/svg%3E";
     };
 
     const handleRefresh = async () => {
@@ -612,24 +612,22 @@ const ClientRecommendations = () => {
     };
 
     return (
-        <PullToRefresh onRefresh={handleRefresh} className="min-h-screen">
-            <div className="relative min-h-screen">
-                <AnimatedBackground
-                    type="dots"
-                    colors={['#5A45F2', '#7c3aed', '#7ee5ff']}
-                    speed={0.2}
-                    className="opacity-5 dark:opacity-10"
-                />
-                <div className="px-4 py-6 lg:px-8 lg:py-8 relative z-10 max-w-7xl mx-auto">
+        <PullToRefresh onRefresh={handleRefresh}>
+            <div className="relative">
+                <div className="px-4 py-6 lg:px-8 lg:py-8 relative z-10 w-full">
                     {/* Header */}
-                    <div className="mb-8">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
-                                <Sparkles className="w-6 h-6 text-white" />
+                    <div className="mb-10">
+                        <div className="flex items-center gap-5">
+                            <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 shadow-xl shadow-blue-500/20 group relative overflow-hidden transition-transform duration-500 hover:scale-110">
+                                <Sparkles className="w-7 h-7 text-white relative z-10" />
                             </div>
                             <div>
-                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Get Recommendations</h1>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Discover personalized event packages tailored to your needs</p>
+                                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
+                                    Get Recommendations
+                                </h1>
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">
+                                    Discover personalized event packages
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -750,10 +748,10 @@ const ClientRecommendations = () => {
                     )}
 
                     {/* Main Content with Tabs */}
-                    <Card className="p-8 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 dark:from-purple-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 transition-colors duration-300 shadow-md">
+                    <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl p-6 sm:p-8 rounded-2xl border-none shadow-xl transition-colors duration-300">
                         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-lg">
-                                <TabsTrigger value="form" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-gray-700">
+                            <TabsList className="grid w-full grid-cols-2 mb-10 bg-blue-500/5 dark:bg-white/5 p-1 rounded-2xl">
+                                <TabsTrigger value="form" className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-600 data-[state=active]:text-blue-600 dark:data-[state=active]:text-white data-[state=active]:shadow-xl">
                                     <Sparkles className="w-4 h-4" />
                                     <span className="font-medium">Get Recommendations</span>
                                 </TabsTrigger>
@@ -790,23 +788,20 @@ const ClientRecommendations = () => {
                                                     }}
                                                     className="flex flex-col items-center gap-1.5 group"
                                                 >
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                                                        formStep === step
-                                                            ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-200 dark:shadow-purple-900/30 scale-110'
-                                                            : formStep > step
-                                                                ? 'bg-green-500 text-white'
-                                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                                                    }`}>
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${formStep === step
+                                                        ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-200 dark:shadow-purple-900/30 scale-110'
+                                                        : formStep > step
+                                                            ? 'bg-green-500 text-white'
+                                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                                                        }`}>
                                                         {formStep > step ? <Check className="w-5 h-5" /> : step}
                                                     </div>
-                                                    <span className={`text-xs font-medium hidden sm:block transition-colors ${
-                                                        formStep === step ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'
-                                                    }`}>{label}</span>
+                                                    <span className={`text-xs font-medium hidden sm:block transition-colors ${formStep === step ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'
+                                                        }`}>{label}</span>
                                                 </button>
                                                 {idx < 2 && (
-                                                    <div className={`flex-1 h-0.5 mx-2 rounded transition-colors duration-300 ${
-                                                        formStep > step ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
-                                                    }`} />
+                                                    <div className={`flex-1 h-0.5 mx-2 rounded transition-colors duration-300 ${formStep > step ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
+                                                        }`} />
                                                 )}
                                             </React.Fragment>
                                         ))}
@@ -831,11 +826,10 @@ const ClientRecommendations = () => {
                                                                 setFormErrors({ ...formErrors, type: '' });
                                                                 setTouchedFields({ ...touchedFields, type: true });
                                                             }}
-                                                            className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 group hover:shadow-md ${
-                                                                formData.type === value
-                                                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-md shadow-purple-100 dark:shadow-purple-900/20 ring-2 ring-purple-500/20'
-                                                                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-700'
-                                                            }`}
+                                                            className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all duration-200 group hover:shadow-md ${formData.type === value
+                                                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-md shadow-purple-100 dark:shadow-purple-900/20 ring-2 ring-purple-500/20'
+                                                                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-700'
+                                                                }`}
                                                         >
                                                             {formData.type === value && (
                                                                 <div className="absolute top-2 right-2">
@@ -845,9 +839,8 @@ const ClientRecommendations = () => {
                                                                 </div>
                                                             )}
                                                             <span className="text-3xl">{emoji}</span>
-                                                            <span className={`text-sm font-bold ${
-                                                                formData.type === value ? 'text-purple-700 dark:text-purple-300' : 'text-gray-900 dark:text-white'
-                                                            }`}>{label}</span>
+                                                            <span className={`text-sm font-bold ${formData.type === value ? 'text-purple-700 dark:text-purple-300' : 'text-gray-900 dark:text-white'
+                                                                }`}>{label}</span>
                                                             <span className="text-[11px] text-gray-500 dark:text-gray-400 text-center leading-tight">{description}</span>
                                                         </button>
                                                     ))}
@@ -898,11 +891,10 @@ const ClientRecommendations = () => {
                                                                     setFormErrors({ ...formErrors, guests: '' });
                                                                     setTouchedFields({ ...touchedFields, guests: true });
                                                                 }}
-                                                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                                                                    formData.guests === String(count)
-                                                                        ? 'bg-purple-600 text-white shadow-md shadow-purple-200 dark:shadow-purple-900/30'
-                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300'
-                                                                }`}
+                                                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${formData.guests === String(count)
+                                                                    ? 'bg-purple-600 text-white shadow-md shadow-purple-200 dark:shadow-purple-900/30'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300'
+                                                                    }`}
                                                             >
                                                                 {count}
                                                             </button>
@@ -917,13 +909,12 @@ const ClientRecommendations = () => {
                                                             onBlur={handleBlur}
                                                             min="1"
                                                             placeholder="Or enter a custom number..."
-                                                            className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
-                                                                touchedFields.guests && formErrors.guests
-                                                                    ? 'border-red-400'
-                                                                    : formData.guests
-                                                                        ? 'border-purple-300 dark:border-purple-700'
-                                                                        : 'border-gray-200 dark:border-gray-600'
-                                                            }`}
+                                                            className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${touchedFields.guests && formErrors.guests
+                                                                ? 'border-red-400'
+                                                                : formData.guests
+                                                                    ? 'border-purple-300 dark:border-purple-700'
+                                                                    : 'border-gray-200 dark:border-gray-600'
+                                                                }`}
                                                         />
                                                         {formData.guests && (
                                                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">guests</span>
@@ -952,11 +943,10 @@ const ClientRecommendations = () => {
                                                                     setFormData({ ...formData, budget: value });
                                                                     setTouchedFields({ ...touchedFields, budget: true });
                                                                 }}
-                                                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                                                                    formData.budget === value
-                                                                        ? 'bg-green-600 text-white shadow-md shadow-green-200 dark:shadow-green-900/30'
-                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300'
-                                                                }`}
+                                                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${formData.budget === value
+                                                                    ? 'bg-green-600 text-white shadow-md shadow-green-200 dark:shadow-green-900/30'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300'
+                                                                    }`}
                                                             >
                                                                 {label}
                                                             </button>
@@ -971,13 +961,12 @@ const ClientRecommendations = () => {
                                                             onChange={handleChange}
                                                             onBlur={handleBlur}
                                                             placeholder="Or enter a custom amount..."
-                                                            className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${
-                                                                touchedFields.budget && formErrors.budget
-                                                                    ? 'border-red-400'
-                                                                    : formData.budget
-                                                                        ? 'border-green-300 dark:border-green-700'
-                                                                        : 'border-gray-200 dark:border-gray-600'
-                                                            }`}
+                                                            className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors ${touchedFields.budget && formErrors.budget
+                                                                ? 'border-red-400'
+                                                                : formData.budget
+                                                                    ? 'border-green-300 dark:border-green-700'
+                                                                    : 'border-gray-200 dark:border-gray-600'
+                                                                }`}
                                                         />
                                                     </div>
                                                     {touchedFields.budget && formErrors.budget && (
@@ -1034,11 +1023,10 @@ const ClientRecommendations = () => {
                                                                     setFormData({ ...formData, theme: formData.theme === theme ? '' : theme });
                                                                     setTouchedFields({ ...touchedFields, theme: true });
                                                                 }}
-                                                                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
-                                                                    formData.theme === theme
-                                                                        ? 'bg-pink-600 text-white shadow-md shadow-pink-200 dark:shadow-pink-900/30'
-                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-pink-100 dark:hover:bg-pink-900/20 hover:text-pink-700 dark:hover:text-pink-300'
-                                                                }`}
+                                                                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize ${formData.theme === theme
+                                                                    ? 'bg-pink-600 text-white shadow-md shadow-pink-200 dark:shadow-pink-900/30'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-pink-100 dark:hover:bg-pink-900/20 hover:text-pink-700 dark:hover:text-pink-300'
+                                                                    }`}
                                                             >
                                                                 {theme}
                                                             </button>
@@ -1073,11 +1061,10 @@ const ClientRecommendations = () => {
                                                                     key={value}
                                                                     type="button"
                                                                     onClick={() => togglePreference(value)}
-                                                                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                                                                        isActive
-                                                                            ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-300 shadow-sm'
-                                                                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-orange-300 dark:hover:border-orange-700'
-                                                                    }`}
+                                                                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${isActive
+                                                                        ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-400 dark:border-orange-600 text-orange-700 dark:text-orange-300 shadow-sm'
+                                                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-orange-300 dark:hover:border-orange-700'
+                                                                        }`}
                                                                 >
                                                                     {isActive ? (
                                                                         <Check className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
@@ -1114,13 +1101,11 @@ const ClientRecommendations = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => setUseAI(!useAI)}
-                                                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                                                            useAI ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
-                                                        }`}
+                                                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${useAI ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                            }`}
                                                     >
-                                                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                                                            useAI ? 'translate-x-6' : 'translate-x-1'
-                                                        }`} />
+                                                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${useAI ? 'translate-x-6' : 'translate-x-1'
+                                                            }`} />
                                                     </button>
                                                 </div>
 
@@ -1271,7 +1256,7 @@ const ClientRecommendations = () => {
                                                             No {fallbackInfo.requestedType} Packages Available
                                                         </h3>
                                                         <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
-                                                            We don't currently have pre-built packages for <strong className="capitalize">{fallbackInfo.requestedType}</strong> events. 
+                                                            We don't currently have pre-built packages for <strong className="capitalize">{fallbackInfo.requestedType}</strong> events.
                                                             Below are alternative packages that you might customize.
                                                         </p>
                                                         <div className="flex flex-wrap gap-2">
@@ -1407,11 +1392,10 @@ const ClientRecommendations = () => {
                                                                 {/* Save for Later Button */}
                                                                 <button
                                                                     onClick={() => handleSaveForLater(pkg)}
-                                                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                                                        isSaved(pkg)
-                                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
-                                                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                                                    }`}
+                                                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isSaved(pkg)
+                                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
+                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                                        }`}
                                                                     title={isSaved(pkg) ? 'Remove from saved' : 'Save for later'}
                                                                 >
                                                                     {isSaved(pkg) ? (
@@ -1463,7 +1447,7 @@ const ClientRecommendations = () => {
                                 )}
                             </TabsContent>
                         </Tabs>
-                    </Card>
+                    </div>
 
                     {/* Comparison Modal */}
                     <PackageComparison

@@ -36,7 +36,7 @@ import {
   Mail
 } from 'lucide-react';
 import api from '../../../api/axios';
-import { LoadingSpinner, StatsCard, DataTable, Tabs, TabsList, TabsTrigger, TabsContent, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui';
+import { LoadingSpinner, StatsCard, Card, DataTable, Tabs, TabsList, TabsTrigger, TabsContent, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui';
 import { useAuth } from '../../../context/AuthContext';
 
 // Helper function to ensure absolute URL for profile picture
@@ -291,27 +291,20 @@ const AdminDashboard = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
-      {/* Enhanced Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-300/20 dark:bg-purple-900/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-300/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-200/10 dark:bg-indigo-900/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-      </div>
-
-      <div className="relative z-10 p-4 sm:p-6 lg:p-8 xl:p-10 max-w-7xl mx-auto">
+    <div className="relative">
+      <div className="px-4 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-20 w-full">
         {/* Enhanced Header Section */}
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-              <div className="relative flex items-center justify-center p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+              <div className="relative flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl transform group-hover:scale-105 transition-transform duration-300">
                 <BarChart3 className="w-8 h-8 text-white" />
               </div>
             </div>
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
                   {isCoordinator ? 'Coordinator Dashboard' : 'Admin Dashboard'}
                 </h1>
                 <div className="hidden sm:flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
@@ -329,7 +322,7 @@ const AdminDashboard = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               asChild
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+              className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
             >
               <Link to="/admin/packages/create" className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -353,7 +346,7 @@ const AdminDashboard = () => {
 
         {/* Coordinator Profile Section */}
         {isCoordinator && user && (
-          <div className="relative bg-gradient-to-br from-[#5A45F2] via-[#7c3aed] to-[#9333ea] dark:from-[#6d4cdb] dark:via-[#7c3aed] dark:to-[#8b5cf6] rounded-2xl shadow-2xl p-6 sm:p-8 mb-8 text-white transition-all duration-300 overflow-hidden group hover:shadow-3xl">
+          <div className="relative bg-gradient-to-br from-blue-700 via-blue-800 to-slate-900 dark:from-blue-800 dark:via-blue-900 dark:to-slate-950 rounded-2xl shadow-2xl p-6 sm:p-8 mb-8 text-white transition-all duration-300 overflow-hidden group hover:shadow-3xl">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
             <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-40 h-40 rounded-full bg-white/5 blur-3xl"></div>
@@ -388,7 +381,7 @@ const AdminDashboard = () => {
                     </span>
                   </div>
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-green-400 border-4 border-[#5A45F2] rounded-full h-7 w-7 shadow-lg animate-pulse"></div>
+                <div className="absolute -bottom-1 -right-1 bg-green-400 border-4 border-blue-700 rounded-full h-7 w-7 shadow-lg animate-pulse"></div>
               </div>
 
               {/* Profile Information */}
@@ -477,38 +470,36 @@ const AdminDashboard = () => {
                   <StatsCard
                     title="My Assigned Bookings"
                     value={stats.assignedBookings}
-                    link="/admin/bookings"
-                    linkText="View Bookings"
+                    unit="Bookings"
+                    status="Ongoing"
                     icon={Calendar}
-                    variant="primary"
-                    trend="up"
-                    trendValue="12%"
+                    color="blue"
                   />
                   <StatsCard
                     title="Pending Bookings"
                     value={stats.pendingAssigned}
-                    link="/admin/bookings"
-                    linkText="View Pending"
+                    unit="Waitlisted"
+                    trend="+5%"
+                    trendDirection="up"
                     icon={Clock}
-                    variant="warning"
-                    description={`${stats.pendingAssigned > 0 ? Math.round((stats.pendingAssigned / stats.assignedBookings) * 100) : 0}% of total`}
+                    color="orange"
                   />
                   <StatsCard
                     title="Upcoming Events"
                     value={stats.upcomingEvents}
-                    link="/admin/bookings"
-                    linkText="View Upcoming"
+                    unit="Events"
+                    trend="+12%"
+                    trendDirection="up"
                     icon={Zap}
-                    variant="success"
-                    trend="up"
-                    trendValue="5"
+                    color="green"
                   />
                   <StatsCard
-                    title="Completed This Month"
-                    value={stats.completedEvents}
+                    title="Booking Completion Rate"
+                    value={`${totalBookingsPercentage}%`}
+                    trend="+100%"
+                    trendDirection="up"
                     icon={CheckCircle2}
-                    variant="default"
-                    description="This month"
+                    color="cyan"
                   />
                 </>
               ) : (
@@ -516,42 +507,37 @@ const AdminDashboard = () => {
                   <StatsCard
                     title="Total Packages"
                     value={stats.totalPackages}
-                    link="/admin/packages"
-                    linkText="Manage Packages"
+                    unit="Items"
+                    trend="+2"
+                    trendDirection="up"
                     icon={Package}
-                    variant="primary"
-                    trend="up"
-                    trendValue="3 new"
+                    color="blue"
                   />
                   <StatsCard
                     title="Total Bookings"
                     value={stats.totalBookings}
-                    link="/admin/bookings"
-                    linkText="Manage Bookings"
+                    unit="Bookings"
+                    trend="+12%"
+                    trendDirection="up"
                     icon={Calendar}
-                    variant="success"
-                    description={`${totalBookingsPercentage}% confirmed`}
-                    trend="up"
-                    trendValue="8%"
+                    color="cyan"
                   />
                   <StatsCard
                     title="Total Clients"
                     value={stats.totalClients}
-                    link="/admin/clients"
-                    linkText="Manage Clients"
+                    unit="Users"
+                    trend="+5"
+                    trendDirection="up"
                     icon={Users}
-                    variant="default"
-                    trend="up"
-                    trendValue="15%"
+                    color="green"
                   />
                   <StatsCard
-                    title="Pending Bookings"
-                    value={stats.pendingBookings}
-                    icon={Clock}
-                    variant="warning"
-                    description={`${pendingPercentage}% of total`}
-                    link="/admin/bookings"
-                    linkText="Review Now"
+                    title="Booking Completion Rate"
+                    value={`${totalBookingsPercentage}%`}
+                    trend="+15%"
+                    trendDirection="up"
+                    icon={Zap}
+                    color="orange"
                   />
                 </>
               )}
@@ -560,11 +546,11 @@ const AdminDashboard = () => {
             {/* ===== QUICK ACTIONS PANEL ===== */}
             {!isCoordinator && (
               <div className="mb-8">
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg">
+                <Card variant="glass" className="p-6">
                   {/* Panel Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                      <div className="p-2.5 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg">
                         <Zap className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -586,7 +572,7 @@ const AdminDashboard = () => {
                       </div>
                       <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">Review Pending</span>
                       {stats.pendingBookings > 0 && (
-                        <span className="absolute -top-2 -right-2 px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[24px] text-center animate-pulse">
+                        <span className="absolute -top-2 -right-2 px-2 py-1 bg-rose-500 text-white text-xs font-bold rounded-full min-w-[24px] text-center animate-pulse">
                           {stats.pendingBookings}
                         </span>
                       )}
@@ -669,67 +655,67 @@ const AdminDashboard = () => {
                       <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">Audit Logs</span>
                     </Link>
                   </div>
-                </div>
+                </Card>
               </div>
             )}
 
             {/* Quick Stats Overview Bar */}
             {!isCoordinator && (
               <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card variant="glass" className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                      <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <div className="p-3 bg-blue-500/10 rounded-xl">
+                      <TrendingUp className="w-6 h-6 text-blue-400" />
                     </div>
-                    <span className="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
+                    <div className="flex items-center gap-1 text-sm font-black italic text-emerald-400 tracking-tighter">
                       <ArrowUpRight className="w-4 h-4" />
                       +12%
-                    </span>
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white mb-1 tracking-tight">
+                  <p className="text-3xl font-black text-white mb-1 tracking-tighter scale-110 origin-left">
                     {totalBookingsPercentage}%
                   </p>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Booking Completion Rate</p>
-                </div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Booking Completion Rate</p>
+                </Card>
 
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card variant="glass" className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-                      <Activity className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    <div className="p-3 bg-indigo-500/10 rounded-xl">
+                      <Activity className="w-6 h-6 text-indigo-400" />
                     </div>
-                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                    <div className="flex items-center gap-1 text-sm font-black italic text-blue-400 tracking-tighter">
                       <Sparkles className="w-4 h-4" />
                       Active
-                    </span>
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white mb-1 tracking-tight">
+                  <p className="text-3xl font-black text-white mb-1 tracking-tighter scale-110 origin-left">
                     {stats.totalBookings - stats.pendingBookings}
                   </p>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Active Bookings</p>
-                </div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Active Bookings</p>
+                </Card>
 
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card variant="glass" className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl">
-                      <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                    <div className="p-3 bg-amber-500/10 rounded-xl">
+                      <Clock className="w-6 h-6 text-amber-400" />
                     </div>
-                    <span className="text-sm font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                      <ArrowDownRight className="w-4 h-4" />
-                      Needs Attention
-                    </span>
+                    <div className="flex items-center gap-1 text-sm font-black italic text-rose-400 tracking-tighter">
+                      <AlertCircle className="w-4 h-4" />
+                      Urgent
+                    </div>
                   </div>
-                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white mb-1 tracking-tight">
+                  <p className="text-3xl font-black text-white mb-1 tracking-tighter scale-110 origin-left">
                     {stats.pendingBookings}
                   </p>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Requires Action</p>
-                </div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-2">Pending Requests</p>
+                </Card>
               </div>
             )}
 
             {/* ===== UPCOMING EVENTS WIDGET ===== */}
             {!isCoordinator && (
               <div className="mb-8">
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg">
+                <div className="bg-white/80 dark:bg-[#111b2e]/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-200 dark:border-blue-900/30 shadow-lg">
                   {/* Widget Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
@@ -1011,15 +997,15 @@ const AdminDashboard = () => {
             {/* Enhanced Recent Activities Section */}
             <section className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 sm:p-8 lg:p-10 shadow-2xl rounded-3xl border border-gray-200/50 dark:border-gray-800/50 transition-all duration-300 hover:shadow-3xl overflow-hidden group">
               {/* Enhanced decorative gradient overlays */}
-              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-100/40 to-purple-100/40 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-full blur-3xl -mr-48 -mt-48 group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-100/40 to-blue-200/40 dark:from-blue-900/20 dark:to-blue-800/20 rounded-full blur-3xl -mr-48 -mt-48 group-hover:scale-110 transition-transform duration-700"></div>
               <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-blue-100/30 to-indigo-100/30 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-full blur-3xl -ml-40 -mb-40"></div>
 
               <Tabs defaultValue="recent" className="w-full relative z-10">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
                   <div className="flex items-center gap-4">
                     <div className="relative group/icon">
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl blur-md opacity-50 group-hover/icon:opacity-75 transition-opacity"></div>
-                      <div className="relative flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg transform group-hover/icon:scale-110 transition-transform duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl blur-md opacity-50 group-hover/icon:opacity-75 transition-opacity"></div>
+                      <div className="relative flex items-center justify-center p-3 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl shadow-lg transform group-hover/icon:scale-110 transition-transform duration-300">
                         <CalendarIcon className="w-6 h-6 text-white" />
                       </div>
                     </div>
@@ -1035,13 +1021,13 @@ const AdminDashboard = () => {
                   <TabsList className="bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm p-1.5 rounded-xl shadow-inner border border-gray-200 dark:border-gray-700">
                     <TabsTrigger
                       value="recent"
-                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
+                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-800 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
                     >
                       Recent
                     </TabsTrigger>
                     <TabsTrigger
                       value="all"
-                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
+                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-800 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
                     >
                       All Bookings
                     </TabsTrigger>
@@ -1052,7 +1038,7 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     {/* Main Search Bar */}
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-2xl blur-xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-2xl blur-xl"></div>
                       <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-4">
                         <div className="flex flex-col sm:flex-row gap-4">
                           {/* Search Input */}
@@ -1178,97 +1164,91 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Bookings Table */}
                   {filteredBookings.length > 0 ? (
-                    <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-                      <DataTable
-                        data={filteredBookings}
-                        columns={[
-                          {
-                            accessor: 'client_name',
-                            header: 'Client',
-                            sortable: true,
-                            render: (row) => {
-                              if (row.client) {
-                                const fname = row.client.client_fname || '';
-                                const lname = row.client.client_lname || '';
-                                return fname || lname ? `${fname} ${lname}`.trim() : 'N/A';
-                              }
-                              return row.client_name || 'N/A';
-                            },
-                          },
-                          {
-                            accessor: 'package_name',
-                            header: 'Package',
-                            sortable: true,
-                            render: (row) => row.eventPackage?.package_name ||
-                              row.event_package?.package_name ||
-                              row.package?.package_name ||
-                              row.package_name ||
-                              'N/A',
-                          },
-                          {
-                            accessor: 'event_date',
-                            header: 'Event Date',
-                            sortable: true,
-                            render: (row) => row.event_date
-                              ? new Date(row.event_date).toLocaleDateString()
-                              : 'N/A',
-                          },
-                          {
-                            accessor: 'status',
-                            header: 'Status',
-                            sortable: true,
-                            render: (row) => {
-                              const status = (row.booking_status || row.status || '').toLowerCase();
-                              const colors = {
-                                pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-                                confirmed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-                                completed: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-                                cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
-                              };
-                              return (
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                                  }`}>
-                                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                      {filteredBookings.map((booking, index) => {
+                        const status = (booking.booking_status || booking.status || '').toLowerCase();
+                        const statusColors = {
+                          pending: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
+                          confirmed: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
+                          approved: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
+                          completed: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                          cancelled: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
+                        };
+
+                        const clientName = booking.client
+                          ? `${booking.client.client_fname || ''} ${booking.client.client_lname || ''}`.trim()
+                          : booking.client_name || 'N/A';
+
+                        const packageName = booking.eventPackage?.package_name ||
+                          booking.event_package?.package_name ||
+                          booking.package?.package_name ||
+                          booking.package_name ||
+                          'N/A';
+
+                        // Price calculation
+                        let price = booking?.eventPackage?.package_price ||
+                          booking?.event_package?.package_price ||
+                          booking?.package?.package_price ||
+                          booking?.total_amount ||
+                          0;
+                        const numericPrice = parseFloat(price);
+
+                        return (
+                          <div
+                            key={booking.booking_id || index}
+                            className="group relative bg-white/50 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-gray-700 p-5 hover:bg-white/80 dark:hover:bg-gray-800/60 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                          >
+                            {/* Card Background Accent */}
+                            <div className={`absolute top-0 right-0 w-24 h-24 blur-3xl opacity-10 group-hover:opacity-20 transition-opacity ${status === 'pending' ? 'bg-yellow-500' :
+                              status === 'confirmed' || status === 'approved' ? 'bg-green-500' :
+                                status === 'completed' ? 'bg-blue-500' : 'bg-red-500'
+                              }`}></div>
+
+                            <div className="flex justify-between items-start mb-4 relative z-10">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                                  {clientName.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="font-bold text-gray-900 dark:text-white truncate">{clientName}</h4>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Client</p>
+                                </div>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${statusColors[status] || 'bg-gray-100 text-gray-600'}`}>
+                                {status === 'confirmed' ? 'Approved' : status}
+                              </span>
+                            </div>
+
+                            <div className="space-y-3 mb-4 relative z-10">
+                              <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <Package className="w-4 h-4 text-indigo-500" />
+                                <span className="font-semibold truncate">{packageName}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <Calendar className="w-4 h-4 text-purple-500" />
+                                <span>{booking.event_date ? new Date(booking.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 relative z-10">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Amount</span>
+                                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+                                  ₱{numericPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                 </span>
-                              );
-                            },
-                          },
-                          {
-                            accessor: 'total_amount',
-                            header: 'Amount',
-                            sortable: true,
-                            render: (row) => {
-                              // Try multiple possible paths for package price
-                              const price = row?.eventPackage?.package_price ||
-                                row?.event_package?.package_price ||
-                                row?.eventPackage?.price ||
-                                row?.event_package?.price ||
-                                row?.package?.package_price ||
-                                row?.package?.price ||
-                                row?.total_amount ||
-                                row?.package_price ||
-                                row?.price ||
-                                null;
-
-                              if (price === null || price === undefined || price === '' || isNaN(parseFloat(price))) {
-                                return 'N/A';
-                              }
-
-                              const numericPrice = parseFloat(price);
-                              return isNaN(numericPrice)
-                                ? 'N/A'
-                                : `₱${numericPrice.toLocaleString('en-US', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}`;
-                            },
-                          },
-                        ]}
-                        searchable={false}
-                        pagination={false}
-                      />
+                              </div>
+                              <Link
+                                to={`/admin/bookings?search=${encodeURIComponent(clientName)}`}
+                                className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 transition-all duration-300"
+                                title="View Details"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : recentBookings.length > 0 ? (
                     <div className="text-center py-16 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
@@ -1305,7 +1285,7 @@ const AdminDashboard = () => {
                 </TabsContent>
                 <TabsContent value="all" className="mt-6">
                   <div className="text-center py-16">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 mb-4">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 mb-4">
                       <Calendar className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">View All Bookings</h3>
@@ -1314,7 +1294,7 @@ const AdminDashboard = () => {
                     </p>
                     <Link
                       to="/admin/bookings"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 dark:hover:from-indigo-600 dark:hover:to-purple-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900 text-white rounded-xl hover:from-blue-700 hover:to-blue-900 dark:hover:from-blue-600 dark:hover:to-blue-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     >
                       View all bookings
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1328,7 +1308,7 @@ const AdminDashboard = () => {
           </>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

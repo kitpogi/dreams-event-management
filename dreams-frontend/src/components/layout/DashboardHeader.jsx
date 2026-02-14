@@ -17,11 +17,16 @@ import {
     Plus,
     Settings,
     User,
+    Users,
     HelpCircle,
     X,
     Package,
     Calendar,
     CreditCard,
+    Image,
+    Building2,
+    FileText,
+    Mail,
     Menu
 } from 'lucide-react';
 import { NotificationCenter } from '../features';
@@ -36,7 +41,7 @@ import {
 const DashboardHeader = () => {
     const { user, logout, isAdmin } = useAuth();
     const { darkMode, toggleDarkMode } = useTheme();
-    const { isCollapsed, toggleSidebar, isMobile } = useSidebar();
+    const { isCollapsed, toggleSidebar, isMobile, sidebarWidth } = useSidebar();
     const navigate = useNavigate();
     const location = useLocation();
     const [showDropdown, setShowDropdown] = useState(false);
@@ -46,14 +51,28 @@ const DashboardHeader = () => {
 
     const dashboardPath = isAdmin ? '/admin/dashboard' : '/dashboard';
 
-    // Quick search options
-    const quickSearchItems = [
+    // Quick search options — role-aware
+    const adminSearchItems = [
+        { label: 'All Bookings', path: '/admin/bookings', icon: Calendar },
+        { label: 'Calendar View', path: '/admin/bookings/calendar', icon: Calendar },
+        { label: 'Packages', path: '/admin/packages', icon: Package },
+        { label: 'Services', path: '/admin/services', icon: Settings },
+        { label: 'Venues', path: '/admin/venues', icon: Building2 },
+        { label: 'Portfolio', path: '/admin/portfolio', icon: Image },
+        { label: 'Clients', path: '/admin/clients', icon: Users },
+        { label: 'Inquiries', path: '/admin/contact-inquiries', icon: Mail },
+        { label: 'Audit Logs', path: '/admin/audit-logs', icon: FileText },
+    ];
+
+    const clientSearchItems = [
         { label: 'My Bookings', path: '/dashboard/bookings', icon: Calendar },
         { label: 'Browse Packages', path: '/dashboard/packages', icon: Package },
         { label: 'Payment History', path: '/dashboard/payments', icon: CreditCard },
         { label: 'Account Settings', path: '/profile/settings', icon: Settings },
         { label: 'My Favorites', path: '/favorites', icon: Heart },
     ];
+
+    const quickSearchItems = isAdmin ? adminSearchItems : clientSearchItems;
 
     const filteredSearchItems = quickSearchItems.filter(item =>
         item.label.toLowerCase().includes(searchQuery.toLowerCase())
@@ -108,9 +127,26 @@ const DashboardHeader = () => {
         setSearchQuery('');
     };
 
-    // Get page title based on current route
+    // Get page title based on current route — role-aware
     const getPageTitle = () => {
         const path = location.pathname;
+
+        if (isAdmin) {
+            if (path === '/admin/dashboard') return 'Admin Dashboard';
+            if (path.includes('/bookings/calendar')) return 'Calendar View';
+            if (path.includes('/bookings')) return 'Bookings';
+            if (path.includes('/packages')) return 'Packages';
+            if (path.includes('/services')) return 'Services';
+            if (path.includes('/venues')) return 'Venues';
+            if (path.includes('/portfolio')) return 'Portfolio';
+            if (path.includes('/testimonials')) return 'Testimonials';
+            if (path.includes('/team')) return 'Team';
+            if (path.includes('/clients')) return 'Clients';
+            if (path.includes('/contact-inquiries')) return 'Inquiries';
+            if (path.includes('/audit-logs')) return 'Audit Logs';
+            return 'Admin Dashboard';
+        }
+
         if (path === '/dashboard') return 'Dashboard';
         if (path.includes('/bookings')) return 'My Bookings';
         if (path.includes('/packages')) return 'Packages';
@@ -129,15 +165,18 @@ const DashboardHeader = () => {
         return 'Good evening';
     };
 
+    // Theme colors — admin gets dark blue, client gets neutral
+    const headerBgClass = 'bg-transparent';
+
+    // Accent color classes - Unified to blue
+    const accentColor = 'blue';
+
     return (
         <>
             <header
-                className={`fixed top-0 right-0 z-40 transition-all duration-300 h-16 ${darkMode
-                    ? 'bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50'
-                    : 'bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm'
-                    }`}
+                className={`fixed top-0 right-0 z-40 transition-all duration-300 h-16 ${headerBgClass}`}
                 style={{
-                    left: isMobile ? 0 : (isCollapsed ? '5rem' : '16rem'),
+                    left: isMobile ? 0 : sidebarWidth,
                 }}
             >
                 <div className="h-full px-3 lg:px-6 flex items-center justify-between gap-4">
@@ -156,7 +195,7 @@ const DashboardHeader = () => {
                                         <Menu className="w-5 h-5" />
                                     </button>
                                 </SheetTrigger>
-                                <SheetContent side="left" className="w-72 p-0">
+                                <SheetContent side="left" className="w-72 p-0 bg-transparent border-none">
                                     <MobileSidebar />
                                 </SheetContent>
                             </Sheet>
@@ -200,9 +239,9 @@ const DashboardHeader = () => {
                     <div className="hidden lg:flex flex-1 max-w-md">
                         <button
                             onClick={() => setShowSearch(true)}
-                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl border transition-all ${darkMode
-                                ? 'bg-gray-800/50 border-gray-700 text-gray-400 hover:border-gray-600 hover:bg-gray-800'
-                                : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-white'
+                            className={`w-full flex items-center gap-3 px-4 py-2 transition-all rounded-xl border ${darkMode
+                                ? 'bg-white/5 border-blue-900/30 text-gray-400 hover:text-white hover:bg-white/10 hover:border-blue-700/50'
+                                : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 hover:border-gray-300'
                                 }`}
                         >
                             <Search className="w-4 h-4" />
@@ -221,29 +260,29 @@ const DashboardHeader = () => {
                         {/* Mobile search */}
                         <button
                             onClick={() => setShowSearch(true)}
-                            className={`lg:hidden p-2 rounded-xl transition-all ${darkMode
-                                ? 'hover:bg-gray-800 text-gray-400'
-                                : 'hover:bg-gray-100 text-gray-600'
+                            className={`lg:hidden p-2 transition-all ${darkMode
+                                ? 'text-gray-400 hover:text-white'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             <Search className="w-5 h-5" />
                         </button>
 
-                        {/* Quick action - Book Event */}
+                        {/* Quick action button — role-aware */}
                         <Link
-                            to="/dashboard/packages"
-                            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm font-medium shadow-lg shadow-purple-500/25 transition-all hover:shadow-purple-500/40 hover:scale-[1.02]"
+                            to={isAdmin ? '/admin/bookings' : '/dashboard/packages'}
+                            className={`hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-white text-sm font-medium shadow-lg transition-all hover:scale-[1.02] bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 shadow-blue-500/25 hover:shadow-blue-500/40`}
                         >
                             <Plus className="w-4 h-4" />
-                            <span className="hidden md:inline">Book Event</span>
+                            <span className="hidden md:inline">{isAdmin ? 'Manage Bookings' : 'Book Event'}</span>
                         </Link>
 
                         {/* Website link */}
                         <Link
                             to="/"
-                            className={`p-2 rounded-xl transition-all ${darkMode
-                                ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
-                                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                            className={`p-2 transition-all ${darkMode
+                                ? 'text-gray-400 hover:text-white'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                             title="Back to Website"
                         >
@@ -253,9 +292,9 @@ const DashboardHeader = () => {
                         {/* Dark mode toggle */}
                         <button
                             onClick={toggleDarkMode}
-                            className={`p-2 rounded-xl transition-all ${darkMode
-                                ? 'hover:bg-gray-800 text-yellow-400'
-                                : 'hover:bg-gray-100 text-gray-600'
+                            className={`p-2 transition-all ${darkMode
+                                ? 'text-yellow-400'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                             title={darkMode ? 'Light mode' : 'Dark mode'}
                         >
@@ -269,12 +308,9 @@ const DashboardHeader = () => {
                         <div className="relative user-menu ml-1">
                             <button
                                 onClick={() => setShowDropdown(!showDropdown)}
-                                className={`flex items-center gap-2 p-1.5 pr-3 rounded-xl transition-all ${darkMode
-                                    ? 'hover:bg-gray-800'
-                                    : 'hover:bg-gray-100'
-                                    }`}
+                                className={`flex items-center gap-2 p-1.5 pr-3 transition-all`}
                             >
-                                <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center overflow-hidden ring-2 ring-white/20">
+                                <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden ring-2 ring-white/20 bg-gradient-to-br from-blue-600 to-blue-800`}>
                                     {user?.profile_picture ? (
                                         <img
                                             src={ensureAbsoluteUrl(user.profile_picture)}
@@ -303,7 +339,7 @@ const DashboardHeader = () => {
                                     {/* User info header */}
                                     <div className={`p-4 ${darkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center overflow-hidden">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800`}>
                                                 {user?.profile_picture ? (
                                                     <img src={ensureAbsoluteUrl(user.profile_picture)} alt="" className="w-full h-full object-cover" />
                                                 ) : (
@@ -438,7 +474,7 @@ const DashboardHeader = () => {
                                             ? 'bg-gray-800'
                                             : 'bg-gray-100'
                                             }`}>
-                                            <Icon className="w-5 h-5 text-purple-500" />
+                                            <Icon className={`w-5 h-5 text-blue-500`} />
                                         </div>
                                         <span className="font-medium">{item.label}</span>
                                     </button>
@@ -475,7 +511,7 @@ const MobileSidebar = () => {
     const isActive = (path) => location.pathname === path;
 
     return (
-        <div className={`h-full flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        <div className={`h-full flex flex-col ${darkMode ? 'bg-gray-900/80' : 'bg-white/80'} backdrop-blur-xl`}>
             {/* Header */}
             <div className={`p-4 border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
                 <div className="flex items-center gap-3">
@@ -497,7 +533,7 @@ const MobileSidebar = () => {
                             key={item.path}
                             to={item.path}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active
-                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
+                                ? 'bg-blue-600 text-white shadow-lg'
                                 : darkMode
                                     ? 'text-gray-300 hover:bg-gray-800'
                                     : 'text-gray-700 hover:bg-gray-100'
@@ -523,7 +559,7 @@ const MobileSidebar = () => {
                     <span className="text-sm font-medium">Back to Website</span>
                 </Link>
             </div>
-        </div>
+        </div >
     );
 };
 

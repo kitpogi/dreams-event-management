@@ -40,7 +40,7 @@ class QueryLogServiceProvider extends ServiceProvider
 
             // Log slow queries (> 100ms) as warnings
             $logLevel = $time > 100 ? 'warning' : 'debug';
-            
+
             $logData = [
                 'sql' => $formattedSql,
                 'bindings' => $bindings,
@@ -48,9 +48,9 @@ class QueryLogServiceProvider extends ServiceProvider
             ];
 
             if ($time > 100) {
-                Log::channel('query')->warning('Slow Query Detected', $logData);
+                Log::channel('database')->warning('Slow Query Detected', $logData);
             } else {
-                Log::channel('query')->debug('Query Executed', $logData);
+                Log::channel('database')->debug('Query Executed', $logData);
             }
         });
     }

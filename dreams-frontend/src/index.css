@@ -101,8 +101,78 @@
     scroll-behavior: smooth;
     scroll-padding-top: 80px;
     /* Accounts for fixed header height */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 
+  html::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+  }
+
+  /* Global utility to hide scrollbars */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari and Opera */
+  }
+
+  /* Browser Autofill Overrides */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: white !important;
+  }
+
+  /* Force hide scrollbars on all modal-like elements and their inner scrollable areas */
+  [role="dialog"],
+  [role="alertdialog"],
+  .dialog-content,
+  .modal-content,
+  [role="dialog"] .overflow-y-auto,
+  [role="alertdialog"] .overflow-y-auto {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+
+  [role="dialog"]::-webkit-scrollbar,
+  [role="alertdialog"]::-webkit-scrollbar,
+  .dialog-content::-webkit-scrollbar,
+  .modal-content::-webkit-scrollbar,
+  [role="dialog"] .overflow-y-auto::-webkit-scrollbar,
+  [role="alertdialog"] .overflow-y-auto::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 dark:bg-gray-900/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply bg-white/80 dark:bg-gray-900/50 border-white/30 dark:border-white/20 shadow-2xl;
+  }
+}
+
+@layer base {
   :root {
     /* Base colors */
     --background: 0 0% 100%;
@@ -3009,5 +3079,21 @@ nav button {
   .focus-glow:focus-visible,
   .focus-rings:focus-visible {
     animation: none !important;
+  }
+}
+
+@layer utilities {
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }

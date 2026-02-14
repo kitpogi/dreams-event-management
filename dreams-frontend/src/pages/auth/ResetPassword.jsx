@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../api/axios';
+import { AnimatedBackground, ParticlesBackground } from '../../components/features';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -20,7 +21,7 @@ const ResetPassword = () => {
   useEffect(() => {
     const token = searchParams.get('token');
     const email = searchParams.get('email');
-    
+
     if (!token || !email) {
       toast.error('Invalid reset link. Please request a new password reset.');
       navigate('/forgot-password');
@@ -63,17 +64,17 @@ const ResetPassword = () => {
         password: formData.password,
         password_confirmation: formData.password_confirmation,
       });
-      
+
       setSuccess(true);
       toast.success('Password has been reset successfully!');
-      
+
       // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (error) {
       let message = 'Failed to reset password. Please try again.';
-      
+
       if (error.response?.status === 422) {
         // Validation errors
         const errors = error.response.data?.errors;
@@ -86,7 +87,7 @@ const ResetPassword = () => {
       } else {
         message = error.response?.data?.message || message;
       }
-      
+
       toast.error(message);
     } finally {
       setLoading(false);
@@ -95,21 +96,28 @@ const ResetPassword = () => {
 
   if (success) {
     return (
-      <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
-        <div className="layout-container flex h-full grow flex-col">
+      <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-[#0a0a1a] font-display text-gray-200">
+        {/* Animated Background Effects */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 opacity-20">
+            <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+          </div>
+          <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
+        </div>
+        <div className="layout-container flex h-full grow flex-col relative z-10">
           <div className="flex flex-1 justify-center items-center p-4 sm:p-6 md:p-8">
-            <div className="layout-content-container flex flex-row max-w-2xl w-full bg-white dark:bg-black/20 shadow-xl rounded-xl overflow-hidden p-8 sm:p-12">
+            <div className="layout-content-container flex flex-row max-w-2xl w-full border border-white/10 bg-[#0f172a]/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden p-8 sm:p-12">
               <div className="w-full text-center">
                 <div className="mb-6">
                   <svg className="mx-auto h-16 w-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Password Reset Successful!</h1>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <h1 className="text-3xl font-bold text-white mb-4">Password Reset Successful!</h1>
+                <p className="text-gray-300 mb-6">
                   Your password has been reset successfully. You will be redirected to the login page shortly.
                 </p>
-                <Link 
+                <Link
                   to="/login"
                   className="inline-block px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
                 >
@@ -124,28 +132,35 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
-      <div className="layout-container flex h-full grow flex-col">
+    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden bg-[#0a0a1a] font-display text-gray-200">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-20">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+        </div>
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.15)" speed={0.03} interactive={false} />
+      </div>
+      <div className="layout-container flex h-full grow flex-col relative z-10">
         <div className="flex flex-1 justify-center items-center p-4 sm:p-6 md:p-8">
-          <div className="layout-content-container flex flex-row max-w-2xl w-full bg-white dark:bg-black/20 shadow-xl rounded-xl overflow-hidden">
-            
+          <div className="layout-content-container flex flex-row max-w-2xl w-full border border-white/10 bg-[#0f172a]/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
+
             {/* Left Panel: Image */}
             <div className="hidden md:flex flex-1 w-1/2">
-              <div 
-                className="w-full bg-center bg-no-repeat bg-cover aspect-auto" 
-                data-alt="A beautifully decorated event venue with elegant table settings and floral arrangements." 
+              <div
+                className="w-full bg-center bg-no-repeat bg-cover aspect-auto"
+                data-alt="A beautifully decorated event venue with elegant table settings and floral arrangements."
                 style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDHcYGuFYsXX_YQOLQzDJp_BxXY58Z0-yPNSVZpQBY-LjP5AssE3dqEjgnR1IRedoHYSpLj-cl_4OOrGaprfoymH_rsVjpfFRLM_E24JmGYDj27fxhW3p1VVPk26F4FNMID5KMx6V570G6JVNbCEU0oRy83B2Ffvnb5P3MspByuOrRKtH4j7ANvGU38o8qces5tlSNR9qqhMZ33jHPkJgtaP0gUQ8o8Y4w2xPZWrSOXwI1PVenVoC4aa11UPhX-edRBlou4qmXxp04g")' }}
               ></div>
             </div>
 
             {/* Right Panel: Form */}
             <div className="flex flex-col flex-1 w-full md:w-1/2 p-8 sm:p-12">
-              
+
               {/* Heading */}
               <div className="flex flex-wrap justify-between gap-3 mb-6">
                 <div className="flex w-full flex-col gap-2">
-                  <p className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Reset Password</p>
-                  <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">
+                  <p className="text-white text-4xl font-black leading-tight tracking-[-0.033em]">Reset Password</p>
+                  <p className="text-gray-300 text-base font-normal leading-normal">
                     Enter your new password below.
                   </p>
                 </div>
@@ -154,12 +169,12 @@ const ResetPassword = () => {
               {/* Form Fields */}
               <form onSubmit={handleSubmit} className="flex flex-col gap-4 mb-4">
                 <label className="flex flex-col w-full">
-                  <p className="text-gray-900 dark:text-gray-200 text-sm font-medium leading-normal pb-2">New Password</p>
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">New Password</p>
                   <div className="flex w-full flex-1 items-stretch rounded-lg relative">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#E0D8D0] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-500 dark:placeholder:text-gray-400 px-4 pr-12 text-base font-normal leading-normal" 
-                      placeholder="Enter your new password" 
-                      type={showPassword ? "text" : "password"} 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-600 bg-gray-800/90 focus:border-primary h-12 placeholder:text-gray-500 px-4 pr-12 text-base font-normal leading-normal shadow-inner"
+                      placeholder="Enter your new password"
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
@@ -188,12 +203,12 @@ const ResetPassword = () => {
                 </label>
 
                 <label className="flex flex-col w-full">
-                  <p className="text-gray-900 dark:text-gray-200 text-sm font-medium leading-normal pb-2">Confirm New Password</p>
+                  <p className="text-gray-300 text-sm font-semibold leading-normal pb-2.5">Confirm New Password</p>
                   <div className="flex w-full flex-1 items-stretch rounded-lg relative">
-                    <input 
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#E0D8D0] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary dark:focus:border-primary h-12 placeholder:text-gray-500 dark:placeholder:text-gray-400 px-4 pr-12 text-base font-normal leading-normal" 
-                      placeholder="Confirm your new password" 
-                      type={showConfirmPassword ? "text" : "password"} 
+                    <input
+                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-600 bg-gray-800/90 focus:border-primary h-12 placeholder:text-gray-500 px-4 pr-12 text-base font-normal leading-normal shadow-inner"
+                      placeholder="Confirm your new password"
+                      type={showConfirmPassword ? "text" : "password"}
                       name="password_confirmation"
                       value={formData.password_confirmation}
                       onChange={handleChange}
@@ -222,10 +237,10 @@ const ResetPassword = () => {
 
                 {/* CTA Button */}
                 <div className="mt-4 mb-6">
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={loading}
-                    className="flex items-center justify-center w-full h-12 px-6 bg-primary text-white rounded-lg text-base font-bold leading-normal shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center w-full h-12 px-6 bg-primary text-white rounded-xl text-base font-bold leading-normal shadow-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Resetting Password...' : 'Reset Password'}
                   </button>
@@ -233,7 +248,7 @@ const ResetPassword = () => {
               </form>
 
               <div className="text-center">
-                <Link 
+                <Link
                   to="/login"
                   className="text-primary hover:underline text-sm font-medium"
                 >

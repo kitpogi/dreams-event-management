@@ -290,7 +290,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 overflow-y-auto no-scrollbar"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -357,8 +357,8 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
                   onMouseLeave={() => setHoveredMode(null)}
                   onClick={() => setMode('login')}
                   className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-bold leading-normal transition-all duration-300 transform active:scale-95 ${(hoveredMode === 'login') || (mode === 'login' && !hoveredMode)
-                      ? 'bg-white dark:bg-gradient-to-r dark:from-[#5A45F2] dark:to-[#7c3aed] shadow-md text-gray-900 dark:text-white'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-gradient-to-r dark:from-[#5A45F2] dark:to-[#7c3aed] shadow-md text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <span className="truncate">Login</span>
@@ -368,8 +368,8 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
                   onMouseLeave={() => setHoveredMode(null)}
                   onClick={() => setMode('register')}
                   className={`flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-bold leading-normal transition-all duration-300 transform active:scale-95 ${(hoveredMode === 'register') || (mode === 'register' && !hoveredMode)
-                      ? 'bg-white dark:bg-gradient-to-r dark:from-[#5A45F2] dark:to-[#7c3aed] shadow-md text-gray-900 dark:text-white'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-gradient-to-r dark:from-[#5A45F2] dark:to-[#7c3aed] shadow-md text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <span className="truncate">Sign Up</span>

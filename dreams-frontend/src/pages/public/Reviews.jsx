@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import api from '../../api/axios';
-import { LoadingSpinner } from '../../components/ui';
+import { LoadingSpinner, OptimizedImage } from '../../components/ui';
+import { AnimatedBackground, ParticlesBackground, ScrollReveal } from '../../components/features';
 
-const Reviews = () => {
+const Reviews = ({ compact = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollContainerRef = useRef(null);
   const [reviews, setReviews] = useState([]);
@@ -63,7 +64,7 @@ const Reviews = () => {
     return Array.from({ length: 5 }, (_, index) => (
       <span
         key={index}
-        className="material-symbols-outlined text-[#FFD700]"
+        className="material-symbols-outlined text-[#FFD700] text-lg"
         style={{ fontVariationSettings: index < rating ? "'FILL' 1" : "'FILL' 0" }}
       >
         star
@@ -72,120 +73,141 @@ const Reviews = () => {
   };
 
   return (
-    <div className="w-full bg-[#f3f0ff] dark:bg-gray-900 min-h-screen py-16 sm:py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
-      <div className="mx-auto max-w-7xl">
+    <div className="bg-[#0a0a1a] min-h-screen relative overflow-hidden">
+      {/* Animated Background Effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 opacity-50">
+          <AnimatedBackground type="mesh" colors={['#5A45F2', '#7ee5ff']} speed={0.15} blur={true} />
+        </div>
+        <ParticlesBackground particleCount={15} particleColor="rgba(126, 229, 255, 0.3)" speed={0.03} interactive={false} />
+      </div>
+
+      <div className={compact ? "relative z-10 px-0" : "max-w-7xl mx-auto px-6 py-16 relative z-10"}>
         <div className="flex flex-col gap-12">
           {/* Header */}
-          <div className="flex flex-col gap-4 text-center">
-            <h4 className="text-[#7c6189] dark:text-gray-400 text-sm font-bold leading-normal tracking-[0.015em] transition-colors duration-300">
-              What Our Clients Say
-            </h4>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white transition-colors duration-300">
+          <div className="flex flex-col gap-4 text-center mb-8 pt-24">
+            <span className="inline-block px-4 py-1.5 bg-[#5A45F2]/20 text-[#7ee5ff] text-sm font-semibold rounded-full w-fit mx-auto border border-[#5A45F2]/30">
+              Client Testimonials
+            </span>
+            <h2 className="text-4xl md:text-5xl font-bold text-white">
               Words from Our Happy Couples
             </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+              Don't just take our word for it. Here's what our clients have to say about their experience with D'Dreams.
+            </p>
           </div>
 
           {loading ? (
-            <LoadingSpinner variant="section" size="lg" />
+            <div className="flex justify-center py-20">
+              <LoadingSpinner variant="section" size="lg" />
+            </div>
           ) : error ? (
-            <p className="text-center text-gray-500 dark:text-gray-400">{error}</p>
+            <div className="text-center py-16">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-gray-400 max-w-md mx-auto">
+                <span className="material-symbols-outlined text-5xl mb-4 block">error</span>
+                <p className="text-lg">{error}</p>
+              </div>
+            </div>
           ) : reviews.length === 0 ? (
-            <p className="text-center text-gray-500 dark:text-gray-400">No testimonials found yet.</p>
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/5 mb-4">
+                <span className="material-symbols-outlined text-3xl text-gray-500">rate_review</span>
+              </div>
+              <p className="text-gray-400 text-lg">No testimonials found yet.</p>
+            </div>
           ) : (
             <>
               {/* Carousel Container */}
-              <div className="relative group">
+              <div className="relative group px-12">
                 {/* Left Arrow Button */}
-                <div className="absolute inset-y-0 left-0 z-10 flex items-center">
-                  <button
-                    onClick={scrollLeft}
-                    className="flex items-center justify-center w-10 h-10 -ml-5 transition-all duration-300 ease-in-out bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-[#a413ec] hover:text-white opacity-0 group-hover:opacity-100"
-                    aria-label="Scroll left"
-                  >
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                </div>
+                <button
+                  onClick={scrollLeft}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-[#5A45F2] transition-all duration-300 border border-white/20 hover:border-[#5A45F2] shadow-lg"
+                  aria-label="Scroll left"
+                >
+                  <span className="material-symbols-outlined">chevron_left</span>
+                </button>
 
                 {/* Scrollable Reviews */}
                 <div
                   ref={scrollContainerRef}
-                  className="flex overflow-x-auto [-ms-scrollbar-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-4 -mx-4"
+                  className="flex overflow-x-auto gap-6 pb-8 px-2 [-ms-scrollbar-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory"
                 >
-                  <div className="flex items-stretch px-4 gap-8">
-                    {reviews.map((review) => (
-                      <div
-                        key={review.id}
-                        className="flex flex-col gap-6 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 min-w-80 md:min-w-96 flex-shrink-0 transition-colors duration-300"
-                      >
+                  {reviews.map((review, i) => (
+                    <ScrollReveal key={review.id} variant="slide" delay={i * 100} className="flex-shrink-0 snap-center">
+                      <div className="w-[350px] md:w-[400px] flex flex-col gap-6 p-8 bg-[#0a0a1a]/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-black/20 border border-white/5 hover:border-[#5A45F2]/30 transition-all duration-300 group/card relative h-full">
+                        {/* Glow Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#5A45F2]/5 to-transparent rounded-2xl opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                        {/* Quote Icon */}
+                        <div className="absolute top-6 right-6 text-[#5A45F2]/20 font-serif text-6xl leading-none select-none">"</div>
+
                         {/* Star Rating */}
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 relative z-10">
                           {renderStars(review.rating)}
                         </div>
 
                         {/* Review Text */}
-                        <p className="text-slate-600 dark:text-gray-300 text-base italic leading-relaxed transition-colors duration-300">
+                        <p className="text-gray-300 text-lg italic leading-relaxed relative z-10 min-h-[100px]">
                           "{review.message}"
                         </p>
 
                         {/* Divider */}
-                        <div className="w-full h-px bg-slate-200 dark:bg-gray-700 transition-colors duration-300"></div>
+                        <div className="w-full h-px bg-white/10 relative z-10"></div>
 
                         {/* Reviewer */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4 relative z-10">
                           {review.avatar_url ? (
-                            <img
+                            <OptimizedImage
                               src={review.avatar_url}
                               alt={review.client_name}
-                              className="h-12 w-12 rounded-full object-cover border border-slate-200 dark:border-gray-700 transition-colors duration-300"
+                              className="h-14 w-14 rounded-full object-cover border-2 border-[#5A45F2]/30"
                             />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-[#f3f0ff] dark:bg-[#a413ec]/20 text-[#a413ec] font-semibold flex items-center justify-center transition-colors duration-300">
+                            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[#5A45F2] to-[#7ee5ff] text-white font-bold text-xl flex items-center justify-center shadow-lg shadow-[#5A45F2]/20">
                               {review.client_initials || review.client_name?.slice(0, 2)}
                             </div>
                           )}
                           <div>
-                            <p className="text-slate-800 dark:text-white text-base font-bold transition-colors duration-300">
+                            <p className="text-white text-lg font-bold group-hover/card:text-[#7ee5ff] transition-colors">
                               {review.client_name}
                             </p>
-                            <p className="text-slate-500 dark:text-gray-400 text-sm transition-colors duration-300">{review.event_type || '—'}</p>
+                            <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">{review.event_type || 'Client'}</p>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </ScrollReveal>
+                  ))}
                 </div>
 
                 {/* Right Arrow Button */}
-                <div className="absolute inset-y-0 right-0 z-10 flex items-center">
-                  <button
-                    onClick={scrollRight}
-                    className="flex items-center justify-center w-10 h-10 -mr-5 transition-all duration-300 ease-in-out bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-[#a413ec] hover:text-white opacity-0 group-hover:opacity-100"
-                    aria-label="Scroll right"
-                  >
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
-                </div>
+                <button
+                  onClick={scrollRight}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-[#5A45F2] transition-all duration-300 border border-white/20 hover:border-[#5A45F2] shadow-lg"
+                  aria-label="Scroll right"
+                >
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </button>
               </div>
 
               {/* Pagination Dots */}
-              <div className="flex justify-center items-center gap-2">
+              <div className="flex justify-center items-center gap-2 mt-4">
                 {reviews.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => {
                       if (scrollContainerRef.current) {
-                        const cardWidth = 400; // Approximate width including gap
+                        const cardWidth = 424; // Width + gap approx
                         scrollContainerRef.current.scrollTo({
                           left: index * cardWidth,
                           behavior: 'smooth'
                         });
                       }
                     }}
-                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      index === currentIndex
-                        ? 'bg-[#a413ec]'
-                        : 'bg-slate-300 dark:bg-gray-600 hover:bg-[#a413ec]/50'
-                    }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${index === currentIndex
+                      ? 'bg-[#7ee5ff] w-8'
+                      : 'bg-white/20 hover:bg-white/40 w-2'
+                      }`}
                     aria-label={`Go to review ${index + 1}`}
                   />
                 ))}
@@ -199,4 +221,3 @@ const Reviews = () => {
 };
 
 export default Reviews;
-

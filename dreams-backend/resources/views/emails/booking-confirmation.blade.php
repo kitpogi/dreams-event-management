@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,53 +15,64 @@
             padding: 20px;
             background-color: #f4f4f4;
         }
+
         .container {
             background-color: #ffffff;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 3px solid #4a90e2;
         }
+
         .header h1 {
             color: #4a90e2;
             margin: 0;
             font-size: 28px;
         }
+
         .content {
             margin: 20px 0;
         }
+
         .booking-details {
             background-color: #f9f9f9;
             padding: 20px;
             border-radius: 5px;
             margin: 20px 0;
         }
+
         .booking-details h2 {
             color: #4a90e2;
             margin-top: 0;
             font-size: 20px;
         }
+
         .detail-row {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
             border-bottom: 1px solid #e0e0e0;
         }
+
         .detail-row:last-child {
             border-bottom: none;
         }
+
         .detail-label {
             font-weight: bold;
             color: #666;
         }
+
         .detail-value {
             color: #333;
         }
+
         .status-badge {
             display: inline-block;
             padding: 5px 15px;
@@ -68,10 +80,12 @@
             font-weight: bold;
             font-size: 14px;
         }
+
         .status-pending {
             background-color: #ffc107;
             color: #333;
         }
+
         .footer {
             margin-top: 30px;
             padding-top: 20px;
@@ -80,6 +94,7 @@
             color: #666;
             font-size: 14px;
         }
+
         .message {
             background-color: #e3f2fd;
             padding: 15px;
@@ -89,24 +104,28 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="D'Dreams Event & Styles"
+                style="width: 120px; height: auto; margin-bottom: 15px;">
             <h1>🎉 Booking Confirmation</h1>
         </div>
 
         <div class="content">
             <p>Dear {{ $client->client_fname }} {{ $client->client_lname }},</p>
 
-            <p>Thank you for choosing Dreams Events! We have successfully received your booking request.</p>
+            <p>Thank you for choosing D'Dreams Event & Styles! We have successfully received your booking request.</p>
 
             <div class="message">
-                <strong>Your booking is currently pending review.</strong> Our team will review your request and get back to you soon. You will receive an email notification once your booking status is updated.
+                <strong>Your booking is currently pending review.</strong> Our team will review your request and get
+                back to you soon. You will receive an email notification once your booking status is updated.
             </div>
 
             <div class="booking-details">
                 <h2>Booking Details</h2>
-                
+
                 <div class="detail-row">
                     <span class="detail-label">Booking ID:</span>
                     <span class="detail-value">#{{ $booking->booking_id }}</span>
@@ -140,26 +159,28 @@
                 </div>
 
                 @if($booking->special_requests)
-                <div class="detail-row">
-                    <span class="detail-label">Special Requests:</span>
-                    <span class="detail-value">{{ $booking->special_requests }}</span>
-                </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Special Requests:</span>
+                        <span class="detail-value">{{ $booking->special_requests }}</span>
+                    </div>
                 @endif
             </div>
 
-            <p>If you have any questions or need to make changes to your booking, please don't hesitate to contact us.</p>
+            <p>If you have any questions or need to make changes to your booking, please don't hesitate to contact us.
+            </p>
 
             <p>We look forward to making your event unforgettable!</p>
 
             <p>Best regards,<br>
-            <strong>The Dreams Events Team</strong></p>
+                <strong>The D'Dreams Event & Styles Team</strong>
+            </p>
         </div>
 
         <div class="footer">
             <p>This is an automated email. Please do not reply directly to this message.</p>
-            <p>&copy; {{ date('Y') }} Dreams Events. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} D'Dreams Event & Styles. All rights reserved.</p>
         </div>
     </div>
 </body>
-</html>
 
+</html>

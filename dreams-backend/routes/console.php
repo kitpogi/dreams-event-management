@@ -46,3 +46,11 @@ Schedule::command('api-keys:cleanup-logs --days=90')
     ->timezone('Asia/Manila')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/api-key-cleanup.log'));
+
+// Schedule auto-cancellation of expired pending bookings that have no payments
+// This runs every hour and cancels bookings older than 24 hours (default)
+Schedule::command('bookings:cancel-expired --hours=24')
+    ->hourly()
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/booking-auto-cancellation.log'));

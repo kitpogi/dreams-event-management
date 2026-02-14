@@ -9,7 +9,7 @@ const MainLayout = ({ children }) => {
   const isHome = location.pathname === '/';
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isHome ? 'bg-[#0a0a1a]' : 'bg-white dark:bg-gray-900'}`}>
+    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-[#0a0a1a]">
       <SkipLinks />
       <KeyboardShortcuts />
       <ScreenReaderAnnouncements />

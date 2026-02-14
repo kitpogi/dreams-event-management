@@ -20,12 +20,12 @@ const ProfileSettings = () => {
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen transition-all duration-300">
+    <div className="relative">
       <div className="p-4 sm:p-6 lg:p-10">
         {/* Profile Settings Modal - Same as AdminDashboard */}
-        <ProfileSettingsModal 
-          isOpen={showModal} 
-          onClose={handleClose} 
+        <ProfileSettingsModal
+          isOpen={showModal}
+          onClose={handleClose}
         />
       </div>
     </div>

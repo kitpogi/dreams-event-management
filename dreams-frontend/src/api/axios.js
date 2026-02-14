@@ -80,6 +80,7 @@ api.interceptors.response.use(
         /^\/register/,             // Register page
         /^\/packages(\/|$)/,       // Packages pages (including /packages/:id)
         /^\/recommendations/,      // Recommendations page
+        /^\/payment\/confirm/,     // Payment confirmation (after PayMongo redirect)
       ];
 
       const isPublicRoute = publicRoutePatterns.some(pattern =>
